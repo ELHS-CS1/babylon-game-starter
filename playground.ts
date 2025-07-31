@@ -12,7 +12,6 @@ interface CharacterSpeed {
 interface CharacterConfig {
     readonly HEIGHT: number;
     readonly RADIUS: number;
-    readonly START_POSITION: BABYLON.Vector3;
     readonly SPEED: CharacterSpeed;
     readonly JUMP_HEIGHT: number;
     readonly ROTATION_SPEED: number;
@@ -207,6 +206,7 @@ interface Character {
     readonly model: string;
     readonly animations: CharacterAnims;
     readonly scale: number;
+    readonly mass: number; // Physics mass for different character weights
     readonly animationBlend?: number; // Animation blend time in milliseconds, defaults to 400
     readonly jumpDelay?: number; // Jump animation delay in milliseconds, defaults to 100
 }
@@ -223,6 +223,7 @@ const ASSETS = {
                 jump: "jump",
             },
             scale: 1,
+            mass: 1.0, // Standard weight
             animationBlend: 200,
             jumpDelay: 200
         },
@@ -235,6 +236,7 @@ const ASSETS = {
                 jump: "jump"
             },
             scale: 1.3,
+            mass: 0.8, // Lighter weight for agile character
             animationBlend: 200,
             jumpDelay: 200
         },
@@ -247,6 +249,7 @@ const ASSETS = {
                 jump: "Jump"
             },
             scale: 1.25,
+            mass: 1.5, // Heavier weight for zombie character
             animationBlend: 200,
             jumpDelay: 200
         }
@@ -397,7 +400,6 @@ const CONFIG = {
     CHARACTER: {
         HEIGHT: 1.8,
         RADIUS: 0.6,
-        START_POSITION: new BABYLON.Vector3(3, 0.3, -8),
         SPEED: {
             IN_AIR: 25.0,
             ON_GROUND: 25.0,
@@ -3820,6 +3822,7 @@ class CharacterController {
     private keyboardEventCount: number = 0;
     private keyboardDetectionTimeout: number | null = null;
     private physicsPaused: boolean = false;
+    private currentCharacter: Character | null = null;
 
     constructor(scene: BABYLON.Scene) {
         this.scene = scene;
@@ -3829,12 +3832,12 @@ class CharacterController {
         this.isIPad = this.detectIPad();
         this.isIPadWithKeyboard = this.detectIPadWithKeyboard();
 
-        // Create character physics controller
+        // Create character physics controller with default position (will be updated when character is loaded)
         this.characterController = new BABYLON.PhysicsCharacterController(
-            CONFIG.CHARACTER.START_POSITION,
+            new BABYLON.Vector3(0, 0, 0), // Default position, will be updated
             {
-                capsuleHeight: CONFIG.CHARACTER.HEIGHT,
-                capsuleRadius: CONFIG.CHARACTER.RADIUS
+                capsuleHeight: 1.8, // Default height
+                capsuleRadius: 0.6  // Default radius
             },
             scene
         );
@@ -3843,8 +3846,8 @@ class CharacterController {
         this.displayCapsule = BABYLON.MeshBuilder.CreateCapsule(
             "CharacterDisplay",
             {
-                height: CONFIG.CHARACTER.HEIGHT,
-                radius: CONFIG.CHARACTER.RADIUS
+                height: 1.8, // Default height
+                radius: 0.6  // Default radius
             },
             scene
         );
@@ -4022,7 +4025,7 @@ class CharacterController {
             if (this.isIPadWithKeyboard) {
                 // Only allow touch input for rotation (X-axis) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    this.targetRotationY += mobileDirection.x * CONFIG.CHARACTER.ROTATION_SPEED;
+                    this.targetRotationY += mobileDirection.x * 0.05; // Default rotation speed
                 }
 
                 // For movement (Z-axis), use keyboard if available, otherwise use touch
@@ -4058,7 +4061,7 @@ class CharacterController {
 
                 // Only update player rotation based on X-axis (left/right) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    this.targetRotationY += mobileDirection.x * CONFIG.CHARACTER.ROTATION_SPEED;
+                    this.targetRotationY += mobileDirection.x * 0.05; // Default rotation speed
                 }
 
                 // Set forward/backward movement based on Y-axis
@@ -4144,13 +4147,13 @@ class CharacterController {
 
         // Handle rotation based on input
         if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
-            this.targetRotationY -= CONFIG.CHARACTER.ROTATION_SPEED;
+            this.targetRotationY -= 0.05; // Default rotation speed
         }
         if (this.keysDown.has('d') || this.keysDown.has('arrowright')) {
-            this.targetRotationY += CONFIG.CHARACTER.ROTATION_SPEED;
+            this.targetRotationY += 0.05; // Default rotation speed
         }
 
-        this.displayCapsule.rotation.y += (this.targetRotationY - this.displayCapsule.rotation.y) * CONFIG.CHARACTER.ROTATION_SMOOTHING;
+        this.displayCapsule.rotation.y += (this.targetRotationY - this.displayCapsule.rotation.y) * 0.2; // Default rotation smoothing
     }
 
     private updatePosition(): void {
@@ -4272,12 +4275,23 @@ class CharacterController {
         currentVelocity: BABYLON.Vector3,
         characterOrientation: BABYLON.Quaternion
     ): BABYLON.Vector3 {
+        // Get character-specific physics attributes
+        const character = this.currentCharacter;
+        if (!character) {
+            console.warn("No character set for air physics calculations");
+            return currentVelocity;
+        }
+        
+        const characterMass = character.mass;
         let outputVelocity = currentVelocity.clone();
 
         // If boost is active, allow input-based velocity modification while in air
         if (this.boostActive) {
-            const speed = CONFIG.CHARACTER.SPEED.IN_AIR * CONFIG.CHARACTER.SPEED.BOOST_MULTIPLIER;
-            const desiredVelocity = this.inputDirection.scale(speed).applyRotationQuaternion(characterOrientation);
+            // Character-specific air speed based on mass
+            // Lighter characters (like Tech Girl: 0.8) are more agile in air
+            const baseSpeed = 25.0 * 8.0; // Default air speed * boost multiplier
+            const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Heavier characters move slower in air
+            const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
             outputVelocity = this.characterController.calculateMovement(
                 deltaTime, forwardWorld, upWorld, currentVelocity,
                 BABYLON.Vector3.Zero(), desiredVelocity, upWorld
@@ -4287,9 +4301,11 @@ class CharacterController {
             // Only apply gravity and minimal air resistance to preserve realistic physics
         }
 
-        // Add minimal air resistance to reduce sliding in air
-        const airResistance = 0.98; // Reduced air resistance (was 0.95)
-        outputVelocity.scaleInPlace(airResistance);
+        // Character-specific air resistance based on mass
+        // Heavier characters (like Zombie: 1.5) have more air resistance, lighter characters (like Tech Girl: 0.8) are more aerodynamic
+        const baseAirResistance = 0.98;
+        const massAdjustedAirResistance = baseAirResistance - (characterMass - 1.0) * 0.01; // Heavier = more resistance
+        outputVelocity.scaleInPlace(massAdjustedAirResistance);
 
         // Preserve vertical velocity component from jump
         outputVelocity.addInPlace(upWorld.scale(-outputVelocity.dot(upWorld)));
@@ -4309,8 +4325,21 @@ class CharacterController {
         supportInfo: BABYLON.CharacterSurfaceInfo,
         characterOrientation: BABYLON.Quaternion
     ): BABYLON.Vector3 {
-        const speed = this.boostActive ? CONFIG.CHARACTER.SPEED.ON_GROUND * CONFIG.CHARACTER.SPEED.BOOST_MULTIPLIER : CONFIG.CHARACTER.SPEED.ON_GROUND;
-        const desiredVelocity = this.inputDirection.scale(speed).applyRotationQuaternion(characterOrientation);
+        // Get character-specific physics attributes
+        const character = this.currentCharacter;
+        if (!character) {
+            console.warn("No character set for physics calculations");
+            return currentVelocity;
+        }
+        
+        const characterMass = character.mass;
+        
+        // Character-specific speed calculations based on mass
+        // Heavier characters (like Zombie: 1.5) move slower, lighter characters (like Tech Girl: 0.8) move faster
+        const baseSpeed = this.boostActive ? 25.0 * 8.0 : 25.0; // Default ground speed with boost multiplier
+        const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Inverse square root relationship for realistic physics
+        
+        const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
         const outputVelocity = this.characterController.calculateMovement(
             deltaTime, forwardWorld, supportInfo.averageSurfaceNormal, currentVelocity,
             supportInfo.averageSurfaceVelocity, desiredVelocity, upWorld
@@ -4318,12 +4347,14 @@ class CharacterController {
 
         outputVelocity.subtractInPlace(supportInfo.averageSurfaceVelocity);
 
-        // Add minimal friction and damping to reduce sliding
-        const friction = 0.95; // Reduce velocity by only 5% each frame (was 15%)
-        const maxSpeed = speed * 2.0; // Allow higher max speed (was 1.2)
+        // Character-specific friction based on mass
+        // Heavier characters have more friction (more stable), lighter characters have less friction (more slippery)
+        const baseFriction = 0.95;
+        const massAdjustedFriction = baseFriction + (characterMass - 1.0) * 0.02; // Heavier = more friction
+        const maxSpeed = massAdjustedSpeed * 2.0;
 
-        // Apply friction
-        outputVelocity.scaleInPlace(friction);
+        // Apply character-specific friction
+        outputVelocity.scaleInPlace(massAdjustedFriction);
 
         // Clamp velocity to prevent excessive sliding
         const currentSpeed = outputVelocity.length();
@@ -4331,9 +4362,11 @@ class CharacterController {
             outputVelocity.normalize().scaleInPlace(maxSpeed);
         }
 
-        // Add minimal damping when no input is detected
+        // Character-specific damping when no input is detected
+        // Heavier characters stop more quickly, lighter characters slide more
         if (this.inputDirection.length() < 0.1) {
-            outputVelocity.scaleInPlace(0.9); // Reduced damping when not moving (was 0.7)
+            const dampingFactor = 0.9 + (characterMass - 1.0) * 0.05; // Heavier = more damping
+            outputVelocity.scaleInPlace(dampingFactor);
         }
 
         const inv1k = 1e-3;
@@ -4352,9 +4385,24 @@ class CharacterController {
     }
 
     private calculateJumpVelocity(currentVelocity: BABYLON.Vector3, upWorld: BABYLON.Vector3): BABYLON.Vector3 {
-        const jumpHeight = this.boostActive ? 10.0 : CONFIG.CHARACTER.JUMP_HEIGHT;
-        const u = Math.sqrt(2 * CONFIG.PHYSICS.CHARACTER_GRAVITY.length() * jumpHeight);
+        // Get character-specific physics attributes
+        const character = this.currentCharacter;
+        if (!character) {
+            console.warn("No character set for jump physics calculations");
+            return currentVelocity;
+        }
+        
+        const characterMass = character.mass;
+        
+        // Character-specific jump height based on mass
+        // Heavier characters (like Zombie: 1.5) jump lower, lighter characters (like Tech Girl: 0.8) jump higher
+        const jumpHeight = this.boostActive ? 10.0 : 2.0; // Default jump height
+        const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Heavier = lower jump
+        
+        // Calculate jump velocity using physics formula: v = sqrt(2 * g * h)
+        const u = Math.sqrt(2 * CONFIG.PHYSICS.CHARACTER_GRAVITY.length() * massAdjustedJumpHeight);
         const curRelVel = currentVelocity.dot(upWorld);
+        
         return currentVelocity.add(upWorld.scale(u - curRelVel));
     }
 
@@ -4382,6 +4430,24 @@ class CharacterController {
     public setPlayerMesh(mesh: BABYLON.AbstractMesh): void {
         this.playerMesh = mesh;
         mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+    }
+
+    public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
+        // Update character position to spawn point
+        this.characterController.setPosition(spawnPosition);
+        
+        // Store current character for physics calculations
+        this.currentCharacter = character;
+        
+        // Update character-specific physics attributes
+        console.log(`Character physics updated: ${character.name} (mass: ${character.mass})`);
+        
+        // Reset physics state for new character
+        this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
+        this.inputDirection.setAll(0);
+        this.wantJump = false;
+        this.boostActive = false;
+        this.state = CHARACTER_STATES.IN_AIR;
     }
 
     public getDisplayCapsule(): BABYLON.Mesh {
@@ -4495,7 +4561,10 @@ class CharacterController {
      * Resets the character to the starting position
      */
     public resetToStartPosition(): void {
-        this.characterController.setPosition(CONFIG.CHARACTER.START_POSITION);
+        // Use environment spawn point instead of character start position
+        const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
+        const spawnPoint = environment?.spawnPoint || new BABYLON.Vector3(0, 0, 0);
+        this.characterController.setPosition(spawnPoint);
         this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
         this.inputDirection.setAll(0);
         this.wantJump = false;
@@ -4806,6 +4875,12 @@ class SceneManager {
                     });
 
                     this.characterController.setPlayerMesh(result.meshes[0]);
+                    
+                    // Update character physics with spawn position from current environment
+                    const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+                    if (currentEnvironment) {
+                        this.characterController.updateCharacterPhysics(character, currentEnvironment.spawnPoint);
+                    }
 
                                     // Setup animations using character's animation mapping with fallbacks
                 playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
@@ -4884,7 +4959,7 @@ class SceneManager {
 
         // Get the current environment's spawn point
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-        const spawnPoint = environment?.spawnPoint || CONFIG.CHARACTER.START_POSITION;
+        const spawnPoint = environment?.spawnPoint || new BABYLON.Vector3(0, 0, 0);
 
         // Reset character to environment-specific spawn position
         this.characterController.setPosition(spawnPoint);
