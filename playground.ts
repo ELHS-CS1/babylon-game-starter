@@ -207,6 +207,16 @@ interface Character {
     readonly animations: CharacterAnims;
     readonly scale: number;
     readonly mass: number; // Physics mass for different character weights
+    readonly height: number; // Character capsule height
+    readonly radius: number; // Character capsule radius
+    readonly speed: {
+        readonly inAir: number;
+        readonly onGround: number;
+        readonly boostMultiplier: number;
+    };
+    readonly jumpHeight: number; // Jump height for physics calculations
+    readonly rotationSpeed: number; // Rotation speed in radians
+    readonly rotationSmoothing: number; // Rotation smoothing factor
     readonly animationBlend?: number; // Animation blend time in milliseconds, defaults to 400
     readonly jumpDelay?: number; // Jump animation delay in milliseconds, defaults to 100
 }
@@ -224,6 +234,16 @@ const ASSETS = {
             },
             scale: 1,
             mass: 1.0, // Standard weight
+            height: 1.8,
+            radius: 0.6,
+            speed: {
+                inAir: 25.0,
+                onGround: 25.0,
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 2.0,
+            rotationSpeed: 0.05, // radians
+            rotationSmoothing: 0.2,
             animationBlend: 200,
             jumpDelay: 200
         },
@@ -237,6 +257,16 @@ const ASSETS = {
             },
             scale: 1.3,
             mass: 0.8, // Lighter weight for agile character
+            height: 1.8,
+            radius: 0.6,
+            speed: {
+                inAir: 30.0, // Faster in air
+                onGround: 30.0, // Faster on ground
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 2.5, // Higher jumps
+            rotationSpeed: 0.06, // Faster rotation
+            rotationSmoothing: 0.15, // Less smoothing for more responsive feel
             animationBlend: 200,
             jumpDelay: 200
         },
@@ -250,6 +280,16 @@ const ASSETS = {
             },
             scale: 1.25,
             mass: 1.5, // Heavier weight for zombie character
+            height: 1.8,
+            radius: 0.6,
+            speed: {
+                inAir: 20.0, // Slower in air
+                onGround: 20.0, // Slower on ground
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 1.5, // Lower jumps
+            rotationSpeed: 0.04, // Slower rotation
+            rotationSmoothing: 0.25, // More smoothing for sluggish feel
             animationBlend: 200,
             jumpDelay: 200
         }
@@ -397,18 +437,7 @@ const ASSETS = {
 // Configuration Constants
 const CONFIG = {
     // Character Settings
-    CHARACTER: {
-        HEIGHT: 1.8,
-        RADIUS: 0.6,
-        SPEED: {
-            IN_AIR: 25.0,
-            ON_GROUND: 25.0,
-            BOOST_MULTIPLIER: 8.0
-        },
-        JUMP_HEIGHT: 2.0,
-        ROTATION_SPEED: BABYLON.Tools.ToRadians(3),
-        ROTATION_SMOOTHING: 0.2
-    },
+
 
     // Camera Settings
     CAMERA: {
@@ -3836,8 +3865,8 @@ class CharacterController {
         this.characterController = new BABYLON.PhysicsCharacterController(
             new BABYLON.Vector3(0, 0, 0), // Default position, will be updated
             {
-                capsuleHeight: 1.8, // Default height
-                capsuleRadius: 0.6  // Default radius
+                capsuleHeight: 1.8, // Default height, will be updated when character is loaded
+                capsuleRadius: 0.6  // Default radius, will be updated when character is loaded
             },
             scene
         );
@@ -3846,8 +3875,8 @@ class CharacterController {
         this.displayCapsule = BABYLON.MeshBuilder.CreateCapsule(
             "CharacterDisplay",
             {
-                height: 1.8, // Default height
-                radius: 0.6  // Default radius
+                height: 1.8, // Default height, will be updated when character is loaded
+                radius: 0.6  // Default radius, will be updated when character is loaded
             },
             scene
         );
@@ -4025,7 +4054,8 @@ class CharacterController {
             if (this.isIPadWithKeyboard) {
                 // Only allow touch input for rotation (X-axis) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    this.targetRotationY += mobileDirection.x * 0.05; // Default rotation speed
+                    const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+                    this.targetRotationY += mobileDirection.x * rotationSpeed;
                 }
 
                 // For movement (Z-axis), use keyboard if available, otherwise use touch
@@ -4061,7 +4091,8 @@ class CharacterController {
 
                 // Only update player rotation based on X-axis (left/right) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    this.targetRotationY += mobileDirection.x * 0.05; // Default rotation speed
+                    const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+                    this.targetRotationY += mobileDirection.x * rotationSpeed;
                 }
 
                 // Set forward/backward movement based on Y-axis
@@ -4145,15 +4176,18 @@ class CharacterController {
             return;
         }
 
-        // Handle rotation based on input
+        // Handle rotation based on input using active character's properties
+        const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+        const rotationSmoothing = this.currentCharacter?.rotationSmoothing || 0.2;
+        
         if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
-            this.targetRotationY -= 0.05; // Default rotation speed
+            this.targetRotationY -= rotationSpeed;
         }
         if (this.keysDown.has('d') || this.keysDown.has('arrowright')) {
-            this.targetRotationY += 0.05; // Default rotation speed
+            this.targetRotationY += rotationSpeed;
         }
 
-        this.displayCapsule.rotation.y += (this.targetRotationY - this.displayCapsule.rotation.y) * 0.2; // Default rotation smoothing
+        this.displayCapsule.rotation.y += (this.targetRotationY - this.displayCapsule.rotation.y) * rotationSmoothing;
     }
 
     private updatePosition(): void {
@@ -4287,10 +4321,9 @@ class CharacterController {
 
         // If boost is active, allow input-based velocity modification while in air
         if (this.boostActive) {
-            // Character-specific air speed based on mass
-            // Lighter characters (like Tech Girl: 0.8) are more agile in air
-            const baseSpeed = 25.0 * 8.0; // Default air speed * boost multiplier
-            const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Heavier characters move slower in air
+                    // Character-specific air speed using active character's properties
+        const baseSpeed = character.speed.inAir * character.speed.boostMultiplier;
+        const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
             const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
             outputVelocity = this.characterController.calculateMovement(
                 deltaTime, forwardWorld, upWorld, currentVelocity,
@@ -4334,10 +4367,9 @@ class CharacterController {
         
         const characterMass = character.mass;
         
-        // Character-specific speed calculations based on mass
-        // Heavier characters (like Zombie: 1.5) move slower, lighter characters (like Tech Girl: 0.8) move faster
-        const baseSpeed = this.boostActive ? 25.0 * 8.0 : 25.0; // Default ground speed with boost multiplier
-        const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Inverse square root relationship for realistic physics
+        // Character-specific speed calculations using active character's properties
+        const baseSpeed = this.boostActive ? character.speed.onGround * character.speed.boostMultiplier : character.speed.onGround;
+        const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
         
         const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
         const outputVelocity = this.characterController.calculateMovement(
@@ -4394,10 +4426,9 @@ class CharacterController {
         
         const characterMass = character.mass;
         
-        // Character-specific jump height based on mass
-        // Heavier characters (like Zombie: 1.5) jump lower, lighter characters (like Tech Girl: 0.8) jump higher
-        const jumpHeight = this.boostActive ? 10.0 : 2.0; // Default jump height
-        const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Heavier = lower jump
+        // Character-specific jump height using active character's properties
+        const jumpHeight = this.boostActive ? 10.0 : character.jumpHeight; // Use character's jump height
+        const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
         
         // Calculate jump velocity using physics formula: v = sqrt(2 * g * h)
         const u = Math.sqrt(2 * CONFIG.PHYSICS.CHARACTER_GRAVITY.length() * massAdjustedJumpHeight);
@@ -4432,7 +4463,7 @@ class CharacterController {
         mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
     }
 
-    public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
+        public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
         // Update character position to spawn point
         this.characterController.setPosition(spawnPosition);
         
@@ -4440,7 +4471,12 @@ class CharacterController {
         this.currentCharacter = character;
         
         // Update character-specific physics attributes
-        console.log(`Character physics updated: ${character.name} (mass: ${character.mass})`);
+        // Note: PhysicsCharacterController doesn't allow runtime updates of capsule dimensions
+        // The display capsule can be updated for visual feedback
+        this.displayCapsule.scaling.setAll(1); // Reset scaling
+        this.displayCapsule.scaling.y = character.height / 1.8; // Scale height
+        this.displayCapsule.scaling.x = character.radius / 0.6; // Scale radius
+        this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
         
         // Reset physics state for new character
         this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
@@ -5815,29 +5851,29 @@ class NodeMaterialManager {
         const meshName = mesh.name;
 
         try {
-            console.log(`Processing mesh "${meshName}" for node material snippet "${snippetId}"`);
+    
 
             // Check if we already have this node material cached
             let nodeMaterial = this.activeNodeMaterials.get(snippetId);
             
             if (!nodeMaterial) {
                 // Parse the node material from the snippet only if not cached
-                console.log(`Parsing new node material from snippet "${snippetId}"`);
+    
                 nodeMaterial = await BABYLON.NodeMaterial.ParseFromSnippetAsync(snippetId, this.scene);
                 
                 if (nodeMaterial) {
                     // Store the node material for reuse
                     this.activeNodeMaterials.set(snippetId, nodeMaterial);
-                    console.log(`Cached node material "${snippetId}" for future use`);
+    
                 }
             } else {
-                console.log(`Using cached node material "${snippetId}"`);
+
             }
             
             if (nodeMaterial) {
                 // Apply the node material to the mesh
                 mesh.material = nodeMaterial;
-                console.log(`Successfully applied node material "${snippetId}" to mesh "${meshName}"`);
+    
             } else {
                 console.warn(`Failed to parse node material from snippet "${snippetId}" for mesh "${meshName}"`);
             }
