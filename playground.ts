@@ -287,7 +287,30 @@ const ASSETS = {
                 onGround: 20.0, // Slower on ground
                 boostMultiplier: 8.0
             },
-            jumpHeight: 1.5, // Lower jumps
+            jumpHeight: 2.5, // Lower jumps
+            rotationSpeed: 0.04, // Slower rotation
+            rotationSmoothing: 0.25, // More smoothing for sluggish feel
+            animationBlend: 200,
+            jumpDelay: 200
+        },
+        {
+            name: "Hulk",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/hulk/hulk.glb",
+            animations: {
+                idle: "gk_idle",
+                walk: "slow_run",
+                jump: "gk_jump"
+            },
+            scale: 2.0,
+            mass: 3.0, // Heavier weight for zombie character
+            height: 3.0,
+            radius: 1.2,
+            speed: {
+                inAir: 30.0,
+                onGround: 20.0, // Slower on ground
+                boostMultiplier: 15.0
+            },
+            jumpHeight: 11, // Lower jumps
             rotationSpeed: 0.04, // Slower rotation
             rotationSmoothing: 0.25, // More smoothing for sluggish feel
             animationBlend: 200,
@@ -321,7 +344,7 @@ const ASSETS = {
                 BLUR: 0.3,
                 TYPE: "SPHERE" as SkyType
             },
-            spawnPoint: new BABYLON.Vector3(3, 0.3, -8),
+            spawnPoint: new BABYLON.Vector3(3, 0.5, -8),
             particles: [
                 {
                     name: "Magic Sparkles",
