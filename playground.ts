@@ -655,7 +655,8 @@ const INPUT_KEYS = {
     BOOST: ['shift'],
     DEBUG: ['0'],
     HUD_TOGGLE: ['h'],
-    HUD_POSITION: ['p']
+    HUD_POSITION: ['p'],
+    RESET_CAMERA: ['1']
 } as const;
 
 // Mobile Touch Controls Configuration
@@ -3833,6 +3834,17 @@ class SmoothFollowCameraController {
         this.dragDeltaZ = 0;
     }
 
+    /**
+     * Reset camera to default offset from player
+     */
+    public resetCameraToDefaultOffset(): void {
+        // Reset the offset to the default configuration
+        this.offset.copyFrom(CONFIG.CAMERA.OFFSET);
+        
+        // Force activate smooth follow to ensure camera moves to new position
+        this.forceActivateSmoothFollow();
+    }
+
     public dispose(): void {
         this.scene.onPointerObservable.remove(this.pointerObserver);
         this.scene.onBeforeRenderObservable.remove(this.beforeRenderObserver);
@@ -4034,6 +4046,8 @@ class CharacterController {
             this.toggleHUD();
         } else if (INPUT_KEYS.HUD_POSITION.includes(key as any)) {
             this.cycleHUDPosition();
+        } else if (INPUT_KEYS.RESET_CAMERA.includes(key as any)) {
+            this.resetCameraToDefaultOffset();
         }
 
         // Only update mobile input for iPads with keyboards, not for regular keyboard input
@@ -4152,6 +4166,12 @@ class CharacterController {
     private cycleHUDPosition(): void {
         // This would need to be connected to HUDManager
 
+    }
+
+    private resetCameraToDefaultOffset(): void {
+        if (this.cameraController) {
+            this.cameraController.resetCameraToDefaultOffset();
+        }
     }
 
     private updateParticleSystem(): void {
