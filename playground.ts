@@ -4585,6 +4585,10 @@ class CharacterController {
         return this.characterController.getVelocity();
     }
 
+    public getPosition(): BABYLON.Vector3 {
+        return this.characterController.getPosition();
+    }
+
     public setPosition(position: BABYLON.Vector3): void {
         this.characterController.setPosition(position);
     }
@@ -4909,7 +4913,7 @@ class SceneManager {
         this.loadCharacter(character);
     }
 
-    private loadCharacter(character: Character): void {
+    private loadCharacter(character: Character, preservedPosition?: BABYLON.Vector3 | null): void {
         // Remove all animation groups from the scene before loading a new character
         this.scene.animationGroups.slice().forEach(group => group.dispose());
         
@@ -4935,11 +4939,19 @@ class SceneManager {
 
                     this.characterController.setPlayerMesh(result.meshes[0]);
                     
-                    // Update character physics with spawn position from current environment
-                    const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-                    if (currentEnvironment) {
-                        this.characterController.updateCharacterPhysics(character, currentEnvironment.spawnPoint);
+                    // Determine position for new character
+                    let characterPosition: BABYLON.Vector3;
+                    if (preservedPosition) {
+                        // Use preserved position when switching characters
+                        characterPosition = preservedPosition;
+                    } else {
+                        // Use spawn point when loading character for the first time or after environment change
+                        const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+                        characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new BABYLON.Vector3(0, 0, 0);
                     }
+                    
+                    // Update character physics with determined position
+                    this.characterController.updateCharacterPhysics(character, characterPosition);
 
                                     // Setup animations using character's animation mapping with fallbacks
                 playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
@@ -5051,14 +5063,20 @@ class SceneManager {
             return;
         }
 
+        // Save current character position before switching
+        let currentPosition: BABYLON.Vector3 | null = null;
+        if (this.characterController) {
+            currentPosition = this.characterController.getPosition().clone();
+        }
+
         // Remove existing player mesh if it exists
         const existingPlayer = this.scene.getMeshByName("player");
         if (existingPlayer) {
             existingPlayer.dispose();
         }
 
-        // Load the new character
-        this.loadCharacter(character);
+        // Load the new character with preserved position
+        this.loadCharacter(character, currentPosition);
     }
 
     /**
