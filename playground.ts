@@ -3671,9 +3671,9 @@ class InventoryManager {
             // Store original visibility
             InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
             
-            // Set visibility to 0.0 for true invisibility
+            // Set visibility to 0.45 for for invisibility
             if (characterController.getPlayerMesh()) {
-                characterController.getPlayerMesh()!.visibility = 0.0;
+                characterController.getPlayerMesh()!.visibility = 0.45;
             }
             
             InventoryManager.activeEffects.add('invisibility');
