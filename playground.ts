@@ -6192,16 +6192,17 @@ class InventoryUI {
                 width: 50px;
                 height: 50px;
                 background: rgba(0, 0, 0, 0.7);
-                border: 2px solid #00ff88;
+                border: 2px solid rgba(255, 255, 255, 0.3);
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                z-index: ${CONFIG.INVENTORY.BUTTON_Z_INDEX};
+                z-index: ${CONFIG.INVENTORY.BUTTON_Z_INDEX + 1};
                 transition: all 0.3s ease;
                 font-size: 20px;
-                color: #00ff88;
+                color: white;
+                backdrop-filter: blur(10px);
             " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
                 🎒
             </div>
@@ -6228,13 +6229,14 @@ class InventoryUI {
             right: -100%;
             width: ${this.getPanelWidth()}px;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
-            border-left: 2px solid #00ff88;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
             z-index: ${CONFIG.INVENTORY.Z_INDEX};
             transition: right 0.3s ease;
+            color: white;
+            font-family: Arial, sans-serif;
             overflow-y: auto;
-            padding: 20px;
-            box-sizing: border-box;
         `;
 
         this.updateInventoryContent();
@@ -6266,9 +6268,9 @@ class InventoryUI {
                 <div class="inventory-item" data-item-name="${itemName}" style="
                     width: ${tileSize}px;
                     height: ${tileSize}px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: 2px solid #00ff88;
-                    border-radius: 10px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 8px;
                     margin: 10px;
                     display: inline-block;
                     position: relative;
@@ -6286,14 +6288,14 @@ class InventoryUI {
                     ">
                     <div style="
                         font-size: 12px;
-                        color: #ffffff;
+                        color: white;
                         margin-bottom: 5px;
                     ">${itemName}</div>
                     <div style="
                         position: absolute;
                         top: -5px;
                         right: -5px;
-                        background: #ff4444;
+                        background: rgba(255, 68, 68, 0.9);
                         color: white;
                         border-radius: 50%;
                         width: 25px;
@@ -6309,35 +6311,37 @@ class InventoryUI {
         }).join('');
 
         this.inventoryPanel.innerHTML = `
-            <div style="
+            <div class="inventory-header" style="
                 display: flex;
-                justify-content: space-between;
+                justify-content: center;
                 align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #00ff88;
+                padding: 20px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.05);
+                box-sizing: border-box;
+                max-width: 100%;
             ">
                 <h2 style="
-                    color: #00ff88;
                     margin: 0;
                     font-size: 24px;
+                    font-weight: bold;
+                    color: white;
                 ">${CONFIG.INVENTORY.HEADING_TEXT}</h2>
-                <button onclick="InventoryUI.closePanel()" style="
-                    background: none;
-                    border: none;
-                    color: #00ff88;
-                    font-size: 24px;
-                    cursor: pointer;
-                    padding: 5px;
-                ">✕</button>
             </div>
-            <div style="
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 10px;
+            <div class="inventory-content" style="
+                padding: 20px;
+                box-sizing: border-box;
+                max-width: 100%;
+                overflow-x: hidden;
             ">
-                ${itemsHTML}
+                <div style="
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 10px;
+                ">
+                    ${itemsHTML}
+                </div>
             </div>
         `;
 
@@ -6403,6 +6407,22 @@ class InventoryUI {
                 this.togglePanel();
             });
         }
+
+        // Close panel when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.isPanelOpen &&
+                !this.inventoryPanel!.contains(e.target as Node) &&
+                !this.inventoryButton!.contains(e.target as Node)) {
+                this.closePanel();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (this.isPanelOpen) {
+                this.updatePanelWidth();
+            }
+        });
     }
 
     /**
@@ -6425,6 +6445,10 @@ class InventoryUI {
             this.isPanelOpen = true;
             this.updateInventoryContent();
             this.updateInventoryButton();
+            // Keep the button visible and on top
+            this.inventoryButton!.style.transform = 'scale(1.1)';
+            this.inventoryButton!.style.background = 'rgba(0, 0, 0, 0.9)';
+            this.inventoryButton!.style.zIndex = (CONFIG.INVENTORY.BUTTON_Z_INDEX + 1).toString();
         }
     }
 
@@ -6435,6 +6459,9 @@ class InventoryUI {
         if (this.inventoryPanel) {
             this.inventoryPanel.style.right = '-100%';
             this.isPanelOpen = false;
+            this.inventoryButton!.style.transform = 'scale(1)';
+            this.inventoryButton!.style.background = 'rgba(0, 0, 0, 0.7)';
+            this.inventoryButton!.style.zIndex = (CONFIG.INVENTORY.BUTTON_Z_INDEX + 1).toString();
         }
     }
 
@@ -6443,7 +6470,29 @@ class InventoryUI {
      */
     private static updatePanelWidth(): void {
         if (this.inventoryPanel) {
-            this.inventoryPanel.style.width = `${this.getPanelWidth()}px`;
+            const viewWidth = window.innerWidth;
+
+            // If screen width is less than threshold, use full viewport width (100vw)
+            // Otherwise use the configured ratio
+            if (viewWidth < CONFIG.INVENTORY.FULL_SCREEN_THRESHOLD) {
+                this.inventoryPanel.style.width = '100vw';
+                // Ensure no horizontal overflow on small screens
+                this.inventoryPanel.style.boxSizing = 'border-box';
+                this.inventoryPanel.style.padding = '0';
+                this.inventoryPanel.style.margin = '0';
+            } else {
+                const panelWidth = Math.max(viewWidth * CONFIG.INVENTORY.PANEL_WIDTH_RATIO, CONFIG.INVENTORY.FULL_SCREEN_THRESHOLD);
+                this.inventoryPanel.style.width = `${panelWidth}px`;
+                // Reset to normal styling for larger screens
+                this.inventoryPanel.style.boxSizing = '';
+                this.inventoryPanel.style.padding = '';
+                this.inventoryPanel.style.margin = '';
+            }
+
+            if (!this.isPanelOpen) {
+                const currentWidth = this.inventoryPanel.style.width;
+                this.inventoryPanel.style.right = `-${currentWidth}`;
+            }
         }
     }
 
@@ -6464,12 +6513,12 @@ class InventoryUI {
                 // Update styling based on whether there are items
                 if (totalItems > 0) {
                     innerDiv.style.opacity = '1';
-                    innerDiv.style.borderColor = '#00ff88';
-                    innerDiv.style.color = '#00ff88';
+                    innerDiv.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                    innerDiv.style.color = 'white';
                 } else {
                     innerDiv.style.opacity = '0.5';
-                    innerDiv.style.borderColor = 'rgba(0, 255, 136, 0.3)';
-                    innerDiv.style.color = 'rgba(0, 255, 136, 0.5)';
+                    innerDiv.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    innerDiv.style.color = 'rgba(255, 255, 255, 0.5)';
                 }
             }
         }
