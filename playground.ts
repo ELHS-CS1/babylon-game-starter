@@ -85,6 +85,9 @@ interface ItemConfig {
     readonly creditValue: number;
     readonly minImpulseForCollection: number;
     readonly instances: readonly ItemInstance[];
+    readonly inventory?: boolean;
+    readonly thumbnail?: string;
+    readonly itemEffectKind?: ItemEffectKind;
 }
 
 interface ItemsConfig {
@@ -153,6 +156,32 @@ interface GameConfig {
     readonly EFFECTS: EffectsConfig;
     readonly HUD: HUDConfig;
     readonly SETTINGS: SettingsConfig;
+    readonly INVENTORY: InventoryConfig;
+}
+
+// Inventory System Type Definitions
+type ItemEffectKind = "superJump" | "invisibility";
+
+type ItemEffect = {
+    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
+};
+
+interface Tile {
+    readonly title: string;
+    readonly thumbnail: string;
+    readonly minSize: number;
+    readonly maxSize: number;
+    readonly count: number;
+    readonly itemEffectKind: ItemEffectKind;
+}
+
+interface InventoryConfig {
+    readonly HEADING_TEXT: string;
+    readonly PANEL_WIDTH_RATIO: number;
+    readonly FULL_SCREEN_THRESHOLD: number;
+    readonly Z_INDEX: number;
+    readonly BUTTON_Z_INDEX: number;
+    readonly TILES: readonly Tile[];
 }
 
 // Environment Types
@@ -387,6 +416,42 @@ const ASSETS = {
                         {
                             position: new BABYLON.Vector3(5, 3.5, -11),
                             scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        }
+                    ]
+                },
+                {
+                    name: "Super Jump",
+                    url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/jump_collectible.glb",
+                    collectible: true,
+                    creditValue: 50,
+                    minImpulseForCollection: 0.5,
+                    inventory: true,
+                    thumbnail: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/thumbnails/jump_collectible_thumb.webp",
+                    itemEffectKind: "superJump",
+                    instances: [
+                        {
+                            position: new BABYLON.Vector3(-4, 0.5, -8),
+                            scale: 0.01,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        }
+                    ]
+                },
+                {
+                    name: "Invisibility",
+                    url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/invisibility_collectible.glb",
+                    collectible: true,
+                    creditValue: 50,
+                    minImpulseForCollection: 0.5,
+                    inventory: true,
+                    thumbnail: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/thumbnails/invisibility_collectible_thumb.webp",
+                    itemEffectKind: "invisibility",
+                    instances: [
+                        {
+                            position: new BABYLON.Vector3(6, 0.5, -5),
+                            scale: 0.01,
                             rotation: new BABYLON.Vector3(0, 0, 0),
                             mass: 0.5
                         }
@@ -640,6 +705,15 @@ const CONFIG = {
                 }
             }
         ]
+    },
+
+    INVENTORY: {
+        HEADING_TEXT: "Inventory",
+        PANEL_WIDTH_RATIO: 1 / 3,
+        FULL_SCREEN_THRESHOLD: 500,
+        Z_INDEX: 1800,
+        BUTTON_Z_INDEX: 2000,
+        TILES: [] // Tiles will be added dynamically by InventoryManager
     }
 } as const;
 
@@ -3004,6 +3078,7 @@ class CollectiblesManager {
     private static collectedItems: Set<string> = new Set();
     private static instanceBasis: BABYLON.Mesh | null = null;
     private static physicsShape: BABYLON.PhysicsShape | null = null; // Reusable physics shape
+    private static itemConfigs: Map<string, ItemConfig> = new Map(); // Store item configs by collectible ID
 
     // Custom physics ready event system
     private static physicsReadyObservable = new BABYLON.Observable<void>();
@@ -3082,7 +3157,7 @@ class CollectiblesManager {
                 for (let i = 0; i < itemConfig.instances.length; i++) {
                     const instance = itemConfig.instances[i];
                     const instanceId = `${itemConfig.name.toLowerCase()}_instance_${i + 1}`;
-                    await this.createCollectibleInstance(instanceId, instance);
+                    await this.createCollectibleInstance(instanceId, instance, itemConfig);
                 }
             }
         }
@@ -3206,7 +3281,7 @@ class CollectiblesManager {
      * @param id Unique identifier for the collectible
      * @param instance ItemInstance configuration for the collectible
      */
-    private static async createCollectibleInstance(id: string, instance: ItemInstance): Promise<void> {
+    private static async createCollectibleInstance(id: string, instance: ItemInstance, itemConfig: ItemConfig): Promise<void> {
         if (!this.scene || !this.instanceBasis) {
             console.error("No scene or instance basis available for creating collectible instance");
             return;
@@ -3249,6 +3324,9 @@ class CollectiblesManager {
             if (physicsAggregate.body) {
                 this.collectibleBodies.set(id, physicsAggregate.body);
             }
+            
+            // Store the item config for this collectible
+            this.itemConfigs.set(id, itemConfig);
 
             // Add rotation animation
             this.addRotationAnimation(meshInstance);
@@ -3336,14 +3414,8 @@ class CollectiblesManager {
     private static attemptCollection(collectibleId: string, collectibleMesh: BABYLON.AbstractMesh): void {
         if (!this.characterController) return;
 
-        // For now, use a default item config since we don't have access to the environment items here
-        // In a more complete implementation, we would store the item config with each collectible
-        const itemConfig = {
-            name: "Crate",
-            collectible: true,
-            creditValue: 100,
-            minImpulseForCollection: 0.5
-        } as ItemConfig;
+        // Get the item config for this collectible
+        const itemConfig = this.itemConfigs.get(collectibleId);
 
         if (!itemConfig) {
             console.warn(`No item config found for collectible ${collectibleId}`);
@@ -3370,6 +3442,11 @@ class CollectiblesManager {
         // Add credits
         this.totalCredits += itemConfig.creditValue;
 
+        // Handle inventory items
+        if (itemConfig.inventory && itemConfig.itemEffectKind && itemConfig.thumbnail) {
+            InventoryManager.addInventoryItem(itemConfig.name, itemConfig.itemEffectKind, itemConfig.thumbnail);
+        }
+
         // Play collection sound
         if (this.collectionSound) {
             this.collectionSound.play();
@@ -3382,8 +3459,6 @@ class CollectiblesManager {
 
         // Remove the collectible
         this.removeCollectible(collectibleId);
-
-
     }
 
     /**
@@ -3485,6 +3560,7 @@ class CollectiblesManager {
         // Clear collections but keep manager initialized
         this.collectibles.clear();
         this.collectibleBodies.clear();
+        this.itemConfigs.clear();
         this.collectedItems.clear();
 
         // Dispose collection sound
@@ -3540,6 +3616,201 @@ class CollectiblesManager {
         this.characterController = null;
         this.totalCredits = 0;
         this.collectedItems.clear();
+    }
+}
+
+// ============================================================================
+// INVENTORY MANAGER
+// ============================================================================
+
+class InventoryManager {
+    private static scene: BABYLON.Scene | null = null;
+    private static characterController: CharacterController | null = null;
+    private static inventoryItems: Map<string, { count: number; itemEffectKind: ItemEffectKind; thumbnail: string }> = new Map();
+    private static originalJumpHeight: number = 0;
+    private static originalVisibility: number = 1;
+    private static activeEffects: Set<string> = new Set();
+
+    // Item effects implementation
+    private static readonly itemEffects: ItemEffect = {
+        superJump: (characterController: CharacterController) => {
+            if (InventoryManager.activeEffects.has('superJump')) {
+                return; // Effect already active
+            }
+
+            // Store original jump height
+            const currentCharacter = characterController.getCurrentCharacter();
+            InventoryManager.originalJumpHeight = currentCharacter?.jumpHeight || 2.0;
+            
+            // Triple the jump height
+            const newJumpHeight = InventoryManager.originalJumpHeight * 3;
+            if (currentCharacter) {
+                (currentCharacter as any).jumpHeight = newJumpHeight;
+                // Update character physics to apply the new jump height
+                characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
+            }
+            
+            InventoryManager.activeEffects.add('superJump');
+            
+            // Revert after 20 seconds
+            setTimeout(() => {
+                const currentCharacter = characterController.getCurrentCharacter();
+                if (currentCharacter) {
+                    (currentCharacter as any).jumpHeight = InventoryManager.originalJumpHeight;
+                    // Update character physics to revert the jump height
+                    characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
+                }
+                InventoryManager.activeEffects.delete('superJump');
+            }, 20000);
+        },
+        invisibility: (characterController: CharacterController) => {
+            if (InventoryManager.activeEffects.has('invisibility')) {
+                return; // Effect already active
+            }
+
+            // Store original visibility
+            InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
+            
+            // Set visibility to 0.0 for true invisibility
+            if (characterController.getPlayerMesh()) {
+                characterController.getPlayerMesh()!.visibility = 0.0;
+            }
+            
+            InventoryManager.activeEffects.add('invisibility');
+            
+            // Revert after 20 seconds
+            setTimeout(() => {
+                if (characterController.getPlayerMesh()) {
+                    characterController.getPlayerMesh()!.visibility = InventoryManager.originalVisibility;
+                }
+                InventoryManager.activeEffects.delete('invisibility');
+            }, 20000);
+        }
+    };
+
+    /**
+     * Initializes the InventoryManager
+     * @param scene The Babylon.js scene
+     * @param characterController The character controller
+     */
+    public static initialize(scene: BABYLON.Scene, characterController: CharacterController): void {
+        this.scene = scene;
+        this.characterController = characterController;
+        this.inventoryItems.clear();
+        this.activeEffects.clear();
+    }
+
+    /**
+     * Adds an inventory item when collected
+     * @param itemName The name of the item
+     * @param itemEffectKind The effect kind of the item
+     * @param thumbnail The thumbnail URL
+     */
+    public static addInventoryItem(itemName: string, itemEffectKind: ItemEffectKind, thumbnail: string): void {
+        const existingItem = this.inventoryItems.get(itemName);
+        
+        if (existingItem) {
+            // Increment count if item already exists
+            existingItem.count++;
+        } else {
+            // Create new item entry
+            this.inventoryItems.set(itemName, {
+                count: 1,
+                itemEffectKind,
+                thumbnail
+            });
+        }
+        
+        // Update inventory UI if it's open
+        if (typeof InventoryUI !== 'undefined') {
+            if (InventoryUI.isPanelOpen) {
+                InventoryUI.updateInventoryContent();
+            }
+            // Also update the inventory button to show if there are items
+            InventoryUI.updateInventoryButton();
+        }
+    }
+
+    /**
+     * Uses an inventory item
+     * @param itemName The name of the item to use
+     * @returns True if item was used successfully, false if not available
+     */
+    public static useInventoryItem(itemName: string): boolean {
+        const item = this.inventoryItems.get(itemName);
+        
+        if (!item || item.count <= 0) {
+            return false;
+        }
+
+        // Decrement count
+        item.count--;
+        
+        // If count reaches 0, remove the item
+        if (item.count <= 0) {
+            this.inventoryItems.delete(itemName);
+        }
+
+        // Apply the item effect
+        const effectFunction = this.itemEffects[item.itemEffectKind];
+        if (effectFunction && this.characterController) {
+            effectFunction(this.characterController);
+        }
+
+        // Update inventory UI if it's open
+        if (typeof InventoryUI !== 'undefined') {
+            if (InventoryUI.isPanelOpen) {
+                InventoryUI.updateInventoryContent();
+            }
+            // Also update the inventory button to show if there are items
+            InventoryUI.updateInventoryButton();
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets all inventory items
+     * @returns Map of item names to item data
+     */
+    public static getInventoryItems(): Map<string, { count: number; itemEffectKind: ItemEffectKind; thumbnail: string }> {
+        return new Map(this.inventoryItems);
+    }
+
+    /**
+     * Gets the count of a specific item
+     * @param itemName The name of the item
+     * @returns The count of the item, 0 if not found
+     */
+    public static getItemCount(itemName: string): number {
+        const item = this.inventoryItems.get(itemName);
+        return item ? item.count : 0;
+    }
+
+    /**
+     * Clears all inventory items
+     */
+    public static clearInventory(): void {
+        this.inventoryItems.clear();
+        this.activeEffects.clear();
+        
+        // Update inventory UI
+        if (typeof InventoryUI !== 'undefined') {
+            if (InventoryUI.isPanelOpen) {
+                InventoryUI.updateInventoryContent();
+            }
+            InventoryUI.updateInventoryButton();
+        }
+    }
+
+    /**
+     * Disposes the InventoryManager
+     */
+    public static dispose(): void {
+        this.scene = null;
+        this.characterController = null;
+        this.inventoryItems.clear();
+        this.activeEffects.clear();
     }
 }
 
@@ -4506,6 +4777,18 @@ class CharacterController {
         mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
     }
 
+    public getPlayerMesh(): BABYLON.AbstractMesh {
+        return this.playerMesh;
+    }
+
+    public getPhysicsCharacterController(): BABYLON.PhysicsCharacterController {
+        return this.characterController;
+    }
+
+    public getCurrentCharacter(): Character | null {
+        return this.currentCharacter;
+    }
+
         public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
         // Update character position to spawn point
         this.characterController.setPosition(spawnPosition);
@@ -4696,6 +4979,11 @@ class SceneManager {
         
         // Set up environment items after character is fully loaded
         await this.setupEnvironmentItems();
+        
+        // Initialize inventory system
+        if (this.characterController) {
+            InventoryManager.initialize(this.scene, this.characterController);
+        }
     }
 
     private setupLighting(): void {
@@ -5286,6 +5574,9 @@ class Playground {
 
         // Initialize settings UI with scene manager
         SettingsUI.initialize(canvas, sceneManager);
+        
+        // Initialize inventory UI with scene manager
+        InventoryUI.initialize(canvas, sceneManager);
 
         return sceneManager.getScene();
     }
@@ -5855,6 +6146,349 @@ class SettingsUI {
             
 
         }
+    }
+}
+
+// ============================================================================
+// INVENTORY UI
+// ============================================================================
+
+class InventoryUI {
+    private static inventoryButton: HTMLDivElement | null = null;
+    private static inventoryPanel: HTMLDivElement | null = null;
+    public static isPanelOpen = false;
+    private static sceneManager: SceneManager | null = null;
+
+    /**
+     * Initializes the InventoryUI
+     * @param canvas The canvas element
+     * @param sceneManager The scene manager
+     */
+    public static initialize(canvas: HTMLCanvasElement, sceneManager?: SceneManager): void {
+        this.sceneManager = sceneManager || null;
+        this.createInventoryButton(canvas);
+        this.createInventoryPanel(canvas);
+        this.setupEventListeners();
+        this.updateInventoryButton(); // Initialize button state
+    }
+
+    /**
+     * Creates the inventory button
+     * @param canvas The canvas element
+     */
+    private static createInventoryButton(canvas: HTMLCanvasElement): void {
+        // Remove existing button if any
+        if (this.inventoryButton) {
+            this.inventoryButton.remove();
+        }
+
+        this.inventoryButton = document.createElement('div');
+        this.inventoryButton.id = 'inventory-button';
+        this.inventoryButton.innerHTML = `
+            <div style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: rgba(0, 0, 0, 0.7);
+                border: 2px solid #00ff88;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: ${CONFIG.INVENTORY.BUTTON_Z_INDEX};
+                transition: all 0.3s ease;
+                font-size: 20px;
+                color: #00ff88;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                🎒
+            </div>
+        `;
+
+        document.body.appendChild(this.inventoryButton);
+    }
+
+    /**
+     * Creates the inventory panel
+     * @param canvas The canvas element
+     */
+    private static createInventoryPanel(canvas: HTMLCanvasElement): void {
+        // Remove existing panel if any
+        if (this.inventoryPanel) {
+            this.inventoryPanel.remove();
+        }
+
+        this.inventoryPanel = document.createElement('div');
+        this.inventoryPanel.id = 'inventory-panel';
+        this.inventoryPanel.style.cssText = `
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: ${this.getPanelWidth()}px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            border-left: 2px solid #00ff88;
+            z-index: ${CONFIG.INVENTORY.Z_INDEX};
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+
+        this.updateInventoryContent();
+        document.body.appendChild(this.inventoryPanel);
+    }
+
+    /**
+     * Gets the panel width based on screen size
+     * @returns Panel width in pixels
+     */
+    private static getPanelWidth(): number {
+        const screenWidth = window.innerWidth;
+        if (screenWidth <= CONFIG.INVENTORY.FULL_SCREEN_THRESHOLD) {
+            return screenWidth;
+        }
+        return screenWidth * CONFIG.INVENTORY.PANEL_WIDTH_RATIO;
+    }
+
+    /**
+     * Updates the inventory content
+     */
+    public static updateInventoryContent(): void {
+        if (!this.inventoryPanel) return;
+
+        const inventoryItems = InventoryManager.getInventoryItems();
+        const itemsHTML = Array.from(inventoryItems.entries()).map(([itemName, itemData]) => {
+            const tileSize = Math.max(itemData.count > 0 ? 120 : 80, Math.min(200, window.innerWidth * 0.15));
+            return `
+                <div class="inventory-item" data-item-name="${itemName}" style="
+                    width: ${tileSize}px;
+                    height: ${tileSize}px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 2px solid #00ff88;
+                    border-radius: 10px;
+                    margin: 10px;
+                    display: inline-block;
+                    position: relative;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-align: center;
+                    padding: 10px;
+                    box-sizing: border-box;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <img src="${itemData.thumbnail}" alt="${itemName}" style="
+                        width: 60%;
+                        height: 60%;
+                        object-fit: contain;
+                        margin-bottom: 5px;
+                    ">
+                    <div style="
+                        font-size: 12px;
+                        color: #ffffff;
+                        margin-bottom: 5px;
+                    ">${itemName}</div>
+                    <div style="
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        background: #ff4444;
+                        color: white;
+                        border-radius: 50%;
+                        width: 25px;
+                        height: 25px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 12px;
+                        font-weight: bold;
+                    ">${itemData.count}</div>
+                </div>
+            `;
+        }).join('');
+
+        this.inventoryPanel.innerHTML = `
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #00ff88;
+            ">
+                <h2 style="
+                    color: #00ff88;
+                    margin: 0;
+                    font-size: 24px;
+                ">${CONFIG.INVENTORY.HEADING_TEXT}</h2>
+                <button onclick="InventoryUI.closePanel()" style="
+                    background: none;
+                    border: none;
+                    color: #00ff88;
+                    font-size: 24px;
+                    cursor: pointer;
+                    padding: 5px;
+                ">✕</button>
+            </div>
+            <div style="
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            ">
+                ${itemsHTML}
+            </div>
+        `;
+
+        // Add click event listeners to inventory items
+        const itemElements = this.inventoryPanel.querySelectorAll('.inventory-item');
+        itemElements.forEach(element => {
+            element.addEventListener('click', (e) => {
+                const itemName = (e.currentTarget as HTMLElement).getAttribute('data-item-name');
+                if (itemName) {
+                    this.useItem(itemName);
+                }
+            });
+        });
+    }
+
+    /**
+     * Uses an inventory item
+     * @param itemName The name of the item to use
+     */
+    private static useItem(itemName: string): void {
+        const success = InventoryManager.useInventoryItem(itemName);
+        if (success) {
+            this.updateInventoryContent();
+            this.updateInventoryButton();
+            // Show a brief feedback
+            this.showItemUsedFeedback(itemName);
+        }
+    }
+
+    /**
+     * Shows feedback when an item is used
+     * @param itemName The name of the item used
+     */
+    private static showItemUsedFeedback(itemName: string): void {
+        const feedback = document.createElement('div');
+        feedback.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 255, 136, 0.9);
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 9999;
+            font-size: 18px;
+            font-weight: bold;
+        `;
+        feedback.textContent = `Used ${itemName}!`;
+        document.body.appendChild(feedback);
+
+        setTimeout(() => {
+            feedback.remove();
+        }, 2000);
+    }
+
+    /**
+     * Sets up event listeners
+     */
+    private static setupEventListeners(): void {
+        if (this.inventoryButton) {
+            this.inventoryButton.addEventListener('click', () => {
+                this.togglePanel();
+            });
+        }
+    }
+
+    /**
+     * Toggles the inventory panel
+     */
+    private static togglePanel(): void {
+        if (this.isPanelOpen) {
+            this.closePanel();
+        } else {
+            this.openPanel();
+        }
+    }
+
+    /**
+     * Opens the inventory panel
+     */
+    private static openPanel(): void {
+        if (this.inventoryPanel) {
+            this.inventoryPanel.style.right = '0';
+            this.isPanelOpen = true;
+            this.updateInventoryContent();
+            this.updateInventoryButton();
+        }
+    }
+
+    /**
+     * Closes the inventory panel
+     */
+    private static closePanel(): void {
+        if (this.inventoryPanel) {
+            this.inventoryPanel.style.right = '-100%';
+            this.isPanelOpen = false;
+        }
+    }
+
+    /**
+     * Updates the panel width
+     */
+    private static updatePanelWidth(): void {
+        if (this.inventoryPanel) {
+            this.inventoryPanel.style.width = `${this.getPanelWidth()}px`;
+        }
+    }
+
+    /**
+     * Updates the inventory button to show item count
+     */
+    public static updateInventoryButton(): void {
+        if (this.inventoryButton) {
+            const inventoryItems = InventoryManager.getInventoryItems();
+            const totalItems = Array.from(inventoryItems.values()).reduce((sum, item) => sum + item.count, 0);
+            
+            // Always show the button
+            this.inventoryButton.style.display = 'block';
+            
+            // Get the inner div that contains the backpack icon
+            const innerDiv = this.inventoryButton.querySelector('div');
+            if (innerDiv) {
+                // Update styling based on whether there are items
+                if (totalItems > 0) {
+                    innerDiv.style.opacity = '1';
+                    innerDiv.style.borderColor = '#00ff88';
+                    innerDiv.style.color = '#00ff88';
+                } else {
+                    innerDiv.style.opacity = '0.5';
+                    innerDiv.style.borderColor = 'rgba(0, 255, 136, 0.3)';
+                    innerDiv.style.color = 'rgba(0, 255, 136, 0.5)';
+                }
+            }
+        }
+    }
+
+    /**
+     * Disposes the InventoryUI
+     */
+    public static dispose(): void {
+        if (this.inventoryButton) {
+            this.inventoryButton.remove();
+            this.inventoryButton = null;
+        }
+        if (this.inventoryPanel) {
+            this.inventoryPanel.remove();
+            this.inventoryPanel = null;
+        }
+        this.isPanelOpen = false;
+        this.sceneManager = null;
     }
 }
 
