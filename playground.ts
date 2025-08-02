@@ -793,7 +793,7 @@ class AnimationController {
     private blendDuration: number = 400; // Default blend duration in milliseconds
     private isBlending: boolean = false;
     private weightedAnimation: BABYLON.AnimationGroup | null = null;
-    
+
     // Jump delay tracking
     private jumpDelayStartTime: number = 0;
     private isJumpDelayed: boolean = false;
@@ -809,18 +809,18 @@ class AnimationController {
     public setCharacter(character: Character): void {
         this.currentCharacter = character;
         this.blendDuration = character.animationBlend || 400;
-        
+
         // Reset animation state when character changes
         this.currentAnimation = null;
         this.previousAnimation = null;
         this.isBlending = false;
         this.weightedAnimation = null;
-        
+
         // Reset jump delay state
         this.isJumpDelayed = false;
         this.jumpDelayStartTime = 0;
         this.lastCharacterState = null;
-        
+
         // Don't stop all animations here - let the character loading process handle it
         // The new character's animations will be set up properly in loadCharacter
     }
@@ -835,7 +835,7 @@ class AnimationController {
         this.handleJumpDelay(characterState);
 
         let targetAnimationName: string;
-        
+
         // Determine animation based on character state first, then movement
         if (characterState === CHARACTER_STATES.IN_AIR && !this.isJumpDelayed) {
             targetAnimationName = this.currentCharacter.animations.jump;
@@ -844,7 +844,7 @@ class AnimationController {
         } else {
             targetAnimationName = this.currentCharacter.animations.idle;
         }
-        
+
         // If animation is already playing and no change needed, do nothing
         if (this.currentAnimation === targetAnimationName && !this.isBlending) {
             return;
@@ -877,39 +877,39 @@ class AnimationController {
     private startAnimation(animationName: string): void {
         // First try to find the animation by exact name
         let animation = this.scene.getAnimationGroupByName(animationName);
-        
+
         // If not found, try to find it by partial name match
         if (!animation) {
-            animation = this.scene.animationGroups.find(anim => 
+            animation = this.scene.animationGroups.find(anim =>
                 anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
                 animationName.toLowerCase().includes(anim.name.toLowerCase())
             );
         }
-        
+
         // If still not found, try common fallbacks
         if (!animation) {
             if (animationName.toLowerCase().includes('idle')) {
-                animation = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('idle') || 
+                animation = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 );
             } else if (animationName.toLowerCase().includes('walk')) {
-                animation = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('walk') || 
+                animation = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 );
             } else if (animationName.toLowerCase().includes('jump')) {
-                animation = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('jump') || 
+                animation = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
                 );
             }
         }
-        
+
         if (!animation) {
-            console.warn(`Animation not found: ${animationName}. Available animations:`, 
+            console.warn(`Animation not found: ${animationName}. Available animations:`,
                 this.scene.animationGroups.map(a => a.name));
             return;
         }
@@ -938,7 +938,7 @@ class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find(anim => 
+            targetAnim = this.scene.animationGroups.find(anim =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             );
@@ -947,13 +947,13 @@ class AnimationController {
         // If still not found, try common fallbacks
         if (!targetAnim) {
             if (targetAnimation.toLowerCase().includes('idle')) {
-                targetAnim = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('idle') || 
+                targetAnim = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 );
             } else if (targetAnimation.toLowerCase().includes('walk')) {
-                targetAnim = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('walk') || 
+                targetAnim = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 );
@@ -986,7 +986,7 @@ class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find(anim => 
+            targetAnim = this.scene.animationGroups.find(anim =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             );
@@ -995,19 +995,19 @@ class AnimationController {
         // If still not found, try common fallbacks
         if (!targetAnim) {
             if (targetAnimation.toLowerCase().includes('idle')) {
-                targetAnim = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('idle') || 
+                targetAnim = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 );
             } else if (targetAnimation.toLowerCase().includes('walk')) {
-                targetAnim = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('walk') || 
+                targetAnim = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 );
             } else if (targetAnimation.toLowerCase().includes('jump')) {
-                targetAnim = this.scene.animationGroups.find(anim => 
-                    anim.name.toLowerCase().includes('jump') || 
+                targetAnim = this.scene.animationGroups.find(anim =>
+                    anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
                 );
@@ -2042,16 +2042,16 @@ class EffectsManager {
                 if (snippetName === "Magic Sparkles" && emitter && emitter instanceof BABYLON.AbstractMesh) {
                     usageCategory = "PLAYER";
                 }
-                
+
                 const descriptiveName = `${snippetName}_${usageCategory}`;
-                
+
                 // Set a descriptive name for the particle system
                 particleSystem.name = descriptiveName;
-                
 
-                
+
+
                 this.activeParticleSystems.set(descriptiveName, particleSystem);
-                
+
                 // Categorize the particle system based on its usage
                 this.categorizeParticleSystem(descriptiveName, particleSystem, snippet.category);
             }
@@ -2071,19 +2071,19 @@ class EffectsManager {
      */
     private static determineUsageCategory(snippetName: string, category: ParticleSnippet['category']): string {
         // Environment particles are typically ambient, atmospheric, or background effects
-        if (snippetName.includes("environment") || 
-            snippetName.includes("ambient") || 
+        if (snippetName.includes("environment") ||
+            snippetName.includes("ambient") ||
             snippetName.includes("atmosphere") ||
             snippetName.includes("background") ||
             category === "nature") {
             return "ENVIRONMENT";
         }
         // Item particles are typically collection effects, pickups, or item-related
-        else if (snippetName.includes("item") || 
-                 snippetName.includes("collectible") || 
-                 snippetName.includes("collection") ||
-                 snippetName.includes("pickup") ||
-                 (category === "magic" && snippetName !== "Magic Sparkles")) {
+        else if (snippetName.includes("item") ||
+            snippetName.includes("collectible") ||
+            snippetName.includes("collection") ||
+            snippetName.includes("pickup") ||
+            (category === "magic" && snippetName !== "Magic Sparkles")) {
             return "ITEMS";
         }
         // Magic Sparkles is special - it can be either ENVIRONMENT (at startup) or PLAYER (for boost)
@@ -2107,17 +2107,17 @@ class EffectsManager {
         // Environment particles are typically ambient, atmospheric, or background effects
         if (name.includes("ENVIRONMENT")) {
             this.environmentParticleSystems.set(name, particleSystem);
-    
+
         }
         // Item particles are typically collection effects, pickups, or item-related
         else if (name.includes("ITEMS")) {
             this.itemParticleSystems.set(name, particleSystem);
-    
+
         }
         // Player particles (boost, thruster, etc.) are not categorized - they stay in activeParticleSystems only
         // This ensures they're never disposed by the focused removal methods
         else {
-    
+
         }
     }
 
@@ -2166,7 +2166,7 @@ class EffectsManager {
             particleSystem.dispose();
             this.activeParticleSystems.delete(name);
         });
-        
+
         // Clear the environment cache
         this.environmentParticleSystems.clear();
     }
@@ -2181,7 +2181,7 @@ class EffectsManager {
             particleSystem.dispose();
             this.activeParticleSystems.delete(name);
         });
-        
+
         // Clear the item cache
         this.itemParticleSystems.clear();
     }
@@ -3324,7 +3324,7 @@ class CollectiblesManager {
             if (physicsAggregate.body) {
                 this.collectibleBodies.set(id, physicsAggregate.body);
             }
-            
+
             // Store the item config for this collectible
             this.itemConfigs.set(id, itemConfig);
 
@@ -3500,7 +3500,7 @@ class CollectiblesManager {
         particleSystem.updateSpeed = 0.016;
 
         particleSystem.start();
-        
+
         // Add to item particle systems for proper cleanup
         EffectsManager.addItemParticleSystem("Magic Sparkles_ITEMS", particleSystem);
 
@@ -3641,7 +3641,7 @@ class InventoryManager {
             // Store original jump height
             const currentCharacter = characterController.getCurrentCharacter();
             InventoryManager.originalJumpHeight = currentCharacter?.jumpHeight || 2.0;
-            
+
             // Triple the jump height
             const newJumpHeight = InventoryManager.originalJumpHeight * 3;
             if (currentCharacter) {
@@ -3649,9 +3649,9 @@ class InventoryManager {
                 // Update character physics to apply the new jump height
                 characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
             }
-            
+
             InventoryManager.activeEffects.add('superJump');
-            
+
             // Revert after 20 seconds
             setTimeout(() => {
                 const currentCharacter = characterController.getCurrentCharacter();
@@ -3667,21 +3667,29 @@ class InventoryManager {
             if (InventoryManager.activeEffects.has('invisibility')) {
                 return; // Effect already active
             }
-
             // Store original visibility
             InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
-            
-            // Set visibility to 0.45 for for invisibility
+
             if (characterController.getPlayerMesh()) {
-                characterController.getPlayerMesh()!.visibility = 0.45;
+                characterController.getPlayerMesh().getChildMeshes()
+                    .forEach(m => {
+                        if (m.material) {
+                            m.material.alpha = 0.25;
+                        }
+                    });
             }
-            
+
             InventoryManager.activeEffects.add('invisibility');
-            
+
             // Revert after 20 seconds
             setTimeout(() => {
                 if (characterController.getPlayerMesh()) {
-                    characterController.getPlayerMesh()!.visibility = InventoryManager.originalVisibility;
+                    characterController.getPlayerMesh().getChildMeshes()
+                        .forEach(m => {
+                            if (m.material) {
+                                m.material.alpha = 1;
+                            }
+                        });
                 }
                 InventoryManager.activeEffects.delete('invisibility');
             }, 20000);
@@ -3708,7 +3716,7 @@ class InventoryManager {
      */
     public static addInventoryItem(itemName: string, itemEffectKind: ItemEffectKind, thumbnail: string): void {
         const existingItem = this.inventoryItems.get(itemName);
-        
+
         if (existingItem) {
             // Increment count if item already exists
             existingItem.count++;
@@ -3720,7 +3728,7 @@ class InventoryManager {
                 thumbnail
             });
         }
-        
+
         // Update inventory UI if it's open
         if (typeof InventoryUI !== 'undefined') {
             if (InventoryUI.isPanelOpen) {
@@ -3738,14 +3746,14 @@ class InventoryManager {
      */
     public static useInventoryItem(itemName: string): boolean {
         const item = this.inventoryItems.get(itemName);
-        
+
         if (!item || item.count <= 0) {
             return false;
         }
 
         // Decrement count
         item.count--;
-        
+
         // If count reaches 0, remove the item
         if (item.count <= 0) {
             this.inventoryItems.delete(itemName);
@@ -3793,7 +3801,7 @@ class InventoryManager {
     public static clearInventory(): void {
         this.inventoryItems.clear();
         this.activeEffects.clear();
-        
+
         // Update inventory UI
         if (typeof InventoryUI !== 'undefined') {
             if (InventoryUI.isPanelOpen) {
@@ -4111,7 +4119,7 @@ class SmoothFollowCameraController {
     public resetCameraToDefaultOffset(): void {
         // Reset the offset to the default configuration
         this.offset.copyFrom(CONFIG.CAMERA.OFFSET);
-        
+
         // Force activate smooth follow to ensure camera moves to new position
         this.forceActivateSmoothFollow();
     }
@@ -4493,7 +4501,7 @@ class CharacterController {
         // Handle rotation based on input using active character's properties
         const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
         const rotationSmoothing = this.currentCharacter?.rotationSmoothing || 0.2;
-        
+
         if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
             this.targetRotationY -= rotationSpeed;
         }
@@ -4629,15 +4637,15 @@ class CharacterController {
             console.warn("No character set for air physics calculations");
             return currentVelocity;
         }
-        
+
         const characterMass = character.mass;
         let outputVelocity = currentVelocity.clone();
 
         // If boost is active, allow input-based velocity modification while in air
         if (this.boostActive) {
-                    // Character-specific air speed using active character's properties
-        const baseSpeed = character.speed.inAir * character.speed.boostMultiplier;
-        const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
+            // Character-specific air speed using active character's properties
+            const baseSpeed = character.speed.inAir * character.speed.boostMultiplier;
+            const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
             const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
             outputVelocity = this.characterController.calculateMovement(
                 deltaTime, forwardWorld, upWorld, currentVelocity,
@@ -4657,7 +4665,7 @@ class CharacterController {
         // Preserve vertical velocity component from jump
         outputVelocity.addInPlace(upWorld.scale(-outputVelocity.dot(upWorld)));
         outputVelocity.addInPlace(upWorld.scale(currentVelocity.dot(upWorld)));
-        
+
         // Apply gravity
         outputVelocity.addInPlace(CONFIG.PHYSICS.CHARACTER_GRAVITY.scale(deltaTime));
 
@@ -4678,13 +4686,13 @@ class CharacterController {
             console.warn("No character set for physics calculations");
             return currentVelocity;
         }
-        
+
         const characterMass = character.mass;
-        
+
         // Character-specific speed calculations using active character's properties
         const baseSpeed = this.boostActive ? character.speed.onGround * character.speed.boostMultiplier : character.speed.onGround;
         const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
-        
+
         const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
         const outputVelocity = this.characterController.calculateMovement(
             deltaTime, forwardWorld, supportInfo.averageSurfaceNormal, currentVelocity,
@@ -4737,17 +4745,17 @@ class CharacterController {
             console.warn("No character set for jump physics calculations");
             return currentVelocity;
         }
-        
+
         const characterMass = character.mass;
-        
+
         // Character-specific jump height using active character's properties
         const jumpHeight = this.boostActive ? 10.0 : character.jumpHeight; // Use character's jump height
         const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
-        
+
         // Calculate jump velocity using physics formula: v = sqrt(2 * g * h)
         const u = Math.sqrt(2 * CONFIG.PHYSICS.CHARACTER_GRAVITY.length() * massAdjustedJumpHeight);
         const curRelVel = currentVelocity.dot(upWorld);
-        
+
         return currentVelocity.add(upWorld.scale(u - curRelVel));
     }
 
@@ -4789,13 +4797,13 @@ class CharacterController {
         return this.currentCharacter;
     }
 
-        public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
+    public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
         // Update character position to spawn point
         this.characterController.setPosition(spawnPosition);
-        
+
         // Store current character for physics calculations
         this.currentCharacter = character;
-        
+
         // Update character-specific physics attributes
         // Note: PhysicsCharacterController doesn't allow runtime updates of capsule dimensions
         // The display capsule can be updated for visual feedback
@@ -4803,7 +4811,7 @@ class CharacterController {
         this.displayCapsule.scaling.y = character.height / 1.8; // Scale height
         this.displayCapsule.scaling.x = character.radius / 0.6; // Scale radius
         this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
-        
+
         // Reset physics state for new character
         this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
         this.inputDirection.setAll(0);
@@ -4976,10 +4984,10 @@ class SceneManager {
         await this.loadEnvironment("Level Test");
         this.setupCharacter();
         this.loadCharacterModel();
-        
+
         // Set up environment items after character is fully loaded
         await this.setupEnvironmentItems();
-        
+
         // Initialize inventory system
         if (this.characterController) {
             InventoryManager.initialize(this.scene, this.characterController);
@@ -5059,7 +5067,7 @@ class SceneManager {
                 try {
                     for (const particle of environment.particles) {
                         const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
-                        
+
                         // Apply environment-specific settings if provided
                         if (particleSystem && particle.updateSpeed !== undefined) {
                             particleSystem.updateSpeed = particle.updateSpeed;
@@ -5224,7 +5232,7 @@ class SceneManager {
     private loadCharacter(character: Character, preservedPosition?: BABYLON.Vector3 | null): void {
         // Remove all animation groups from the scene before loading a new character
         this.scene.animationGroups.slice().forEach(group => group.dispose());
-        
+
         BABYLON.ImportMeshAsync(character.model, this.scene)
             .then(async result => {
                 // Process node materials for character meshes
@@ -5246,7 +5254,7 @@ class SceneManager {
                     });
 
                     this.characterController.setPlayerMesh(result.meshes[0]);
-                    
+
                     // Determine position for new character
                     let characterPosition: BABYLON.Vector3;
                     if (preservedPosition) {
@@ -5257,34 +5265,34 @@ class SceneManager {
                         const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
                         characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new BABYLON.Vector3(0, 0, 0);
                     }
-                    
+
                     // Update character physics with determined position
                     this.characterController.updateCharacterPhysics(character, characterPosition);
 
-                                    // Setup animations using character's animation mapping with fallbacks
-                playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
-                    result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
-                    result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
-                    result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
-                
-                playerAnimations.idle = result.animationGroups.find(a => a.name === character.animations.idle) ||
-                    result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
-                    result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
+                    // Setup animations using character's animation mapping with fallbacks
+                    playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
 
-                // Debug: Log animation setup results
-                if (!playerAnimations.walk || !playerAnimations.idle) {
-                    console.warn(`Animation setup for ${character.name}:`, {
-                        available: result.animationGroups.map(a => a.name),
-                        found: {
-                            walk: playerAnimations.walk?.name || 'NOT FOUND',
-                            idle: playerAnimations.idle?.name || 'NOT FOUND'
-                        }
-                    });
-                }
+                    playerAnimations.idle = result.animationGroups.find(a => a.name === character.animations.idle) ||
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
 
-                // Stop animations initially
-                playerAnimations.walk?.stop();
-                playerAnimations.idle?.stop();
+                    // Debug: Log animation setup results
+                    if (!playerAnimations.walk || !playerAnimations.idle) {
+                        console.warn(`Animation setup for ${character.name}:`, {
+                            available: result.animationGroups.map(a => a.name),
+                            found: {
+                                walk: playerAnimations.walk?.name || 'NOT FOUND',
+                                idle: playerAnimations.idle?.name || 'NOT FOUND'
+                            }
+                        });
+                    }
+
+                    // Stop animations initially
+                    playerAnimations.walk?.stop();
+                    playerAnimations.idle?.stop();
 
                     // Set character in animation controller
                     this.characterController.animationController.setCharacter(character);
@@ -5320,7 +5328,7 @@ class SceneManager {
      */
     public async setupEnvironmentItems(): Promise<void> {
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-        
+
         if (environment && environment.items) {
             try {
                 await CollectiblesManager.setupEnvironmentItems(environment);
@@ -5474,7 +5482,7 @@ class SceneManager {
     public clearParticles(): void {
         // Remove only environment-related particle systems
         EffectsManager.removeEnvironmentParticles();
-        
+
         // Remove only item-related particle systems  
         EffectsManager.removeItemParticles();
 
@@ -5574,7 +5582,7 @@ class Playground {
 
         // Initialize settings UI with scene manager
         SettingsUI.initialize(canvas, sceneManager);
-        
+
         // Initialize inventory UI with scene manager
         InventoryUI.initialize(canvas, sceneManager);
 
@@ -6113,7 +6121,7 @@ class SettingsUI {
             // Check if the environment is actually different from current
             const currentEnvironment = this.sceneManager.getCurrentEnvironment();
             if (currentEnvironment === environmentName) {
-    
+
                 return; // No change needed
             }
 
@@ -6143,7 +6151,7 @@ class SettingsUI {
 
             // Resume physics after environment is loaded
             this.sceneManager.resumePhysics();
-            
+
 
         }
     }
@@ -6501,16 +6509,16 @@ class InventoryUI {
         if (this.inventoryButton) {
             const inventoryItems = InventoryManager.getInventoryItems();
             const totalItems = Array.from(inventoryItems.values()).reduce((sum, item) => sum + item.count, 0);
-            
+
             // Always show the button
             this.inventoryButton.style.display = 'block';
-            
+
             // Get the inner div that contains the backpack icon
             const innerDiv = this.inventoryButton.querySelector('div');
             if (innerDiv) {
                 // Ensure the button stays on top
                 innerDiv.style.zIndex = '9999';
-                
+
                 // Update styling based on whether there are items
                 if (totalItems > 0) {
                     innerDiv.style.opacity = '1';
@@ -6596,29 +6604,29 @@ class NodeMaterialManager {
         const meshName = mesh.name;
 
         try {
-    
+
 
             // Check if we already have this node material cached
             let nodeMaterial = this.activeNodeMaterials.get(snippetId);
-            
+
             if (!nodeMaterial) {
                 // Parse the node material from the snippet only if not cached
-    
+
                 nodeMaterial = await BABYLON.NodeMaterial.ParseFromSnippetAsync(snippetId, this.scene);
-                
+
                 if (nodeMaterial) {
                     // Store the node material for reuse
                     this.activeNodeMaterials.set(snippetId, nodeMaterial);
-    
+
                 }
             } else {
 
             }
-            
+
             if (nodeMaterial) {
                 // Apply the node material to the mesh
                 mesh.material = nodeMaterial;
-    
+
             } else {
                 console.warn(`Failed to parse node material from snippet "${snippetId}" for mesh "${meshName}"`);
             }
