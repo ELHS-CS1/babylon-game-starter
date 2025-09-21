@@ -1,51 +1,51 @@
 <template>
-  <div v-if="showHUD" :class="['hud-container', `hud-${position}`]">
+  <div v-if="showHUD" class="hud-container" :class="hudPositionClass">
     <!-- Coordinates -->
-    <div v-if="showCoordinates" class="hud-element" id="hud-coordinates">
+    <div v-if="showCoordinates" id="hud-coordinates" class="hud-element">
       <span class="hud-label">Position:</span>
-      <span class="hud-value" id="hud-coordinates-value">{{ coordinates }}</span>
+      <span id="hud-coordinates-value" class="hud-value">{{ coordinates }}</span>
     </div>
     
     <!-- Game Time -->
-    <div v-if="showTime" class="hud-element" id="hud-time">
+    <div v-if="showTime" id="hud-time" class="hud-element">
       <span class="hud-label">Time:</span>
       <br>
-      <span class="hud-value" id="hud-time-value">{{ gameTime }}</span>
+      <span id="hud-time-value" class="hud-value">{{ gameTime }}</span>
     </div>
     
     <!-- FPS -->
-    <div v-if="showFPS" class="hud-element" id="hud-fps">
+    <div v-if="showFPS" id="hud-fps" class="hud-element">
       <span class="hud-label">FPS:</span>
       <br>
-      <span class="hud-value" id="hud-fps-value" :class="{ 'fps-warning': fps < 30 }">{{ fps }}</span>
+      <span id="hud-fps-value" class="hud-value" :class="{ 'fps-warning': fps < 30 }">{{ fps }}</span>
     </div>
     
     <!-- Character State -->
-    <div v-if="showState" class="hud-element" id="hud-state">
+    <div v-if="showState" id="hud-state" class="hud-element">
       <span class="hud-label">State:</span>
       <br>
-      <span class="hud-value" id="hud-state-value" :color="stateColor">{{ characterState }}</span>
+      <span id="hud-state-value" class="hud-value" :color="stateColor">{{ characterState }}</span>
     </div>
     
     <!-- Boost Status -->
-    <div v-if="showBoost" class="hud-element" id="hud-boost">
+    <div v-if="showBoost" id="hud-boost" class="hud-element">
       <span class="hud-label">Boost:</span>
       <br>
-      <span class="hud-value" id="hud-boost-value" :color="boostColor">{{ boostStatus }}</span>
+      <span id="hud-boost-value" class="hud-value" :color="boostColor">{{ boostStatus }}</span>
     </div>
     
     <!-- Credits -->
-    <div v-if="showCredits" class="hud-element" id="hud-credits">
+    <div v-if="showCredits" id="hud-credits" class="hud-element">
       <span class="hud-label">Credits:</span>
       <br>
-      <span class="hud-value" id="hud-credits-value">{{ credits }}</span>
+      <span id="hud-credits-value" class="hud-value">{{ credits }}</span>
     </div>
     
     <!-- Active Peers -->
-    <div v-if="activePeers > 0" class="hud-element" id="hud-peers">
+    <div v-if="activePeers > 0" id="hud-peers" class="hud-element">
       <span class="hud-label">Players:</span>
       <br>
-      <span class="hud-value" id="hud-peers-value">{{ activePeers }}</span>
+      <span id="hud-peers-value" class="hud-value">{{ activePeers }}</span>
     </div>
   </div>
 </template>
@@ -89,6 +89,16 @@ const boostStatus = ref('Ready');
 const credits = ref('0');
 
 // Computed properties
+const hudPositionClass = computed(() => {
+  const positionMap = {
+    top: 'hud-top',
+    bottom: 'hud-bottom',
+    left: 'hud-left',
+    right: 'hud-right'
+  };
+  return positionMap[props.position] || 'hud-top';
+});
+
 const stateColor = computed(() => {
   switch (characterState.value.toLowerCase()) {
     case 'idle': return 'grey';

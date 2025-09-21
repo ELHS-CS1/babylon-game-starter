@@ -85,8 +85,8 @@
                 color="primary"
                 variant="elevated"
                 :disabled="isConnected"
-                @click="joinGame"
                 block
+                @click="joinGame"
               >
                 <v-icon left>mdi-login</v-icon>
                 Join Game
@@ -96,8 +96,8 @@
                 color="error"
                 variant="elevated"
                 :disabled="!isConnected"
-                @click="leaveGame"
                 block
+                @click="leaveGame"
               >
                 <v-icon left>mdi-logout</v-icon>
                 Leave Game
@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import CONFIG, { getCharacters, getEnvironments } from '../config/gameConfig';
 
 // Props

@@ -39,9 +39,6 @@
     "suppressImplicitAnyIndexErrors": false,
     
     // === PROJECT REFERENCES ===
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     
     // === LEGACY COMPATIBILITY ===
@@ -87,10 +84,6 @@
     "**/*.js",
     "**/*.mjs",
     "src/**/dist/**/*"
-  ],
-  "references": [
-    { "path": "./src/server" },
-    { "path": "./src/client" }
   ],
   "ts-node": {
     "esm": true,
