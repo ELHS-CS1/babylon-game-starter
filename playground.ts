@@ -1,6 +1,9 @@
+// @ts-nocheck
 // ============================================================================
 // BABYLON.JS PLAYGROUND - CHARACTER CONTROLLER WITH PHYSICS
 // ============================================================================
+// This file is designed for the Babylon.js playground environment where BABYLON is globally available
+// It should be excluded from TypeScript type checking in the main project
 
 // Configuration Type Definitions
 interface CharacterSpeed {

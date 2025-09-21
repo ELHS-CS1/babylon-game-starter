@@ -1,0 +1,181 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]: Babylon.js Multiplayer Game
+      - generic [ref=e10]: 0 players online
+  - main [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e19]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: "Coordinates:"
+          - generic [ref=e24]: 0.0, 0.0, 0.0
+        - generic [ref=e27]:
+          - generic [ref=e28]: "Time:"
+          - generic [ref=e29]: 12:17:23 PM
+        - generic [ref=e32]:
+          - generic [ref=e33]: "FPS:"
+          - generic [ref=e34]: "60"
+        - generic [ref=e37]:
+          - generic [ref=e38]: "State:"
+          - generic [ref=e41]: Idle
+        - generic [ref=e44]:
+          - generic [ref=e45]: "Boost:"
+          - generic [ref=e48]: Ready
+        - generic [ref=e51]:
+          - generic [ref=e52]: "Credits:"
+          - generic [ref=e53]: "0"
+      - generic [ref=e55]:
+        - generic [ref=e56]: Players
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - combobox [ref=e61] [cursor=pointer]:
+              - generic [ref=e63] [cursor=pointer]:
+                - generic [ref=e65] [cursor=pointer]: levelTest
+                - textbox "Open": levelTest
+              - generic:
+                - generic:
+                  - generic: Environment
+            - alert [ref=e68]
+          - listbox [ref=e70]
+        - generic [ref=e71]:
+          - button "Join Game" [ref=e72] [cursor=pointer]:
+            - generic [ref=e73] [cursor=pointer]: Join Game
+          - button "Leave Game" [disabled]:
+            - generic: Leave Game
+  - button [ref=e75] [cursor=pointer]
+  - navigation [ref=e78]:
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - generic [ref=e84]: Settings
+        - button [ref=e85] [cursor=pointer]
+      - separator [ref=e88]
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: Character
+          - generic [ref=e94]:
+            - combobox [ref=e96] [cursor=pointer]:
+              - generic [ref=e98] [cursor=pointer]:
+                - generic [ref=e100] [cursor=pointer]: Red
+                - textbox "Open": Red
+            - alert [ref=e103]
+        - generic [ref=e105]:
+          - generic [ref=e106]: Environment
+          - generic [ref=e108]:
+            - combobox [ref=e110] [cursor=pointer]:
+              - generic [ref=e112] [cursor=pointer]:
+                - generic [ref=e114] [cursor=pointer]: levelTest
+                - textbox "Open": levelTest
+            - alert [ref=e117]
+        - generic [ref=e119]:
+          - generic [ref=e120]: HUD Display
+          - generic [ref=e122]:
+            - generic [ref=e124]:
+              - checkbox "Show Coordinates" [checked] [ref=e128] [cursor=pointer]
+              - generic [ref=e129] [cursor=pointer]: Show Coordinates
+            - alert [ref=e130]
+          - generic [ref=e132]:
+            - generic [ref=e134]:
+              - checkbox "Show Time" [checked] [ref=e138] [cursor=pointer]
+              - generic [ref=e139] [cursor=pointer]: Show Time
+            - alert [ref=e140]
+          - generic [ref=e142]:
+            - generic [ref=e144]:
+              - checkbox "Show FPS" [checked] [ref=e148] [cursor=pointer]
+              - generic [ref=e149] [cursor=pointer]: Show FPS
+            - alert [ref=e150]
+          - generic [ref=e152]:
+            - generic [ref=e154]:
+              - checkbox "Show Character State" [checked] [ref=e158] [cursor=pointer]
+              - generic [ref=e159] [cursor=pointer]: Show Character State
+            - alert [ref=e160]
+          - generic [ref=e162]:
+            - generic [ref=e164]:
+              - checkbox "Show Boost Status" [checked] [ref=e168] [cursor=pointer]
+              - generic [ref=e169] [cursor=pointer]: Show Boost Status
+            - alert [ref=e170]
+          - generic [ref=e172]:
+            - generic [ref=e174]:
+              - checkbox "Show Credits" [checked] [ref=e178] [cursor=pointer]
+              - generic [ref=e179] [cursor=pointer]: Show Credits
+            - alert [ref=e180]
+        - generic [ref=e182]:
+          - generic [ref=e183]: HUD Position
+          - generic [ref=e185]:
+            - combobox [ref=e187] [cursor=pointer]:
+              - generic [ref=e189] [cursor=pointer]:
+                - generic [ref=e191] [cursor=pointer]: Top
+                - textbox "Open": top
+            - alert [ref=e194]
+        - generic [ref=e196]:
+          - generic [ref=e197]: Audio
+          - generic [ref=e199]:
+            - generic [ref=e201]: Master Volume
+            - slider [ref=e207] [cursor=pointer]
+            - alert [ref=e210]
+          - generic [ref=e212]:
+            - generic [ref=e214]: SFX Volume
+            - slider [ref=e220] [cursor=pointer]
+            - alert [ref=e223]
+          - generic [ref=e225]:
+            - generic [ref=e227]: Music Volume
+            - slider [ref=e233] [cursor=pointer]
+            - alert [ref=e236]
+      - separator [ref=e238]
+      - generic [ref=e239]:
+        - button "Reset" [ref=e240] [cursor=pointer]:
+          - generic [ref=e241] [cursor=pointer]: Reset
+        - button "Save" [ref=e243] [cursor=pointer]:
+          - generic [ref=e244] [cursor=pointer]: Save
+  - navigation [ref=e246]:
+    - generic [ref=e248]:
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - generic [ref=e252]: Inventory
+          - generic [ref=e254]: 21 items
+        - button [ref=e255] [cursor=pointer]
+      - separator [ref=e258]
+      - generic [ref=e260]:
+        - generic [ref=e263] [cursor=pointer]:
+          - generic [ref=e266] [cursor=pointer]:
+            - heading "Jump Boost" [level=4] [ref=e267] [cursor=pointer]
+            - paragraph [ref=e268] [cursor=pointer]: Increases jump height temporarily
+            - generic [ref=e271] [cursor=pointer]: common
+          - button [ref=e272] [cursor=pointer]
+        - generic [ref=e277] [cursor=pointer]:
+          - generic [ref=e280] [cursor=pointer]:
+            - heading "Invisibility Cloak" [level=4] [ref=e281] [cursor=pointer]
+            - paragraph [ref=e282] [cursor=pointer]: Makes you invisible for a short time
+            - generic [ref=e285] [cursor=pointer]: rare
+          - button [ref=e286] [cursor=pointer]
+        - generic [ref=e291] [cursor=pointer]:
+          - generic [ref=e294] [cursor=pointer]:
+            - heading "Health Potion" [level=4] [ref=e295] [cursor=pointer]
+            - paragraph [ref=e296] [cursor=pointer]: Restores health points
+            - generic [ref=e297] [cursor=pointer]:
+              - generic [ref=e299] [cursor=pointer]: uncommon
+              - generic [ref=e301] [cursor=pointer]: x3
+          - button [ref=e302] [cursor=pointer]
+        - generic [ref=e307] [cursor=pointer]:
+          - generic [ref=e310] [cursor=pointer]:
+            - heading "Legendary Sword" [level=4] [ref=e311] [cursor=pointer]
+            - paragraph [ref=e312] [cursor=pointer]: A powerful weapon with special abilities
+            - generic [ref=e315] [cursor=pointer]: legendary
+          - button [ref=e316] [cursor=pointer]
+        - generic [ref=e321] [cursor=pointer]:
+          - generic [ref=e324] [cursor=pointer]:
+            - heading "Gold Coin" [level=4] [ref=e325] [cursor=pointer]
+            - paragraph [ref=e326] [cursor=pointer]: Valuable currency
+            - generic [ref=e327] [cursor=pointer]:
+              - generic [ref=e329] [cursor=pointer]: common
+              - generic [ref=e331] [cursor=pointer]: x15
+          - button [ref=e332] [cursor=pointer]
+      - separator [ref=e335]
+      - generic [ref=e336]:
+        - button "Sort" [ref=e337] [cursor=pointer]:
+          - generic [ref=e338] [cursor=pointer]: Sort
+        - button "Clear All" [ref=e340] [cursor=pointer]:
+          - generic [ref=e341] [cursor=pointer]: Clear All
+```
