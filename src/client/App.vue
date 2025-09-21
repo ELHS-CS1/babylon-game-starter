@@ -3,8 +3,8 @@
     <v-main>
       <v-container fluid class="pa-0">
         <v-row no-gutters>
-          <!-- Game Canvas -->
-          <v-col cols="12" lg="9">
+          <!-- Game Canvas - Full Screen -->
+          <v-col cols="12">
             <div id="game-container" class="game-container">
               <canvas id="game-canvas" ref="gameCanvas"/>
               
@@ -23,66 +23,6 @@
               />
             </div>
           </v-col>
-          
-          <!-- Sidebar -->
-          <v-col cols="12" lg="3">
-            <v-card class="h-100" elevation="2">
-              <v-card-title>
-                <v-icon left>mdi-account-group</v-icon>
-                Players
-              </v-card-title>
-              
-              <v-card-text>
-                <!-- Environment Selector -->
-                <v-select
-                  v-model="selectedEnvironment"
-                  :items="environments"
-                  label="Environment"
-                  variant="outlined"
-                  density="compact"
-                  @update:model-value="onEnvironmentChange"
-                />
-                
-                <!-- Player List -->
-                <v-list density="compact">
-                  <v-list-item
-                    v-for="peer in peers"
-                    :key="peer.id"
-                    :title="peer.name"
-                    :subtitle="`${peer.position.x.toFixed(1)}, ${peer.position.y.toFixed(1)}, ${peer.position.z.toFixed(1)}`"
-                  >
-                    <template v-slot:prepend>
-                      <v-avatar size="small" :color="getPeerColor(peer.id)">
-                        {{ peer.name.charAt(0).toUpperCase() }}
-                      </v-avatar>
-                    </template>
-                  </v-list-item>
-                </v-list>
-              </v-card-text>
-              
-              <v-card-actions>
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  :disabled="isConnected"
-                  @click="joinGame"
-                >
-                  <v-icon left>mdi-login</v-icon>
-                  Join Game
-                </v-btn>
-                
-                <v-btn
-                  color="error"
-                  variant="outlined"
-                  :disabled="!isConnected"
-                  @click="leaveGame"
-                >
-                  <v-icon left>mdi-logout</v-icon>
-                  Leave Game
-                </v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-col>
         </v-row>
       </v-container>
     </v-main>
@@ -94,6 +34,7 @@
       :environments="environments"
       :initial-character="selectedCharacter"
       :initial-environment="selectedEnvironment"
+      :is-connected="isConnected"
       @character-change="onCharacterChange"
       @environment-change="onEnvironmentChange"
       @hud-settings-change="onHUDSettingsChange"
@@ -101,6 +42,8 @@
       @audio-settings-change="onAudioSettingsChange"
       @settings-save="onSettingsSave"
       @settings-reset="onSettingsReset"
+      @join-game="joinGame"
+      @leave-game="leaveGame"
     />
 
     <!-- Inventory Panel -->
@@ -249,15 +192,6 @@ const leaveGame = (): void => {
   }
 };
 
-// Get peer color based on ID
-const getPeerColor = (peerId: string): string => {
-  const colors = ['primary', 'secondary', 'success', 'info', 'warning', 'error'];
-  const hash = peerId.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  return colors[Math.abs(hash) % colors.length];
-};
 
 // Event handlers for components
 const onCharacterChange = (character: string) => {

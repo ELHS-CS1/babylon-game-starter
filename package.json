@@ -117,6 +117,7 @@
     "@babylonjs/gui": "^6.0.0",
     "@babylonjs/loaders": "^6.0.0",
     "@babylonjs/materials": "^6.0.0",
+    "@mdi/font": "^7.4.47",
     "date-fns": "^4.1.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",

@@ -1,18 +1,17 @@
 <template>
   <!-- Inventory Toggle Button -->
   <v-btn
-    v-if="!isOpen"
     class="inventory-toggle-btn"
-    icon="mdi-package-variant"
     size="large"
-    color="grey-darken-3"
+    color="amber"
     variant="elevated"
-    @click="openPanel"
+    @click="togglePanel"
   >
+    <v-icon>mdi-package</v-icon>
     <v-badge
       v-if="totalItems > 0"
-      :content="totalItems"
-      color="red-lighten-2"
+      :content="totalItems.toString()"
+      color="red"
       floating
     />
   </v-btn>
@@ -21,9 +20,10 @@
   <v-navigation-drawer
     v-model="isOpen"
     temporary
-    location="left"
+    location="right"
     width="400"
     class="inventory-panel"
+    z-index="1000"
   >
     <v-card class="h-100" color="grey-darken-4">
       <!-- Header -->
@@ -52,7 +52,7 @@
       <v-divider color="grey-darken-2" />
 
       <!-- Inventory Content -->
-      <v-card-text class="pa-4">
+      <v-card-text class="pa-4 inventory-content">
         <!-- Empty State -->
         <div v-if="inventoryItems.length === 0" class="empty-state text-center py-8">
           <v-icon size="64" color="grey-darken-1" class="mb-4">mdi-package-variant-closed</v-icon>
@@ -225,6 +225,10 @@ const closePanel = () => {
   isOpen.value = false;
 };
 
+const togglePanel = () => {
+  isOpen.value = !isOpen.value;
+};
+
 const selectItem = (item: InventoryItem) => {
   selectedItem.value = selectedItem.value?.id === item.id ? null : item;
   emit('itemSelect', selectedItem.value);
@@ -327,6 +331,8 @@ const getItemRarityColor = (rarity: string): string => {
   return colors[rarity] ?? 'grey-lighten-1';
 };
 
+// Computed properties
+
 // Expose methods
 defineExpose({
   openPanel,
@@ -351,98 +357,16 @@ defineExpose({
 
 <style scoped>
 .inventory-toggle-btn {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 2000;
-  background: rgba(20, 20, 20, 0.9) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(60, 60, 60, 0.8);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 2000 !important;
 }
 
-.inventory-toggle-btn:hover {
-  background: rgba(30, 30, 30, 0.95) !important;
-  transform: scale(1.05);
-  transition: all 0.2s ease;
-}
-
-.inventory-panel {
-  background: rgba(15, 15, 15, 0.98) !important;
-  backdrop-filter: blur(20px);
-}
-
-.inventory-panel :deep(.v-navigation-drawer__content) {
-  background: transparent;
-}
-
-.inventory-panel :deep(.v-card) {
-  background: rgba(20, 20, 20, 0.95) !important;
-  border: 1px solid rgba(45, 45, 45, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.inventory-grid {
-  display: grid;
-  gap: 12px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.inventory-item {
-  background: rgba(25, 25, 25, 0.8) !important;
-  border: 1px solid rgba(50, 50, 50, 0.6);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.inventory-item:hover {
-  background: rgba(35, 35, 35, 0.9) !important;
-  border-color: rgba(100, 181, 246, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.item-selected {
-  background: rgba(30, 30, 30, 0.9) !important;
-  border-color: rgba(100, 181, 246, 0.8) !important;
-  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.3);
-}
-
-.empty-state {
-  color: #a0a0a0;
-}
-
-/* Custom scrollbar for dark theme */
-.inventory-grid {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(100, 181, 246, 0.3) rgba(30, 30, 30, 0.5);
-}
-
-.inventory-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.inventory-grid::-webkit-scrollbar-track {
-  background: rgba(30, 30, 30, 0.5);
-  border-radius: 3px;
-}
-
-.inventory-grid::-webkit-scrollbar-thumb {
-  background: rgba(100, 181, 246, 0.3);
-  border-radius: 3px;
-}
-
-.inventory-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 181, 246, 0.5);
-}
-
-/* Badge styling */
-.inventory-toggle-btn :deep(.v-badge .v-badge__badge) {
-  background: rgba(244, 67, 54, 0.9) !important;
-  color: white !important;
-  font-weight: bold;
-  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+.inventory-content {
+  padding-bottom: 100px !important; /* Extra space to avoid button overlap */
+  max-height: calc(100vh - 200px) !important;
+  overflow-y: auto !important;
 }
 </style>
+

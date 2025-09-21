@@ -1,109 +1,53 @@
 <template>
-  <v-card
-    v-if="showHUD"
-    :class="hudPositionClass"
-    color="grey-darken-4"
-    elevation="8"
-    rounded="lg"
-    class="ma-2"
-  >
-    <v-card-text class="pa-2">
-      <v-row no-gutters>
-        <!-- Coordinates -->
-        <v-col v-if="showCoordinates" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              Coordinates:
-            </v-list-item-title>
-            <v-list-item-subtitle class="text-body-2 font-weight-bold">
-              {{ coordinates }}
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- Time -->
-        <v-col v-if="showTime" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              Time:
-            </v-list-item-title>
-            <v-list-item-subtitle class="text-body-2 font-weight-bold">
-              {{ gameTime }}
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- FPS -->
-        <v-col v-if="showFPS" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              FPS:
-            </v-list-item-title>
-            <v-list-item-subtitle 
-              class="text-body-2 font-weight-bold"
-              :class="fps < 30 ? 'text-red-lighten-2' : 'text-white'"
-            >
-              {{ fps }}
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- State -->
-        <v-col v-if="showState" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              State:
-            </v-list-item-title>
-            <v-list-item-subtitle>
-              <v-chip size="small" :color="stateColor" variant="outlined">
-                {{ characterState }}
-              </v-chip>
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- Boost Status -->
-        <v-col v-if="showBoost" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              Boost:
-            </v-list-item-title>
-            <v-list-item-subtitle>
-              <v-chip size="small" :color="boostColor" variant="outlined">
-                {{ boostStatus }}
-              </v-chip>
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- Credits -->
-        <v-col v-if="showCredits" cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              Credits:
-            </v-list-item-title>
-            <v-list-item-subtitle class="text-body-2 font-weight-bold">
-              {{ credits }}
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-        
-        <!-- Peers -->
-        <v-col cols="12" sm="6" md="4">
-          <v-list-item class="px-0">
-            <v-list-item-title class="text-caption text-grey-lighten-1">
-              Players:
-            </v-list-item-title>
-            <v-list-item-subtitle class="text-body-2 font-weight-bold">
-              <v-chip size="small" color="success" variant="outlined">
-                {{ activePeers }} online
-              </v-chip>
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
-      </v-row>
-    </v-card-text>
-  </v-card>
+  <div v-if="showHUD" :class="['hud-container', `hud-${position}`]">
+    <!-- Coordinates -->
+    <div v-if="showCoordinates" class="hud-element" id="hud-coordinates">
+      <span class="hud-label">Position:</span>
+      <span class="hud-value" id="hud-coordinates-value">{{ coordinates }}</span>
+    </div>
+    
+    <!-- Game Time -->
+    <div v-if="showTime" class="hud-element" id="hud-time">
+      <span class="hud-label">Time:</span>
+      <br>
+      <span class="hud-value" id="hud-time-value">{{ gameTime }}</span>
+    </div>
+    
+    <!-- FPS -->
+    <div v-if="showFPS" class="hud-element" id="hud-fps">
+      <span class="hud-label">FPS:</span>
+      <br>
+      <span class="hud-value" id="hud-fps-value" :class="{ 'fps-warning': fps < 30 }">{{ fps }}</span>
+    </div>
+    
+    <!-- Character State -->
+    <div v-if="showState" class="hud-element" id="hud-state">
+      <span class="hud-label">State:</span>
+      <br>
+      <span class="hud-value" id="hud-state-value" :color="stateColor">{{ characterState }}</span>
+    </div>
+    
+    <!-- Boost Status -->
+    <div v-if="showBoost" class="hud-element" id="hud-boost">
+      <span class="hud-label">Boost:</span>
+      <br>
+      <span class="hud-value" id="hud-boost-value" :color="boostColor">{{ boostStatus }}</span>
+    </div>
+    
+    <!-- Credits -->
+    <div v-if="showCredits" class="hud-element" id="hud-credits">
+      <span class="hud-label">Credits:</span>
+      <br>
+      <span class="hud-value" id="hud-credits-value">{{ credits }}</span>
+    </div>
+    
+    <!-- Active Peers -->
+    <div v-if="activePeers > 0" class="hud-element" id="hud-peers">
+      <span class="hud-label">Players:</span>
+      <br>
+      <span class="hud-value" id="hud-peers-value">{{ activePeers }}</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -145,22 +89,6 @@ const boostStatus = ref('Ready');
 const credits = ref('0');
 
 // Computed properties
-const hudPositionClass = computed(() => {
-  const positionMap = {
-    top: 'fixed-top',
-    bottom: 'fixed-bottom', 
-    left: 'fixed-left',
-    right: 'fixed-right'
-  };
-  return positionMap[props.position] || 'fixed-top';
-});
-
-// Get visibility settings based on device type
-// const visibilitySettings = computed(() => {
-//   const isMobileDevice = isMobile();
-//   return isMobileDevice ? CONFIG.HUD.MOBILE : CONFIG.HUD;
-// });
-
 const stateColor = computed(() => {
   switch (characterState.value.toLowerCase()) {
     case 'idle': return 'grey';
@@ -249,63 +177,91 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.game-hud {
-  position: fixed;
+/* HUD Container - matches playground.ts positioning */
+.hud-container {
+  position: absolute;
+  display: flex;
+  padding: 15px;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   z-index: 1000;
-  background: rgba(15, 15, 15, 0.95) !important;
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(45, 45, 45, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 
-              0 0 0 1px rgba(255, 255, 255, 0.05),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  min-width: 300px;
-  max-width: 600px;
+  pointer-events: none;
 }
 
+/* Position-specific container styles */
 .hud-top {
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .hud-bottom {
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .hud-left {
-  top: 50%;
-  left: 20px;
-  transform: translateY(-50%);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .hud-right {
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
+/* Individual HUD Elements - matches playground.ts styling */
 .hud-element {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  background-color: #000000;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  padding: 8px 12px;
+  margin: 2px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  min-width: 80px;
+  text-align: center;
+  transition: all 0.2s ease;
 }
 
 .hud-label {
-  color: v-bind('CONFIG.HUD.SECONDARY_COLOR');
-  font-size: 0.875rem;
+  color: #cccccc;
+  font-size: 12px;
   font-weight: 500;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .hud-value {
-  color: v-bind('CONFIG.HUD.PRIMARY_COLOR');
-  font-size: 0.875rem;
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 600;
-  font-family: v-bind('CONFIG.HUD.FONT_FAMILY');
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Special styling for coordinates to prevent wrapping */
+#hud-coordinates .hud-value {
+  white-space: nowrap;
+  min-width: 180px;
+  display: inline-block;
+}
+
+#hud-coordinates .hud-label {
+  margin-right: 8px;
 }
 
 .fps-warning {
@@ -320,20 +276,23 @@ onUnmounted(() => {
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-  .game-hud {
-    min-width: 250px;
-    max-width: 90vw;
+  .hud-container {
+    padding: 10px;
+    font-size: 12px;
   }
   
   .hud-element {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    min-width: 60px;
+    padding: 6px 8px;
   }
   
   .hud-label,
   .hud-value {
-    font-size: 0.75rem;
+    font-size: 11px;
+  }
+  
+  #hud-coordinates .hud-value {
+    min-width: 120px;
   }
 }
 </style>

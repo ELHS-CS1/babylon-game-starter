@@ -1,22 +1,23 @@
 <template>
   <!-- Settings Toggle Button -->
   <v-btn
-    v-if="!isOpen"
     class="settings-toggle-btn"
-    icon="mdi-cog"
     size="large"
-    color="grey-darken-3"
+    color="primary"
     variant="elevated"
-    @click="openPanel"
-  />
+    @click="togglePanel"
+  >
+    <v-icon>mdi-cog</v-icon>
+  </v-btn>
 
   <!-- Settings Panel -->
   <v-navigation-drawer
     v-model="isOpen"
     temporary
-    location="right"
+    location="left"
     width="400"
     class="settings-panel"
+    z-index="1000"
   >
     <v-card class="h-100" color="grey-darken-4">
       <!-- Header -->
@@ -36,7 +37,7 @@
       <v-divider color="grey-darken-2" />
 
       <!-- Settings Content -->
-      <v-card-text class="pa-4">
+      <v-card-text class="pa-4 settings-content">
         <v-form>
           <!-- Character Selection -->
           <div class="mb-6">
@@ -70,6 +71,38 @@
               bg-color="grey-darken-3"
               @update:model-value="onEnvironmentChange"
             />
+          </div>
+
+          <!-- Game Controls -->
+          <div class="mb-6">
+            <v-label class="text-subtitle-1 font-weight-medium mb-3 d-block">
+              <v-icon color="red-lighten-2" class="me-2">mdi-gamepad-variant</v-icon>
+              Game Controls
+            </v-label>
+            
+            <div class="d-flex flex-column gap-3">
+              <v-btn
+                color="primary"
+                variant="elevated"
+                :disabled="isConnected"
+                @click="joinGame"
+                block
+              >
+                <v-icon left>mdi-login</v-icon>
+                Join Game
+              </v-btn>
+              
+              <v-btn
+                color="error"
+                variant="elevated"
+                :disabled="!isConnected"
+                @click="leaveGame"
+                block
+              >
+                <v-icon left>mdi-logout</v-icon>
+                Leave Game
+              </v-btn>
+            </div>
           </div>
 
           <!-- HUD Settings -->
@@ -217,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import CONFIG, { getCharacters, getEnvironments } from '../config/gameConfig';
 
 // Props
@@ -226,13 +259,15 @@ interface Props {
   environments?: string[];
   initialCharacter?: string;
   initialEnvironment?: string;
+  isConnected?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   characters: () => getCharacters(),
   environments: () => getEnvironments(),
   initialCharacter: () => getCharacters()[0],
-  initialEnvironment: () => getEnvironments()[0]
+  initialEnvironment: () => getEnvironments()[0],
+  isConnected: () => false
 });
 
 // Emits
@@ -244,6 +279,8 @@ const emit = defineEmits<{
   'audioSettingsChange': [settings: Record<string, unknown>];
   'settingsSave': [settings: Record<string, unknown>];
   'settingsReset': [];
+  'joinGame': [];
+  'leaveGame': [];
 }>();
 
 // Reactive state
@@ -275,7 +312,6 @@ const hudPositions = [
 ];
 
 // Computed properties
-// const settingsConfig = computed(() => getSettingsConfig());
 
 // Methods
 const openPanel = () => {
@@ -284,6 +320,10 @@ const openPanel = () => {
 
 const closePanel = () => {
   isOpen.value = false;
+};
+
+const togglePanel = () => {
+  isOpen.value = !isOpen.value;
 };
 
 const onCharacterChange = (character: string) => {
@@ -304,6 +344,14 @@ const onHUDPositionChange = (position: string) => {
 
 const onAudioSettingsChange = () => {
   emit('audioSettingsChange', { ...audioSettings });
+};
+
+const joinGame = () => {
+  emit('joinGame');
+};
+
+const leaveGame = () => {
+  emit('leaveGame');
 };
 
 const saveSettings = () => {
@@ -354,81 +402,20 @@ defineExpose({
 
 <style scoped>
 .settings-toggle-btn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 2000;
-  background: rgba(20, 20, 20, 0.9) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(60, 60, 60, 0.8);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 20px !important;
+  z-index: 2000 !important;
 }
 
-.settings-toggle-btn:hover {
-  background: rgba(30, 30, 30, 0.95) !important;
-  transform: scale(1.05);
-  transition: all 0.2s ease;
+.settings-content {
+  max-height: calc(100vh - 200px) !important; /* Account for header, footer, and button gap */
+  overflow-y: auto !important;
+  padding-bottom: 85px !important; /* 5px gap from button (60px button + 20px margin + 5px gap) */
 }
 
 .settings-panel {
-  background: rgba(15, 15, 15, 0.98) !important;
-  backdrop-filter: blur(20px);
-}
-
-.settings-panel :deep(.v-navigation-drawer__content) {
-  background: transparent;
-}
-
-.settings-panel :deep(.v-card) {
-  background: rgba(20, 20, 20, 0.95) !important;
-  border: 1px solid rgba(45, 45, 45, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.settings-panel :deep(.v-label) {
-  color: #e0e0e0 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.settings-panel :deep(.v-select .v-field) {
-  background: rgba(30, 30, 30, 0.8) !important;
-  border: 1px solid rgba(60, 60, 60, 0.6);
-}
-
-.settings-panel :deep(.v-switch .v-selection-control__input) {
-  color: #64b5f6 !important;
-}
-
-.settings-panel :deep(.v-slider .v-slider-track__fill) {
-  background: linear-gradient(90deg, #64b5f6, #42a5f5) !important;
-}
-
-.settings-panel :deep(.v-slider .v-slider-thumb__surface) {
-  background: #64b5f6 !important;
-  box-shadow: 0 2px 8px rgba(100, 181, 246, 0.4);
-}
-
-/* Custom scrollbar for dark theme */
-.settings-panel :deep(.v-card-text) {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(100, 181, 246, 0.3) rgba(30, 30, 30, 0.5);
-}
-
-.settings-panel :deep(.v-card-text)::-webkit-scrollbar {
-  width: 6px;
-}
-
-.settings-panel :deep(.v-card-text)::-webkit-scrollbar-track {
-  background: rgba(30, 30, 30, 0.5);
-  border-radius: 3px;
-}
-
-.settings-panel :deep(.v-card-text)::-webkit-scrollbar-thumb {
-  background: rgba(100, 181, 246, 0.3);
-  border-radius: 3px;
-}
-
-.settings-panel :deep(.v-card-text)::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 181, 246, 0.5);
+  bottom: 85px !important; /* 5px gap from button */
 }
 </style>
+
