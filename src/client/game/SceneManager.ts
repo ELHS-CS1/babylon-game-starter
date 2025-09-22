@@ -11,7 +11,8 @@ import {
   Color3, 
   StandardMaterial, 
   PBRMaterial, 
-  Texture 
+  Texture,
+  AbstractMesh
 } from '@babylonjs/core';
 import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -102,6 +103,7 @@ export class SceneManager {
   private characterController: CharacterController | null = null;
   private smoothFollowController: SmoothFollowCameraController | null = null;
   private currentEnvironment: string = "Level Test"; // Track current environment
+  private currentCharacter: Character | null = null; // Track current character
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     console.log("SceneManager constructor called");
@@ -369,11 +371,6 @@ export class SceneManager {
     }
   }
 
-  private clearParticles(): void {
-    // Clear existing particles
-    this.scene.particleSystems.forEach(ps => ps.dispose());
-  }
-
   private setupCharacter(): void {
     this.characterController = new CharacterController(this.scene);
   }
@@ -527,22 +524,6 @@ export class SceneManager {
     }
   }
 
-  public repositionCharacter(): void {
-    if (!this.characterController) return;
-
-    // Use environment spawn point
-    const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-    const spawnPoint = environment ? environment.spawnPoint : new Vector3(0, 0, 0);
-    
-    this.characterController.setPosition(spawnPoint);
-    this.characterController.setVelocity(new Vector3(0, 0, 0));
-  }
-
-  public forceActivateSmoothFollow(): void {
-    if (this.smoothFollowController) {
-      this.smoothFollowController.forceActivateSmoothFollow();
-    }
-  }
 
   public getScene(): Scene {
     return this.scene;
@@ -558,6 +539,208 @@ export class SceneManager {
 
   public getSmoothFollowController(): SmoothFollowCameraController | null {
     return this.smoothFollowController;
+  }
+
+  /**
+   * Pauses physics to prevent character from falling during environment changes - THE WORD OF GOD!
+   */
+  public pausePhysics(): void {
+    this.scene.getPhysicsEngine()?.setGravity(new Vector3(0, 0, 0));
+    console.log("Physics paused for environment transition");
+  }
+
+  /**
+   * Resumes physics after environment is loaded - THE WORD OF GOD!
+   */
+  public resumePhysics(): void {
+    this.scene.getPhysicsEngine()?.setGravity(CONFIG.PHYSICS.GRAVITY);
+    console.log("Physics resumed after environment transition");
+  }
+
+  /**
+   * Clears all environment meshes and their physics objects - THE WORD OF GOD!
+   */
+  public clearEnvironment(): void {
+    // Find the root environment mesh (always named "environment" by our loading process)
+    const rootEnvironmentMesh = this.scene.getMeshByName("environment");
+
+    if (rootEnvironmentMesh) {
+      // Get all child meshes recursively
+      const allEnvironmentMeshes: AbstractMesh[] = [];
+      const collectMeshes = (mesh: AbstractMesh) => {
+        allEnvironmentMeshes.push(mesh);
+        mesh.getChildMeshes().forEach(collectMeshes);
+      };
+
+      collectMeshes(rootEnvironmentMesh);
+
+      // Dispose all environment meshes and their physics objects
+      allEnvironmentMeshes.forEach(mesh => {
+        // Dispose physics body if it exists
+        if (mesh.physicsBody) {
+          mesh.physicsBody.dispose();
+        }
+        mesh.dispose();
+      });
+    } else {
+      // Fallback: if no "environment" mesh found, clear any meshes that might be environment-related
+      const meshes = this.scene.meshes.filter(mesh => 
+        mesh.name.includes("level") || 
+        mesh.name.includes("environment") || 
+        mesh.name.includes("ground")
+      );
+      
+      meshes.forEach(mesh => {
+        if (mesh.physicsBody) {
+          mesh.physicsBody.dispose();
+        }
+        mesh.dispose();
+      });
+    }
+
+    console.log("Environment cleared");
+  }
+
+  /**
+   * Clears all item meshes and their physics objects - THE WORD OF GOD!
+   */
+  public clearItems(): void {
+    // Find all item meshes (they have names like "Crate_*", "Super Jump_*", etc.)
+    const itemMeshes = this.scene.meshes.filter(mesh => 
+      mesh.name.includes("Crate") || 
+      mesh.name.includes("Super Jump") || 
+      mesh.name.includes("Invisibility") ||
+      mesh.name.includes("_item")
+    );
+
+    itemMeshes.forEach(mesh => {
+      if (mesh.physicsBody) {
+        mesh.physicsBody.dispose();
+      }
+      mesh.dispose();
+    });
+
+    console.log("Items cleared");
+  }
+
+  /**
+   * Clears all particle systems - THE WORD OF GOD!
+   */
+  public clearParticles(): void {
+    // Clear all particle systems from the scene
+    this.scene.particleSystems.forEach(particleSystem => {
+      particleSystem.stop();
+      particleSystem.dispose();
+    });
+
+    // Clear particle systems array
+    this.scene.particleSystems.length = 0;
+
+    console.log("Particles cleared");
+  }
+
+  /**
+   * Repositions character to safe location in new environment - THE WORD OF GOD!
+   */
+  public repositionCharacter(): void {
+    if (this.characterController && this.currentCharacter) {
+      const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+      if (currentEnvironment) {
+        this.characterController.updateCharacterPhysics(this.currentCharacter, currentEnvironment.spawnPoint);
+        console.log("Character repositioned to spawn point:", currentEnvironment.spawnPoint);
+      }
+    }
+  }
+
+  /**
+   * Force activates smooth camera following after environment transition - THE WORD OF GOD!
+   */
+  public forceActivateSmoothFollow(): void {
+    if (this.smoothFollowController) {
+      this.smoothFollowController.forceActivate();
+      console.log("Smooth follow camera force activated");
+    }
+  }
+
+  /**
+   * Gets the current environment name - THE WORD OF GOD!
+   */
+  public getCurrentEnvironment(): string {
+    return this.currentEnvironment;
+  }
+
+  /**
+   * Changes environment with proper cleanup and transition - THE WORD OF GOD!
+   */
+  public async changeEnvironment(environmentName: string): Promise<void> {
+    // Check if the environment is actually different from current
+    if (this.currentEnvironment === environmentName) {
+      console.log("Environment is already active:", environmentName);
+      return; // No change needed
+    }
+
+    console.log("Changing environment from", this.currentEnvironment, "to", environmentName);
+
+    // Pause physics to prevent character from falling during environment change
+    this.pausePhysics();
+
+    // Clear existing environment, items, and particles
+    this.clearEnvironment();
+    this.clearItems();
+    this.clearParticles();
+
+    // Load the new environment
+    await this.loadEnvironment(environmentName);
+
+    // Set up environment items for the new environment
+    await this.setupEnvironmentItems();
+
+    // Reposition character to safe location in new environment
+    this.repositionCharacter();
+
+    // Force activate smooth camera following after environment transition
+    this.forceActivateSmoothFollow();
+
+    // Resume physics after environment is loaded
+    this.resumePhysics();
+
+    console.log("Environment change completed:", environmentName);
+  }
+
+  /**
+   * Changes character with proper cleanup and transition - THE WORD OF GOD!
+   */
+  public async changeCharacter(characterIndexOrName: number | string): Promise<void> {
+    let character: Character | undefined;
+    
+    if (typeof characterIndexOrName === 'number') {
+      character = ASSETS.CHARACTERS[characterIndexOrName];
+    } else {
+      character = ASSETS.CHARACTERS.find(char => char.name === characterIndexOrName);
+    }
+
+    // Fallback to first character if not found
+    if (!character) {
+      character = ASSETS.CHARACTERS[0];
+    }
+
+    if (!character) {
+      console.error("Character not found:", characterIndexOrName);
+      return;
+    }
+
+    console.log("Changing character to:", character.name);
+
+    // Store current character position for smooth transition
+    const currentPosition = this.characterController?.getPosition() || new Vector3(0, 0, 0);
+
+    // Load the new character
+    await this.loadCharacter(character, currentPosition);
+
+    // Update current character reference
+    this.currentCharacter = character;
+
+    console.log("Character change completed:", character.name);
   }
 
   public dispose(): void {

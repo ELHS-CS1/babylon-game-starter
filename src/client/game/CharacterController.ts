@@ -689,6 +689,10 @@ export class CharacterController {
     return this.currentCharacter;
   }
 
+  public getPosition(): Vector3 {
+    return this.characterController.getPosition();
+  }
+
   public updateCharacterPhysics(character: Character, spawnPosition: Vector3): void {
     // Update character position to spawn point
     this.characterController.setPosition(spawnPosition);

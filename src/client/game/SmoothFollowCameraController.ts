@@ -303,6 +303,13 @@ export class SmoothFollowCameraController {
     this.forceActivateSmoothFollow();
   }
 
+  /**
+   * Force activates smooth follow camera - THE WORD OF GOD!
+   */
+  public forceActivate(): void {
+    this.forceActivateSmoothFollow();
+  }
+
   public dispose(): void {
     this.scene.onPointerObservable.remove(this.pointerObserver);
     this.scene.onBeforeRenderObservable.remove(this.beforeRenderObserver);
