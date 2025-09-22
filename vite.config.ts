@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Environment variables for client
-    'import.meta.env.VITE_DOCKER': JSON.stringify(process.env.DOCKER === 'true'),
+    'import.meta.env.VITE_DOCKER': JSON.stringify(process.env['DOCKER'] === 'true'),
     'import.meta.env.VITE_PROD': JSON.stringify(mode === 'production')
   }
 }))

@@ -120,22 +120,41 @@ export class DataStarConnection {
         if ('peer' in data && data.peer !== null && data.peer !== undefined && typeof data.peer === 'object' && 'id' in data.peer && typeof data.peer.id === 'string') {
           const peerData = data.peer;
           if ('id' in peerData && 'name' in peerData && 'position' in peerData && 'rotation' in peerData && 'environment' in peerData && 'lastUpdate' in peerData) {
-            // Type guard for Vector3 without type assertions
-            const isVector3 = (obj: unknown): obj is { x: number; y: number; z: number } => {
-              if (obj === null || typeof obj !== 'object') return false;
-              if (!('x' in obj) || !('y' in obj) || !('z' in obj)) return false;
-              const objRecord = obj as Record<string, unknown>;
-              return typeof objRecord.x === 'number' && 
-                     typeof objRecord.y === 'number' && 
-                     typeof objRecord.z === 'number';
-            };
+            // Check if position and rotation are valid Vector3 objects
+            const isValidPosition = peerData.position !== null && 
+                                   typeof peerData.position === 'object' &&
+                                   'x' in peerData.position &&
+                                   'y' in peerData.position &&
+                                   'z' in peerData.position;
             
-            if (isVector3(peerData.position) && isVector3(peerData.rotation)) {
+            const isValidRotation = peerData.rotation !== null && 
+                                   typeof peerData.rotation === 'object' &&
+                                   'x' in peerData.rotation &&
+                                   'y' in peerData.rotation &&
+                                   'z' in peerData.rotation;
+            
+            if (isValidPosition && isValidRotation) {
+              // Extract Vector3 values manually to avoid type assertions
+              
               const validPeer = {
                 id: String(peerData.id),
                 name: String(peerData.name),
-                position: peerData.position,
-                rotation: peerData.rotation,
+                position: { 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  x: Number((peerData.position as Record<string, unknown>)['x']), 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  y: Number((peerData.position as Record<string, unknown>)['y']), 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  z: Number((peerData.position as Record<string, unknown>)['z']) 
+                },
+                rotation: { 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  x: Number((peerData.rotation as Record<string, unknown>)['x']), 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  y: Number((peerData.rotation as Record<string, unknown>)['y']), 
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  z: Number((peerData.rotation as Record<string, unknown>)['z']) 
+                },
                 environment: String(peerData.environment),
                 lastUpdate: Number(peerData.lastUpdate)
               };

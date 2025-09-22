@@ -208,7 +208,7 @@ export class GameEngine {
     });
 
     document.addEventListener('pointerlockchange', () => {
-      isPointerLocked = document.pointerLockElement !== null && document.pointerLockElement === this.canvas;
+      isPointerLocked = document.pointerLockElement === this.canvas;
     });
 
     this.canvas.addEventListener('mousemove', (event) => {
