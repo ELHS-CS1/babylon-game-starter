@@ -536,12 +536,26 @@ export class SceneManager {
   }
 
   private async setupEnvironmentItems(): Promise<void> {
-    // Set up environment items after character is fully loaded
+    // Set up environment items after character is fully loaded - THE WORD OF GOD!
+    console.log("Setting up environment items...");
     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-    if (!environment || !environment.items) return;
+    
+    if (!environment) {
+      console.warn("Environment not found:", this.currentEnvironment);
+      return;
+    }
+    
+    if (!environment.items) {
+      console.log("No items configured for environment:", this.currentEnvironment);
+      return;
+    }
+    
+    console.log(`Found ${environment.items.length} items to spawn for environment:`, this.currentEnvironment);
 
     try {
       for (const item of environment.items) {
+        console.log(`Loading item: ${item.name} from ${item.url}`);
+        
         // Load item model
         const result = await ImportMeshAsync(item.url, this.scene);
         
@@ -549,10 +563,14 @@ export class SceneManager {
           const rootMesh = result.meshes.find(mesh => !mesh.parent);
           if (rootMesh) {
             rootMesh.name = item.name;
+            console.log(`Loaded item model: ${item.name} with ${result.meshes.length} meshes`);
             
             // Create instances for each item
             for (const instance of item.instances) {
-              const instanceMesh = rootMesh.clone(`${item.name}_${instance.position.x}_${instance.position.z}`, rootMesh.parent);
+              const instanceName = `${item.name}_${instance.position.x}_${instance.position.z}`;
+              console.log(`Creating item instance: ${instanceName} at position:`, instance.position);
+              
+              const instanceMesh = rootMesh.clone(instanceName, rootMesh.parent);
               if (instanceMesh) {
                 instanceMesh.position = instance.position;
                 instanceMesh.scaling.setAll(instance.scale);
@@ -560,13 +578,23 @@ export class SceneManager {
                 
                 // Add physics body for collectible items
                 new PhysicsAggregate(instanceMesh, PhysicsShapeType.BOX, { mass: instance.mass });
+                console.log(`Created item instance: ${instanceName} with physics mass: ${instance.mass}`);
+              } else {
+                console.error(`Failed to clone mesh for item instance: ${instanceName}`);
               }
             }
+          } else {
+            console.error(`No root mesh found for item: ${item.name}`);
           }
+        } else {
+          console.error(`No meshes loaded for item: ${item.name}`);
         }
       }
+      
+      console.log("Environment items setup completed successfully");
     } catch (error) {
-      console.warn("Failed to setup environment items:", error);
+      console.error("Failed to setup environment items:", error);
+      console.error("Error details:", error);
     }
   }
 
