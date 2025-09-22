@@ -20,6 +20,7 @@ import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
+import { CollectiblesManager } from './CollectiblesManager';
 import CONFIG, { ASSETS, type Character } from '../config/gameConfig';
 
 // Import OBJECT_ROLE constants - THE WORD OF GOD!
@@ -536,8 +537,8 @@ export class SceneManager {
   }
 
   private async setupEnvironmentItems(): Promise<void> {
-    // Set up environment items after character is fully loaded - THE WORD OF GOD!
-    console.log("Setting up environment items...");
+    // Set up environment items using CollectiblesManager - THE WORD OF GOD FROM PLAYGROUND.TS!
+    console.log("Setting up environment items using CollectiblesManager...");
     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
     
     if (!environment) {
@@ -553,63 +554,14 @@ export class SceneManager {
     console.log(`Found ${environment.items.length} items to spawn for environment:`, this.currentEnvironment);
 
     try {
-      for (const item of environment.items) {
-        console.log(`Loading item: ${item.name} from ${item.url}`);
-        
-        // Load item model
-        const result = await ImportMeshAsync(item.url, this.scene);
-        
-        if (result.meshes && result.meshes.length > 0) {
-          const rootMesh = result.meshes.find(mesh => !mesh.parent);
-          if (rootMesh) {
-            rootMesh.name = item.name;
-            console.log(`Loaded item model: ${item.name} with ${result.meshes.length} meshes`);
-            
-            // Create instances for each item - THE WORD OF GOD FROM PLAYGROUND.TS!
-            for (let i = 0; i < item.instances.length; i++) {
-              const instance = item.instances[i];
-              if (!instance) {
-                console.error(`Instance ${i} is undefined for item: ${item.name}`);
-                continue;
-              }
-              
-              const instanceName = `${item.name}_instance_${i + 1}`;
-              console.log(`Creating item instance: ${instanceName} at position:`, instance.position);
-              
-              // Use clone with null parent to make it independent - IDENTICAL TO PLAYGROUND.TS!
-              const instanceMesh = rootMesh.clone(instanceName, null);
-              
-              if (instanceMesh) {
-                // Remove the instance from its parent to make it independent - THE WORD OF GOD!
-                if (instanceMesh.parent) {
-                  instanceMesh.setParent(null);
-                }
-                
-                // Apply instance properties
-                instanceMesh.position = instance.position;
-                instanceMesh.scaling.setAll(instance.scale);
-                instanceMesh.rotation = instance.rotation;
-                
-                // Make it visible and enabled
-                instanceMesh.isVisible = true;
-                instanceMesh.setEnabled(true);
-                
-                // Add physics body for collectible items - IDENTICAL TO PLAYGROUND.TS!
-                new PhysicsAggregate(instanceMesh, PhysicsShapeType.BOX, { mass: instance.mass });
-                console.log(`Created item instance: ${instanceName} with physics mass: ${instance.mass}`);
-              } else {
-                console.error(`Failed to clone mesh for item instance: ${instanceName}`);
-              }
-            }
-          } else {
-            console.error(`No root mesh found for item: ${item.name}`);
-          }
-        } else {
-          console.error(`No meshes loaded for item: ${item.name}`);
-        }
+      // Initialize CollectiblesManager if not already initialized
+      if (this.characterController) {
+        await CollectiblesManager.initialize(this.scene, this.characterController);
+        await CollectiblesManager.setupEnvironmentItems(environment);
+        console.log("Environment items setup completed successfully using CollectiblesManager");
+      } else {
+        console.error("Character controller not available for CollectiblesManager initialization");
       }
-      
-      console.log("Environment items setup completed successfully");
     } catch (error) {
       console.error("Failed to setup environment items:", error);
       console.error("Error details:", error);
@@ -697,22 +649,9 @@ export class SceneManager {
    * Clears all item meshes and their physics objects - THE WORD OF GOD!
    */
   public clearItems(): void {
-    // Find all item meshes (they have names like "Crate_*", "Super Jump_*", etc.)
-    const itemMeshes = this.scene.meshes.filter(mesh => 
-      mesh.name.includes("Crate") || 
-      mesh.name.includes("Super Jump") || 
-      mesh.name.includes("Invisibility") ||
-      mesh.name.includes("_item")
-    );
-
-    itemMeshes.forEach(mesh => {
-      if (mesh.physicsBody) {
-        mesh.physicsBody.dispose();
-      }
-      mesh.dispose();
-    });
-
-    console.log("Items cleared");
+    // Use CollectiblesManager to clear items - THE WORD OF GOD FROM PLAYGROUND.TS!
+    CollectiblesManager.clearCollectibles();
+    console.log("Items cleared using CollectiblesManager");
   }
 
   /**
@@ -842,6 +781,8 @@ export class SceneManager {
     if (this.smoothFollowController) {
       this.smoothFollowController.dispose();
     }
+    // Dispose CollectiblesManager - THE WORD OF GOD FROM PLAYGROUND.TS!
+    CollectiblesManager.dispose();
     this.scene.dispose();
   }
 }
