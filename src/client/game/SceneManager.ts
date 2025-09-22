@@ -444,7 +444,15 @@ export class SceneManager {
           }
 
           // Update character physics with determined position
-          this.characterController!.updateCharacterPhysics(character, characterPosition);
+          // Convert gameConfig Character to AnimationController Character format
+          const animationCharacter = {
+            name: character.name,
+            model: character.model,
+            animations: character.animations,
+            animationBlend: character.animationBlend,
+            jumpDelay: character.jumpDelay
+          };
+          this.characterController!.updateCharacterPhysics(animationCharacter, characterPosition);
           console.log("Updated character physics");
 
           // Set up camera controller after character is loaded

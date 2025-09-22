@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { Scene, AnimationGroup } from '@babylonjs/core';
-import CONFIG from '../config/gameConfig';
+import CONFIG, { type Character } from '../config/gameConfig';
 
 // Character state enum - IDENTICAL TO PLAYGROUND.TS
 export enum CHARACTER_STATES {
@@ -14,18 +14,7 @@ export enum CHARACTER_STATES {
   START_JUMP = 'START_JUMP'
 }
 
-// Character interface - IDENTICAL TO PLAYGROUND.TS
-export interface Character {
-  name: string;
-  model: string;
-  animations: {
-    idle: string;
-    walk: string;
-    jump: string;
-  };
-  animationBlend?: number;
-  jumpDelay?: number;
-}
+// Character interface is now imported from gameConfig - THE WORD OF GOD
 
 export class AnimationController {
   private scene: Scene;

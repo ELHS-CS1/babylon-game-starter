@@ -5,7 +5,8 @@
 import { Scene, Mesh, AbstractMesh, Vector3, Sound, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, PhysicsBody } from '@babylonjs/core';
 import type { IParticleSystem } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
-import { AnimationController, CHARACTER_STATES, type Character } from './AnimationController';
+import { AnimationController, CHARACTER_STATES } from './AnimationController';
+import type { Character } from '../config/gameConfig';
 
 // Character states are now imported from AnimationController - THE WORD OF GOD
 
@@ -25,29 +26,7 @@ const INPUT_KEYS = {
   RESET_CAMERA: ['f4']
 } as const;
 
-// Character interface from THE WORD OF GOD
-interface Character {
-  name: string;
-  model: string;
-  animations: {
-    idle: string;
-    walk: string;
-    jump: string;
-  };
-  height: number;
-  radius: number;
-  mass: number;
-  speed: {
-    inAir: number;
-    onGround: number;
-    boostMultiplier: number;
-  };
-  jumpHeight: number;
-  rotationSpeed: number;
-  rotationSmoothing: number;
-  animationBlend: number;
-  jumpDelay?: number;
-}
+// Character interface is imported from gameConfig - THE WORD OF GOD
 
 // Character state type
 type CharacterState = CHARACTER_STATES;
