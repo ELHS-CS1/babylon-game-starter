@@ -390,8 +390,28 @@ export class SceneManager {
     // Create physics bodies for all environment meshes to prevent falling through - THE WORD OF GOD!
     const environmentMesh = this.scene.getMeshByName("environment");
     if (environmentMesh) {
-      new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH, { mass: 0 });
-      console.log("Created physics for main environment mesh (floor/ground)");
+      // Check if the main environment mesh has valid geometry
+      if (environmentMesh.getTotalVertices() > 0) {
+        new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH, { mass: 0 });
+        console.log("Created physics for main environment mesh (floor/ground)");
+      } else {
+        // If main mesh has no geometry, find child meshes with geometry
+        console.log("Main environment mesh has no geometry, searching for child meshes...");
+        const childMeshes = environmentMesh.getChildMeshes();
+        let physicsCreated = false;
+        
+        childMeshes.forEach((childMesh, index) => {
+          if (childMesh.getTotalVertices() > 0) {
+            new PhysicsAggregate(childMesh, PhysicsShapeType.MESH, { mass: 0 });
+            console.log(`Created physics for child mesh ${index}: ${childMesh.name}`);
+            physicsCreated = true;
+          }
+        });
+        
+        if (!physicsCreated) {
+          console.warn("No valid geometry found in environment meshes - character may fall through floor!");
+        }
+      }
     } else {
       console.warn("Main environment mesh not found - character may fall through floor!");
     }
