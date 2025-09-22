@@ -333,10 +333,11 @@ export class SceneManager {
       const havokInstance = await (window as any).HK();
       const hkPlugin = new HavokPlugin(false, havokInstance);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hkPlugin);
+      console.log("Havok physics engine initialized successfully");
     } catch (error) {
-      console.warn("HavokPlugin failed, falling back to default physics:", error);
-      // Fallback to default physics if Havok fails
-      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY);
+      console.warn("HavokPlugin failed, physics disabled:", error);
+      // NO FALLBACK TO CANNON - WE DON'T USE CANNON!
+      // Physics will be disabled if Havok fails
     }
   }
 
