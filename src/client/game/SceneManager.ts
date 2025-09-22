@@ -291,7 +291,7 @@ export class SceneManager {
     this.setupLighting();
     console.log("Setup lighting");
     
-    await this.setupPhysics();
+    this.setupPhysics();
     console.log("Setup physics");
     
     this.setupSky();
@@ -326,18 +326,10 @@ export class SceneManager {
     light.intensity = 0.7;
   }
 
-  private async setupPhysics(): Promise<void> {
-    // FOLLOWING BABYLON.JS DOCS FOR HAVOK - THE WORD OF THE LORD!
-    try {
-      // Import Havok dynamically as per official docs
-      const { Havok } = await import('@babylonjs/havok');
-      const hk = new HavokPlugin(false);
-      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
-    } catch (error) {
-      console.warn("HavokPlugin failed, falling back to default physics:", error);
-      // Fallback to default physics if Havok fails
-      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY);
-    }
+  private setupPhysics(): void {
+    // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
+    const hk = new HavokPlugin(false);
+    this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
   }
 
   private setupSky(): void {
