@@ -268,21 +268,39 @@ export class SceneManager {
   }
 
   private async initializeScene(): Promise<void> {
+    console.log("Initializing scene...");
+    
     this.setupLighting();
+    console.log("Setup lighting");
+    
     this.setupPhysics();
+    console.log("Setup physics");
+    
     this.setupSky();
+    console.log("Setup sky");
+    
     await this.setupEffects();
+    console.log("Setup effects");
+    
     await this.loadEnvironment("Level Test");
+    console.log("Loaded environment");
+    
     this.setupCharacter();
+    console.log("Setup character");
+    
     this.loadCharacterModel();
+    console.log("Loaded character model");
 
     // Set up environment items after character is fully loaded
     await this.setupEnvironmentItems();
+    console.log("Setup environment items");
 
     // Initialize inventory system
     if (this.characterController) {
       // InventoryManager.initialize(this.scene, this.characterController);
     }
+    
+    console.log("Scene initialization complete");
   }
 
   private setupLighting(): void {
@@ -312,6 +330,8 @@ export class SceneManager {
   }
 
   public async loadEnvironment(environmentName: string): Promise<void> {
+    console.log(`Loading environment: ${environmentName}`);
+    
     // Find the environment by name
     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === environmentName);
     if (!environment) {
@@ -319,11 +339,15 @@ export class SceneManager {
       return;
     }
 
+    console.log(`Found environment:`, environment);
+
     // Clear existing environment particles before creating new ones
     this.clearParticles();
 
     try {
+      console.log(`Loading model from: ${environment.model}`);
       const result = await BABYLON.ImportMeshAsync(environment.model, this.scene);
+      console.log(`Loaded environment meshes:`, result.meshes.length);
 
       // Process node materials for environment meshes
       // await NodeMaterialManager.processImportResult(result);
@@ -334,29 +358,38 @@ export class SceneManager {
         const rootMesh = result.meshes.find(mesh => !mesh.parent);
         if (rootMesh) {
           rootMesh.name = "environment";
+          console.log(`Set environment mesh name to: ${rootMesh.name}`);
           if (environment.scale !== 1) {
             rootMesh.scaling.x = -environment.scale; // invert X-axis to fix handedness
             rootMesh.scaling.y = environment.scale;
             rootMesh.scaling.z = environment.scale;
+            console.log(`Applied scale: ${environment.scale}`);
           }
+        } else {
+          console.warn("No root mesh found in environment");
         }
+      } else {
+        console.warn("No meshes loaded for environment");
       }
 
       // Set up environment-specific sky if configured
       if (environment.sky) {
         try {
           this.createSky(environment.sky);
+          console.log("Created environment sky");
         } catch (error) {
           console.warn("Failed to create environment sky:", error);
         }
       }
 
       this.setupEnvironmentPhysics(environment);
+      console.log("Set up environment physics");
 
       // Set up environment-specific particles if configured
       if (environment.particles) {
         try {
           for (const particle of environment.particles) {
+            console.log(`Setting up particle: ${particle.name} at`, particle.position);
             // const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
             // Apply environment-specific settings if provided
             // if (particleSystem && particle.updateSpeed !== undefined) {
@@ -376,8 +409,10 @@ export class SceneManager {
 
       // Update current environment tracking
       this.currentEnvironment = environmentName;
+      console.log(`Environment ${environmentName} loaded successfully`);
     } catch (error) {
       console.error("Failed to load environment:", error);
+      console.error("Error details:", error);
     }
   }
 
@@ -473,13 +508,20 @@ export class SceneManager {
   }
 
   private loadCharacter(character: Character, preservedPosition?: BABYLON.Vector3 | null): void {
-    if (!this.characterController) return;
+    if (!this.characterController) {
+      console.error("CharacterController not initialized");
+      return;
+    }
+
+    console.log(`Loading character: ${character.name} from ${character.model}`);
 
     // Remove all animation groups from the scene before loading a new character
     this.scene.animationGroups.slice().forEach(group => group.dispose());
 
     BABYLON.ImportMeshAsync(character.model, this.scene)
       .then(async result => {
+        console.log(`Loaded character meshes:`, result.meshes.length);
+        
         // Process node materials for character meshes
         // await NodeMaterialManager.processImportResult(result);
 
@@ -490,26 +532,35 @@ export class SceneManager {
           if (rootMesh) {
             rootMesh.name = "player";
             rootMesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+            console.log(`Set player mesh name to: ${rootMesh.name} with scale: ${CONFIG.ANIMATION.PLAYER_SCALE}`);
+          } else {
+            console.warn("No root mesh found in character");
           }
+        } else {
+          console.warn("No meshes loaded for character");
         }
 
         // Set up the character controller with the loaded mesh
         if (result.meshes && result.meshes.length > 0) {
           this.characterController!.setPlayerMesh(result.meshes[0]);
+          console.log("Set player mesh in character controller");
 
           // Determine position for new character
           let characterPosition: BABYLON.Vector3;
           if (preservedPosition) {
             // Use preserved position when switching characters
             characterPosition = preservedPosition;
+            console.log("Using preserved position:", characterPosition);
           } else {
             // Use spawn point when loading character for the first time or after environment change
             const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
             characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new BABYLON.Vector3(0, 0, 0);
+            console.log("Using spawn position:", characterPosition);
           }
 
           // Update character physics with determined position
           this.characterController!.updateCharacterPhysics(character, characterPosition);
+          console.log("Updated character physics");
 
           // Set up camera controller after character is loaded
           if (!this.smoothFollowController) {
@@ -520,6 +571,7 @@ export class SceneManager {
               displayCapsule
             );
             this.characterController!.setCameraController(this.smoothFollowController);
+            console.log("Set up smooth follow camera controller");
           }
 
           // Set up particle system for boost effect
@@ -534,10 +586,13 @@ export class SceneManager {
 
           // Initialize Collectibles after character is set up
           // CollectiblesManager.initialize(this.scene, this.characterController!);
+          
+          console.log(`Character ${character.name} loaded successfully`);
         }
       })
       .catch(error => {
         console.error("Failed to load character:", error);
+        console.error("Error details:", error);
       });
   }
 
