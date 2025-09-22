@@ -5,6 +5,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
+import { EffectsManager } from './EffectsManager';
 import CONFIG from '../config/gameConfig';
 
 // Character interface from THE WORD OF GOD
@@ -319,11 +320,12 @@ export class SceneManager {
 
   private async setupEffects(): Promise<void> {
     try {
-      // EffectsManager.initialize(this.scene);
-      // NodeMaterialManager.initialize(this.scene);
+      EffectsManager.initialize(this.scene);
+      console.log("EffectsManager initialized");
 
       // Create thruster sound
-      // await EffectsManager.createSound("Thruster");
+      await EffectsManager.createSound("Thruster");
+      console.log("Thruster sound created");
     } catch (error) {
       console.warn("Failed to setup effects:", error);
     }
@@ -390,11 +392,10 @@ export class SceneManager {
         try {
           for (const particle of environment.particles) {
             console.log(`Setting up particle: ${particle.name} at`, particle.position);
-            // const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
-            // Apply environment-specific settings if provided
-            // if (particleSystem && particle.updateSpeed !== undefined) {
-            //   particleSystem.updateSpeed = particle.updateSpeed;
-            // }
+            const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
+            if (particleSystem) {
+              console.log(`Created particle system: ${particle.name}`);
+            }
           }
         } catch (error) {
           console.warn("Failed to create environment particles:", error);
@@ -575,14 +576,18 @@ export class SceneManager {
           }
 
           // Set up particle system for boost effect
-          // const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new BABYLON.Vector3(0, 0, 0));
-          // this.characterController!.setPlayerParticleSystem(thrusterParticleSystem);
+          const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new BABYLON.Vector3(0, 0, 0));
+          if (thrusterParticleSystem) {
+            this.characterController!.setPlayerParticleSystem(thrusterParticleSystem);
+            console.log("Set thruster particle system");
+          }
 
           // Set up thruster sound
-          // const thrusterSound = EffectsManager.getSound("Thruster");
-          // if (thrusterSound) {
-          //   this.characterController!.setThrusterSound(thrusterSound);
-          // }
+          const thrusterSound = EffectsManager.getSound("Thruster");
+          if (thrusterSound) {
+            this.characterController!.setThrusterSound(thrusterSound);
+            console.log("Set thruster sound");
+          }
 
           // Initialize Collectibles after character is set up
           // CollectiblesManager.initialize(this.scene, this.characterController!);
