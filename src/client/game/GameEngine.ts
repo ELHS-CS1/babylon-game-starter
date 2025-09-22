@@ -20,18 +20,27 @@ export class GameEngine {
   public onPeerUpdate?: () => void;
 
   constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
+    console.log("GameEngine constructor called with environment:", environment);
+    
     this.canvas = canvas;
     this.currentEnvironment = environment;
     this.peerManager = new PeerManager();
     
     // Initialize Babylon.js engine
     this.engine = new BABYLON.Engine(canvas, true);
+    console.log("Babylon.js engine created");
     
     // Create SceneManager according to THE WORD OF THE LORD
-    this.sceneManager = new SceneManager(this.engine, canvas);
+    try {
+      this.sceneManager = new SceneManager(this.engine, canvas);
+      console.log("SceneManager created successfully");
+    } catch (error) {
+      console.error("Failed to create SceneManager:", error);
+    }
     
     this.setupEventListeners();
     this.startRenderLoop();
+    console.log("GameEngine initialization complete");
   }
 
   private setupEventListeners(): void {

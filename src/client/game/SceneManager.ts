@@ -260,8 +260,13 @@ export class SceneManager {
   private currentEnvironment: string = "Level Test"; // Track current environment
 
   constructor(engine: BABYLON.Engine, canvas: HTMLCanvasElement) {
+    console.log("SceneManager constructor called");
+    
     this.scene = new BABYLON.Scene(engine);
+    console.log("Babylon.js scene created");
+    
     this.camera = new BABYLON.TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
+    console.log("Camera created at position:", CONFIG.CAMERA.START_POSITION);
 
     this.initializeScene().catch(error => {
       console.error("Failed to initialize scene:", error);
