@@ -329,9 +329,9 @@ export class SceneManager {
   private async setupPhysics(): Promise<void> {
     // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
     try {
-      // Initialize Havok exactly as in playground.ts
-      const hk = await (window as any).HK();
-      const hkPlugin = new HavokPlugin(false, hk);
+      // Initialize Havok exactly as in playground.ts - use the global HK function
+      const havokInstance = await (window as any).HK();
+      const hkPlugin = new HavokPlugin(false, havokInstance);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hkPlugin);
     } catch (error) {
       console.warn("HavokPlugin failed, falling back to default physics:", error);

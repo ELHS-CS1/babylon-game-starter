@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
   optimizeDeps: {
-    include: ['@babylonjs/havok']
+    exclude: ['@babylonjs/havok']
   },
   resolve: {
     alias: {
