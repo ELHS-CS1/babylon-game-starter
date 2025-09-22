@@ -13,13 +13,13 @@ import {
   PBRMaterial, 
   Texture 
 } from '@babylonjs/core';
-import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin, Scalar, Quaternion } from '@babylonjs/core';
+import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
-import CONFIG, { ASSETS } from '../config/gameConfig';
+import CONFIG, { ASSETS, type Character } from '../config/gameConfig';
 
 // Environment Types - THE WORD OF GOD FROM PLAYGROUND.TS
 const OBJECT_ROLE = {
@@ -29,29 +29,7 @@ const OBJECT_ROLE = {
 
 type ObjectRole = typeof OBJECT_ROLE[keyof typeof OBJECT_ROLE];
 
-// Character interface from THE WORD OF GOD
-interface Character {
-  name: string;
-  model: string;
-  animations: {
-    idle: string;
-    walk: string;
-    jump: string;
-  };
-  height: number;
-  radius: number;
-  mass: number;
-  speed: {
-    inAir: number;
-    onGround: number;
-    boostMultiplier: number;
-  };
-  jumpHeight: number;
-  rotationSpeed: number;
-  rotationSmoothing: number;
-  animationBlend: number;
-  jumpDelay?: number;
-}
+// Character interface is imported from AnimationController - THE WORD OF GOD
 
 // LightmappedMesh interface from THE WORD OF GOD
 interface LightmappedMesh {
@@ -69,9 +47,10 @@ interface PhysicsObject {
 
 // SkyConfig interface from THE WORD OF GOD
 interface SkyConfig {
-  readonly type: string;
-  readonly color: Color3;
-  readonly intensity: number;
+  readonly TEXTURE_URL: string;
+  readonly ROTATION_Y: number;
+  readonly BLUR: number;
+  readonly TYPE: "BOX" | "SPHERE";
 }
 
 // EnvironmentParticle interface from THE WORD OF GOD
@@ -85,7 +64,20 @@ interface EnvironmentParticle {
 interface ItemConfig {
   readonly name: string;
   readonly url: string;
+  readonly collectible: boolean;
+  readonly creditValue: number;
+  readonly minImpulseForCollection: number;
+  readonly instances: readonly ItemInstance[];
+  readonly inventory?: boolean;
+  readonly thumbnail?: string;
+  readonly itemEffectKind?: "superJump" | "invisibility";
+}
+
+interface ItemInstance {
   readonly position: Vector3;
+  readonly scale: number;
+  readonly rotation: Vector3;
+  readonly mass: number;
 }
 
 // Environment interface from THE WORD OF GOD - IDENTICAL TO PLAYGROUND.TS
@@ -103,206 +95,6 @@ interface Environment {
 }
 
 // ASSETS is now imported from gameConfig.ts - THE WORD OF GOD
-  CHARACTERS: [
-    {
-      name: "Red",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/amongUs/red.glb",
-      animations: {
-        idle: "idle",
-        walk: "walk",
-        jump: "jump",
-      },
-      height: 1.8,
-      radius: 0.6,
-      mass: 1.0,
-      speed: {
-        inAir: 25.0,
-        onGround: 25.0,
-        boostMultiplier: 8.0
-      },
-      jumpHeight: 2.0,
-      rotationSpeed: 0.05,
-      rotationSmoothing: 0.2,
-      animationBlend: 200,
-      jumpDelay: 200
-    },
-    {
-      name: "Tech Girl",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/techGirl/tech_girl_2.glb",
-      animations: {
-        idle: "idle",
-        walk: "run",
-        jump: "jump"
-      },
-      height: 1.7,
-      radius: 0.5,
-      mass: 0.8,
-      speed: {
-        inAir: 30.0,
-        onGround: 30.0,
-        boostMultiplier: 10.0
-      },
-      jumpHeight: 2.5,
-      rotationSpeed: 0.08,
-      rotationSmoothing: 0.15,
-      animationBlend: 200,
-      jumpDelay: 200
-    },
-    {
-      name: "Zombie",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/zombie/zombie_2.glb",
-      animations: {
-        idle: "Idle",
-        walk: "Run_InPlace",
-        jump: "Jump"
-      },
-      height: 1.9,
-      radius: 0.7,
-      mass: 1.5,
-      speed: {
-        inAir: 20.0,
-        onGround: 20.0,
-        boostMultiplier: 6.0
-      },
-      jumpHeight: 1.5,
-      rotationSpeed: 0.03,
-      rotationSmoothing: 0.3,
-      animationBlend: 200,
-      jumpDelay: 200
-    },
-    {
-      name: "Hulk",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/hulk/hulk.glb",
-      animations: {
-        idle: "idle",
-        walk: "run",
-        jump: "jump"
-      },
-      height: 2.2,
-      radius: 0.8,
-      mass: 2.0,
-      speed: {
-        inAir: 15.0,
-        onGround: 15.0,
-        boostMultiplier: 4.0
-      },
-      jumpHeight: 1.0,
-      rotationSpeed: 0.02,
-      rotationSmoothing: 0.4,
-      animationBlend: 200,
-      jumpDelay: 200
-    }
-  ] as readonly Character[],
-  ENVIRONMENTS: [
-    {
-      name: "Level Test",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/levelTest/levelTest.glb",
-      lightmap: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/levelTest/lightmap.jpg",
-      scale: 1,
-      lightmappedMeshes: [
-        { name: "level_primitive0", level: 1.6 },
-        { name: "level_primitive1", level: 1.6 },
-        { name: "level_primitive2", level: 1.6 }
-      ] as const,
-      physicsObjects: [
-        { name: "Cube", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.001", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.002", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.003", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.004", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.005", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
-        { name: "Cube.006", mass: 0.01, scale: 1, role: OBJECT_ROLE.PIVOT_BEAM },
-        { name: "Cube.007", mass: 0, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX }
-      ] as const,
-      sky: {
-        type: "hemispheric",
-        color: new Color3(0.5, 0.7, 1.0),
-        intensity: 0.7
-      },
-      spawnPoint: new Vector3(3, 0.5, -8),
-      particles: [
-        {
-          name: "Magic Sparkles",
-          position: new Vector3(-2, 0, -8),
-          updateSpeed: 0.007
-        }
-      ] as const,
-      items: [
-        {
-          name: "Crate",
-          url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/stylized_crate_asset.glb",
-          position: new Vector3(2, 0, -5)
-        },
-        {
-          name: "Super Jump",
-          url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/jump_collectible.glb",
-          position: new Vector3(-5, 0, 3)
-        },
-        {
-          name: "Invisibility",
-          url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/invisibility_collectible.glb",
-          position: new Vector3(5, 0, 3)
-        }
-      ]
-    },
-    {
-      name: "Firefox Reality",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/firefoxReality/firefox_reality.glb",
-      lightmap: "",
-      scale: 1.5,
-      lightmappedMeshes: [],
-      physicsObjects: [],
-      sky: {
-        type: "hemispheric",
-        color: new Color3(0.8, 0.9, 1.0),
-        intensity: 0.8
-      },
-      spawnPoint: new Vector3(0, 5, 0)
-    },
-    {
-      name: "Joy Town",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/joyTown/joy_town.glb",
-      lightmap: "",
-      scale: 10,
-      lightmappedMeshes: [],
-      physicsObjects: [],
-      sky: {
-        type: "hemispheric",
-        color: new Color3(1.0, 0.9, 0.7),
-        intensity: 0.9
-      },
-      spawnPoint: new Vector3(-15, 15, 0)
-    },
-    {
-      name: "Mansion",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/mansion/mansion.glb",
-      lightmap: "",
-      scale: 10,
-      lightmappedMeshes: [],
-      physicsObjects: [],
-      sky: {
-        type: "hemispheric",
-        color: new Color3(0.6, 0.6, 0.8),
-        intensity: 0.6
-      },
-      spawnPoint: new Vector3(0, 15, -20)
-    },
-    {
-      name: "Island Town",
-      model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/islandTown/island_town.glb",
-      lightmap: "",
-      scale: 5,
-      lightmappedMeshes: [],
-      physicsObjects: [],
-      sky: {
-        type: "hemispheric",
-        color: new Color3(0.7, 0.9, 1.0),
-        intensity: 0.8
-      },
-      spawnPoint: new Vector3(0, 10, 0)
-    }
-  ] as readonly Environment[]
-};
 
 export class SceneManager {
   private readonly scene: Scene;
@@ -311,7 +103,7 @@ export class SceneManager {
   private smoothFollowController: SmoothFollowCameraController | null = null;
   private currentEnvironment: string = "Level Test"; // Track current environment
 
-  constructor(engine: Engine, canvas: HTMLCanvasElement) {
+  constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     console.log("SceneManager constructor called");
     
     this.scene = new Scene(engine);
@@ -484,12 +276,12 @@ export class SceneManager {
     }
   }
 
-  private createSky(skyConfig: { type: string; color: Color3; intensity: number }): void {
-    if (skyConfig.type === "hemispheric") {
-      const skyLight = new HemisphericLight("skyLight", new Vector3(0, 1, 0), this.scene);
-      skyLight.intensity = skyConfig.intensity;
-      skyLight.diffuse = skyConfig.color;
-    }
+  private createSky(_skyConfig: SkyConfig): void {
+    // For now, create a simple hemispheric light
+    // TODO: Implement proper sky texture rendering based on skyConfig
+    const skyLight = new HemisphericLight("skyLight", new Vector3(0, 1, 0), this.scene);
+    skyLight.intensity = 0.7;
+    skyLight.diffuse = new Color3(0.5, 0.7, 1.0);
   }
 
   private setupEnvironmentPhysics(environment: Environment): void {
@@ -561,15 +353,15 @@ export class SceneManager {
       if (!fixedMesh) return;
 
       // Create physics aggregates if they don't exist
-      const fixedMass = new PhysicsAggregate(fixedMesh, PhysicsShapeType.BOX, { mass: 0 });
-      const beam = new PhysicsAggregate(beamMesh, PhysicsShapeType.BOX, { mass: pivotBeam.mass });
+      const _fixedMass = new PhysicsAggregate(fixedMesh, PhysicsShapeType.BOX, { mass: 0 });
+      const _beam = new PhysicsAggregate(beamMesh, PhysicsShapeType.BOX, { mass: pivotBeam.mass });
 
       // Create hinge constraint - IDENTICAL TO PLAYGROUND.TS
       console.log(`Setting up joint between ${fixedMassObject.name} and ${pivotBeam.name}`);
     });
   }
 
-  private setupFallbackPhysics(environment: Environment): void {
+  private setupFallbackPhysics(_environment: Environment): void {
     // Create physics bodies for all environment meshes to prevent falling through
     const environmentMesh = this.scene.getMeshByName("environment");
     if (environmentMesh) {
@@ -632,7 +424,10 @@ export class SceneManager {
 
         // Set up the character controller with the loaded mesh
         if (result.meshes && result.meshes.length > 0) {
-          this.characterController!.setPlayerMesh(result.meshes[0]);
+          const playerMesh = result.meshes[0];
+          if (playerMesh) {
+            this.characterController!.setPlayerMesh(playerMesh);
+          }
           console.log("Set player mesh in character controller");
 
           // Determine position for new character
@@ -711,10 +506,19 @@ export class SceneManager {
           const rootMesh = result.meshes.find(mesh => !mesh.parent);
           if (rootMesh) {
             rootMesh.name = item.name;
-            rootMesh.position = item.position;
             
-            // Add physics body for collectible items
-            new PhysicsAggregate(rootMesh, PhysicsShapeType.BOX, { mass: 0 });
+            // Create instances for each item
+            for (const instance of item.instances) {
+              const instanceMesh = rootMesh.clone(`${item.name}_${instance.position.x}_${instance.position.z}`);
+              if (instanceMesh) {
+                instanceMesh.position = instance.position;
+                instanceMesh.scaling.setAll(instance.scale);
+                instanceMesh.rotation = instance.rotation;
+                
+                // Add physics body for collectible items
+                new PhysicsAggregate(instanceMesh, PhysicsShapeType.BOX, { mass: instance.mass });
+              }
+            }
           }
         }
       }
