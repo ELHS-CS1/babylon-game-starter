@@ -13,8 +13,9 @@ import {
   PBRMaterial, 
   Texture 
 } from '@babylonjs/core';
-import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, CannonJSPlugin } from '@babylonjs/core';
+import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
+import { Havok } from '@babylonjs/havok';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
@@ -291,7 +292,7 @@ export class SceneManager {
     this.setupLighting();
     console.log("Setup lighting");
     
-    this.setupPhysics();
+    await this.setupPhysics();
     console.log("Setup physics");
     
     this.setupSky();
@@ -326,10 +327,16 @@ export class SceneManager {
     light.intensity = 0.7;
   }
 
-  private setupPhysics(): void {
-    // Use CannonJS physics plugin
-    const cannonPlugin = new CannonJSPlugin();
-    this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, cannonPlugin);
+  private async setupPhysics(): Promise<void> {
+    // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
+    try {
+      const hk = new HavokPlugin(false);
+      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
+    } catch (error) {
+      console.warn("HavokPlugin failed, falling back to default physics:", error);
+      // Fallback to default physics if Havok fails
+      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY);
+    }
   }
 
   private setupSky(): void {
