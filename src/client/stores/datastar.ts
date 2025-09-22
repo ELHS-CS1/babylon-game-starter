@@ -118,7 +118,30 @@ export class DataStarConnection {
         
       case 'peerUpdate':
         if ('peer' in data && data.peer !== null && data.peer !== undefined && typeof data.peer === 'object' && 'id' in data.peer && typeof data.peer.id === 'string') {
-          addPeer(data.peer);
+          const peerData = data.peer;
+          if ('id' in peerData && 'name' in peerData && 'position' in peerData && 'rotation' in peerData && 'environment' in peerData && 'lastUpdate' in peerData) {
+            // Type guard for Vector3 without type assertions
+            const isVector3 = (obj: unknown): obj is { x: number; y: number; z: number } => {
+              if (obj === null || typeof obj !== 'object') return false;
+              if (!('x' in obj) || !('y' in obj) || !('z' in obj)) return false;
+              const objRecord = obj as Record<string, unknown>;
+              return typeof objRecord.x === 'number' && 
+                     typeof objRecord.y === 'number' && 
+                     typeof objRecord.z === 'number';
+            };
+            
+            if (isVector3(peerData.position) && isVector3(peerData.rotation)) {
+              const validPeer = {
+                id: String(peerData.id),
+                name: String(peerData.name),
+                position: peerData.position,
+                rotation: peerData.rotation,
+                environment: String(peerData.environment),
+                lastUpdate: Number(peerData.lastUpdate)
+              };
+              addPeer(validPeer);
+            }
+          }
         }
         if ('gameState' in data && data.gameState !== null && data.gameState !== undefined && typeof data.gameState === 'object' && 'environment' in data.gameState && typeof data.gameState.environment === 'string') {
           setCurrentEnvironment(data.gameState.environment);

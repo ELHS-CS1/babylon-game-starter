@@ -146,11 +146,8 @@ export const CONFIG: GameConfig = {
         visibility: "all",
         defaultValue: "Red",
         options: ["Red", "Blue", "Green", "Yellow", "Purple", "Orange"],
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'string') {
-            // Emit character change event
-            window.dispatchEvent(new CustomEvent('character-change', { detail: value }));
-          }
+        onChange: async () => {
+          // Character change handled by component
         }
       },
       {
@@ -159,11 +156,8 @@ export const CONFIG: GameConfig = {
         visibility: "all",
         defaultValue: "levelTest",
         options: ["levelTest", "islandTown", "joyTown", "mansion", "firefoxReality"],
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'string') {
-            // Emit environment change event
-            window.dispatchEvent(new CustomEvent('environment-change', { detail: value }));
-          }
+        onChange: async () => {
+          // Environment change handled by component
         }
       },
       {
@@ -171,13 +165,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            // Emit HUD settings change event
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showCoordinates: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -185,12 +174,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showTime: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -198,12 +183,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showFPS: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -211,12 +192,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showState: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -224,12 +201,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showBoost: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -237,12 +210,8 @@ export const CONFIG: GameConfig = {
         uiElement: "toggle",
         visibility: "all",
         defaultValue: true,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'boolean') {
-            window.dispatchEvent(new CustomEvent('hud-settings-change', { 
-              detail: { showCredits: value } 
-            }));
-          }
+        onChange: async () => {
+          // HUD settings change handled by component
         }
       },
       {
@@ -251,10 +220,8 @@ export const CONFIG: GameConfig = {
         visibility: "all",
         defaultValue: "top",
         options: ["top", "bottom", "left", "right"],
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'string') {
-            window.dispatchEvent(new CustomEvent('hud-position-change', { detail: value }));
-          }
+        onChange: async () => {
+          // HUD position change handled by component
         }
       },
       {
@@ -265,12 +232,8 @@ export const CONFIG: GameConfig = {
         min: 0,
         max: 100,
         step: 1,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'number') {
-            window.dispatchEvent(new CustomEvent('audio-settings-change', { 
-              detail: { masterVolume: value } 
-            }));
-          }
+        onChange: async () => {
+          // Audio settings change handled by component
         }
       },
       {
@@ -281,12 +244,8 @@ export const CONFIG: GameConfig = {
         min: 0,
         max: 100,
         step: 1,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'number') {
-            window.dispatchEvent(new CustomEvent('audio-settings-change', { 
-              detail: { sfxVolume: value } 
-            }));
-          }
+        onChange: async () => {
+          // Audio settings change handled by component
         }
       },
       {
@@ -297,12 +256,8 @@ export const CONFIG: GameConfig = {
         min: 0,
         max: 100,
         step: 1,
-        onChange: async (value: boolean | string | number) => {
-          if (typeof value === 'number') {
-            window.dispatchEvent(new CustomEvent('audio-settings-change', { 
-              detail: { musicVolume: value } 
-            }));
-          }
+        onChange: async () => {
+          // Audio settings change handled by component
         }
       }
     ] as const

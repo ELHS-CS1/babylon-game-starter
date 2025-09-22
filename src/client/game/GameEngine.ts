@@ -160,7 +160,7 @@ export class GameEngine {
       const result = await BABYLON.SceneLoader.ImportMeshAsync("", modelUrl, "", this.scene);
       
       // Position the environment appropriately
-      if (result.meshes.length > 0) {
+      if (result.meshes.length > 0 && result.meshes[0]) {
         result.meshes[0].position = new BABYLON.Vector3(0, 0, 0);
       }
     } catch {
@@ -208,7 +208,7 @@ export class GameEngine {
     });
 
     document.addEventListener('pointerlockchange', () => {
-      isPointerLocked = document.pointerLockElement === this.canvas;
+      isPointerLocked = document.pointerLockElement !== null && document.pointerLockElement === this.canvas;
     });
 
     this.canvas.addEventListener('mousemove', (event) => {
@@ -294,7 +294,7 @@ export class GameEngine {
           { x: this.localPlayer.position.x, y: this.localPlayer.position.y, z: this.localPlayer.position.z },
           { x: this.localPlayer.rotation.x, y: this.localPlayer.rotation.y, z: this.localPlayer.rotation.z }
         );
-        this.onPeerUpdate(localPeer);
+        this.onPeerUpdate();
       }
     }
   }

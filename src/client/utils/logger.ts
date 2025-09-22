@@ -4,7 +4,6 @@ import config from '../config.js';
 export class BrowserLogger {
   private static instance: BrowserLogger | undefined;
   private logBuffer: string[] = [];
-  private maxBufferSize = 100;
 
   private constructor() {
     this.setupConsoleInterception();
@@ -20,12 +19,6 @@ export class BrowserLogger {
     // All console statements must be removed
   }
 
-  private addToBuffer(message: string): void {
-    this.logBuffer.push(message);
-    if (this.logBuffer.length > this.maxBufferSize) {
-      this.logBuffer.shift();
-    }
-  }
 
   public getLogs(): string[] {
     return [...this.logBuffer];
