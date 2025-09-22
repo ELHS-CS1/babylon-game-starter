@@ -11,6 +11,9 @@ import 'vuetify/styles';
 // Initialize Havok physics engine globally - IDENTICAL TO PLAYGROUND.TS
 import Havok from '@babylonjs/havok';
 
+// Make Havok available globally as HK - exactly like playground environment
+(window as any).HK = Havok;
+
 const vuetify = createVuetify({
   components,
   directives,
