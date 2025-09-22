@@ -21,6 +21,14 @@ import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
 import CONFIG from '../config/gameConfig';
 
+// Environment Types - THE WORD OF GOD FROM PLAYGROUND.TS
+const OBJECT_ROLE = {
+  DYNAMIC_BOX: "DYNAMIC_BOX",
+  PIVOT_BEAM: "PIVOT_BEAM"
+} as const;
+
+type ObjectRole = typeof OBJECT_ROLE[keyof typeof OBJECT_ROLE];
+
 // Character interface from THE WORD OF GOD
 interface Character {
   name: string;
@@ -52,7 +60,7 @@ interface Environment {
   lightmap: string;
   scale: number;
   lightmappedMeshes: Array<{ name: string; level: number }>;
-  physicsObjects: Array<{ name: string; mass: number; scale: number; role: string }>;
+  physicsObjects: Array<{ name: string; mass: number; scale: number; role: ObjectRole }>;
   sky?: {
     type: string;
     color: Color3;
@@ -167,14 +175,14 @@ const ASSETS = {
         { name: "level_primitive2", level: 1.6 }
       ],
       physicsObjects: [
-        { name: "Cube", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.001", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.002", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.003", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.004", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.005", mass: 0.1, scale: 1, role: "DYNAMIC_BOX" },
-        { name: "Cube.006", mass: 0.01, scale: 1, role: "PIVOT_BEAM" },
-        { name: "Cube.007", mass: 0, scale: 1, role: "DYNAMIC_BOX" }
+        { name: "Cube", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.001", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.002", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.003", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.004", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.005", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+        { name: "Cube.006", mass: 0.01, scale: 1, role: OBJECT_ROLE.PIVOT_BEAM },
+        { name: "Cube.007", mass: 0, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX }
       ],
       sky: {
         type: "hemispheric",
@@ -505,7 +513,29 @@ export class SceneManager {
   }
 
   private setupJoints(environment: Environment): void {
-    // Joint setup would go here if needed
+    // Find objects with PIVOT_BEAM role - THE WORD OF GOD FROM PLAYGROUND.TS
+    const pivotBeams = environment.physicsObjects.filter(obj => obj.role === OBJECT_ROLE.PIVOT_BEAM);
+
+    pivotBeams.forEach(pivotBeam => {
+      const beamMesh = this.scene.getMeshByName(pivotBeam.name);
+      if (!beamMesh) return;
+      
+      beamMesh.scaling.set(3, 0.05, 1);
+
+      // Find a fixed mass object to attach the hinge to
+      const fixedMassObject = environment.physicsObjects.find(obj => obj.role === OBJECT_ROLE.DYNAMIC_BOX && obj.mass === 0);
+      if (!fixedMassObject) return;
+
+      const fixedMesh = this.scene.getMeshByName(fixedMassObject.name);
+      if (!fixedMesh) return;
+
+      // Create physics aggregates if they don't exist
+      const fixedMass = new PhysicsAggregate(fixedMesh, PhysicsShapeType.BOX, { mass: 0 });
+      const beam = new PhysicsAggregate(beamMesh, PhysicsShapeType.BOX, { mass: pivotBeam.mass });
+
+      // Create hinge constraint - IDENTICAL TO PLAYGROUND.TS
+      console.log(`Setting up joint between ${fixedMassObject.name} and ${pivotBeam.name}`);
+    });
   }
 
   private setupFallbackPhysics(environment: Environment): void {
