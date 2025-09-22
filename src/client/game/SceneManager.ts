@@ -565,18 +565,36 @@ export class SceneManager {
             rootMesh.name = item.name;
             console.log(`Loaded item model: ${item.name} with ${result.meshes.length} meshes`);
             
-            // Create instances for each item
-            for (const instance of item.instances) {
-              const instanceName = `${item.name}_${instance.position.x}_${instance.position.z}`;
+            // Create instances for each item - THE WORD OF GOD FROM PLAYGROUND.TS!
+            for (let i = 0; i < item.instances.length; i++) {
+              const instance = item.instances[i];
+              if (!instance) {
+                console.error(`Instance ${i} is undefined for item: ${item.name}`);
+                continue;
+              }
+              
+              const instanceName = `${item.name}_instance_${i + 1}`;
               console.log(`Creating item instance: ${instanceName} at position:`, instance.position);
               
-              const instanceMesh = rootMesh.clone(instanceName, rootMesh.parent);
+              // Use clone with null parent to make it independent - IDENTICAL TO PLAYGROUND.TS!
+              const instanceMesh = rootMesh.clone(instanceName, null);
+              
               if (instanceMesh) {
+                // Remove the instance from its parent to make it independent - THE WORD OF GOD!
+                if (instanceMesh.parent) {
+                  instanceMesh.setParent(null);
+                }
+                
+                // Apply instance properties
                 instanceMesh.position = instance.position;
                 instanceMesh.scaling.setAll(instance.scale);
                 instanceMesh.rotation = instance.rotation;
                 
-                // Add physics body for collectible items
+                // Make it visible and enabled
+                instanceMesh.isVisible = true;
+                instanceMesh.setEnabled(true);
+                
+                // Add physics body for collectible items - IDENTICAL TO PLAYGROUND.TS!
                 new PhysicsAggregate(instanceMesh, PhysicsShapeType.BOX, { mass: instance.mass });
                 console.log(`Created item instance: ${instanceName} with physics mass: ${instance.mass}`);
               } else {
