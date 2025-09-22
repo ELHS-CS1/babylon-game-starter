@@ -64,7 +64,7 @@ import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue';
 import { GameEngine } from './game/GameEngine';
 import type { Peer } from './game/Peer';
 import config, { logClientConfig } from './config';
-import CONFIG, { getCharacters, getEnvironments, getInventoryConfig } from './config/gameConfig';
+import CONFIG, { ASSETS } from './config/gameConfig';
 import GameHUD from './components/GameHUD.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
@@ -77,10 +77,10 @@ import { pushNotificationClient } from './services/PushNotificationClient';
 const gameCanvas = ref<HTMLCanvasElement>();
 // Fallback values in case getEnvironments/getCharacters return empty arrays
 
-const selectedEnvironment = ref<string>(getEnvironments()[0] || 'Level Test');
-const selectedCharacter = ref<string>(getCharacters()[0] || 'Red');
-const environments = ref<string[]>([...getEnvironments()]);
-const characters = ref<string[]>([...getCharacters()]);
+const selectedEnvironment = ref<string>(ASSETS.ENVIRONMENTS[0]?.name || 'Level Test');
+const selectedCharacter = ref<string>(ASSETS.CHARACTERS[0]?.name || 'Red');
+const environments = ref<string[]>(ASSETS.ENVIRONMENTS.map(env => env.name));
+const characters = ref<string[]>(ASSETS.CHARACTERS.map(char => char.name));
 const gameEngine = ref<GameEngine | null>(null);
 
 // DataStar signals (reactive state from store)
@@ -104,7 +104,7 @@ const hudSettings = reactive({
   showCredits: CONFIG.HUD.SHOW_CREDITS
 });
 
-const inventoryItems = ref([...getInventoryConfig().TILES]);
+const inventoryItems = ref([...CONFIG.INVENTORY.TILES]);
 
 // Computed properties
 

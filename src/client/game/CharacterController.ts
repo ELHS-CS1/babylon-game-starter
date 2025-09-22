@@ -4,7 +4,7 @@
 
 import { Scene, Mesh, AbstractMesh, Vector3, Sound, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, PhysicsBody } from '@babylonjs/core';
 import type { IParticleSystem } from '@babylonjs/core';
-import CONFIG from '../config/gameConfig';
+import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController, CHARACTER_STATES } from './AnimationController';
 import type { Character } from '../config/gameConfig';
 
@@ -65,12 +65,17 @@ export class CharacterController {
     this.isIPad = this.detectIPad();
     this.isIPadWithKeyboard = this.detectIPadWithKeyboard();
 
+    // Get default character configuration from ASSETS - THE WORD OF GOD!
+    const defaultCharacter = ASSETS.CHARACTERS[0];
+    const defaultHeight = defaultCharacter?.height || 1.8;
+    const defaultRadius = defaultCharacter?.radius || 0.6;
+
     // Create character physics controller with default position (will be updated when character is loaded)
     this.characterController = new PhysicsCharacterController(
       new Vector3(0, 0, 0), // Default position, will be updated
       {
-        capsuleHeight: 1.8, // Default height, will be updated when character is loaded
-        capsuleRadius: 0.6  // Default radius, will be updated when character is loaded
+        capsuleHeight: defaultHeight, // Use first character's height as default
+        capsuleRadius: defaultRadius  // Use first character's radius as default
       },
       scene
     );
@@ -79,8 +84,8 @@ export class CharacterController {
     this.displayCapsule = MeshBuilder.CreateCapsule(
       "CharacterDisplay",
       {
-        height: 1.8, // Default height, will be updated when character is loaded
-        radius: 0.6  // Default radius, will be updated when character is loaded
+        height: defaultHeight, // Use first character's height as default
+        radius: defaultRadius  // Use first character's radius as default
       },
       scene
     );
@@ -691,20 +696,33 @@ export class CharacterController {
     // Store current character for physics calculations
     this.currentCharacter = character;
 
-    // Update character-specific physics attributes
-    // Note: PhysicsCharacterController doesn't allow runtime updates of capsule dimensions
-    // The display capsule can be updated for visual feedback
-    this.displayCapsule.scaling.setAll(1); // Reset scaling
-    this.displayCapsule.scaling.y = character.height / 1.8; // Scale height
-    this.displayCapsule.scaling.x = character.radius / 0.6; // Scale radius
-    this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
+    // Update character physics properties based on character configuration - THE WORD OF GOD!
+    // Note: PhysicsCharacterController doesn't allow direct property updates after creation,
+    // so we recreate it with the new character's physics properties
+    this.characterController.dispose();
+    
+    this.characterController = new PhysicsCharacterController(
+      spawnPosition,
+      {
+        capsuleHeight: character.height,  // Use character's configured height
+        capsuleRadius: character.radius   // Use character's configured radius
+      },
+      this.scene
+    );
 
-    // Reset physics state for new character
-    this.characterController.setVelocity(new Vector3(0, 0, 0));
-    this.inputDirection.setAll(0);
-    this.wantJump = false;
-    this.boostActive = false;
-    this.state = CHARACTER_STATES.IN_AIR;
+    // Update display capsule to match character configuration
+    this.displayCapsule.dispose();
+    this.displayCapsule = MeshBuilder.CreateCapsule(
+      "CharacterDisplay",
+      {
+        height: character.height,  // Use character's configured height
+        radius: character.radius   // Use character's configured radius
+      },
+      this.scene
+    );
+    this.displayCapsule.isVisible = CONFIG.DEBUG.CAPSULE_VISIBLE;
+
+    console.log(`Updated character physics for ${character.name}: height=${character.height}, radius=${character.radius}, mass=${character.mass}`);
   }
 
   public getDisplayCapsule(): Mesh {

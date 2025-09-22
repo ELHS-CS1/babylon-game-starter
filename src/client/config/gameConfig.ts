@@ -150,6 +150,12 @@ interface SettingsConfig {
     readonly SECTIONS: readonly SettingsSection[];
 }
 
+interface AudioConfig {
+    readonly MASTER_VOLUME: number;
+    readonly SFX_VOLUME: number;
+    readonly MUSIC_VOLUME: number;
+}
+
 interface GameConfig {
     readonly CHARACTER: CharacterConfig;
     readonly CAMERA: CameraConfig;
@@ -158,6 +164,7 @@ interface GameConfig {
     readonly DEBUG: DebugConfig;
     readonly EFFECTS: EffectsConfig;
     readonly HUD: HUDConfig;
+    readonly AUDIO: AudioConfig;
     readonly SETTINGS: SettingsConfig;
     readonly INVENTORY: InventoryConfig;
 }

@@ -251,7 +251,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import CONFIG, { getCharacters, getEnvironments } from '../config/gameConfig';
+import CONFIG, { ASSETS } from '../config/gameConfig';
 
 // Props
 interface Props {
@@ -263,10 +263,10 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  characters: () => getCharacters(),
-  environments: () => getEnvironments(),
-  initialCharacter: () => getCharacters()[0],
-  initialEnvironment: () => getEnvironments()[0],
+  characters: () => ASSETS.CHARACTERS.map(char => char.name),
+  environments: () => ASSETS.ENVIRONMENTS.map(env => env.name),
+  initialCharacter: () => ASSETS.CHARACTERS[0]?.name || 'Red',
+  initialEnvironment: () => ASSETS.ENVIRONMENTS[0]?.name || 'Level Test',
   isConnected: () => false
 });
 

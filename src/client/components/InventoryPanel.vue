@@ -174,7 +174,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { getInventoryConfig } from '../config/gameConfig';
+import CONFIG from '../config/gameConfig';
 
 // Types
 interface InventoryItem {
@@ -194,7 +194,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  items: () => [...getInventoryConfig().TILES]
+  items: () => [...CONFIG.INVENTORY.TILES]
 });
 
 // Emits

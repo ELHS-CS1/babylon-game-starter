@@ -444,15 +444,7 @@ export class SceneManager {
           }
 
           // Update character physics with determined position
-          // Convert gameConfig Character to AnimationController Character format
-          const animationCharacter = {
-            name: character.name,
-            model: character.model,
-            animations: character.animations,
-            animationBlend: character.animationBlend,
-            jumpDelay: character.jumpDelay
-          };
-          this.characterController!.updateCharacterPhysics(animationCharacter, characterPosition);
+          this.characterController!.updateCharacterPhysics(character, characterPosition);
           console.log("Updated character physics");
 
           // Set up camera controller after character is loaded
@@ -517,7 +509,7 @@ export class SceneManager {
             
             // Create instances for each item
             for (const instance of item.instances) {
-              const instanceMesh = rootMesh.clone(`${item.name}_${instance.position.x}_${instance.position.z}`);
+              const instanceMesh = rootMesh.clone(`${item.name}_${instance.position.x}_${instance.position.z}`, rootMesh.parent);
               if (instanceMesh) {
                 instanceMesh.position = instance.position;
                 instanceMesh.scaling.setAll(instance.scale);
