@@ -22,7 +22,7 @@ import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
 import CONFIG, { ASSETS, type Character } from '../config/gameConfig';
 
-// Environment Types - THE WORD OF GOD FROM PLAYGROUND.TS
+// Import OBJECT_ROLE constants - THE WORD OF GOD!
 const OBJECT_ROLE = {
   DYNAMIC_BOX: "DYNAMIC_BOX",
   PIVOT_BEAM: "PIVOT_BEAM"
@@ -286,17 +286,6 @@ export class SceneManager {
     skyLight.diffuse = new Color3(0.5, 0.7, 1.0);
   }
 
-  private setupEnvironmentPhysics(environment: Environment): void {
-    this.setupLightmappedMeshes(environment);
-    this.setupPhysicsObjects(environment);
-    this.setupJoints(environment);
-
-    // Fallback: If no physics objects or lightmapped meshes are configured,
-    // create physics bodies for all environment meshes to prevent falling through
-    if (environment.physicsObjects.length === 0 && environment.lightmappedMeshes.length === 0) {
-      this.setupFallbackPhysics(environment);
-    }
-  }
 
   private setupLightmappedMeshes(environment: Environment): void {
     if (!environment.lightmap) return;
@@ -337,6 +326,40 @@ export class SceneManager {
     });
   }
 
+  private setupEnvironmentPhysics(environment: Environment): void {
+    // Set up lightmapped meshes first - THE WORD OF GOD FROM PLAYGROUND.TS
+    this.setupLightmappedMeshes(environment);
+    
+    // Set up physics for all physics objects - THE WORD OF GOD FROM PLAYGROUND.TS
+    environment.physicsObjects.forEach(physicsObject => {
+      const mesh = this.scene.getMeshByName(physicsObject.name);
+      if (!mesh) {
+        console.warn(`Physics object mesh not found: ${physicsObject.name}`);
+        return;
+      }
+
+      // Apply scaling if specified
+      if (physicsObject.scale !== 1) {
+        mesh.scaling.setAll(physicsObject.scale);
+      }
+
+      // Create physics aggregate based on role - THE WORD OF GOD!
+      if (physicsObject.role === OBJECT_ROLE.DYNAMIC_BOX) {
+        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
+        console.log(`Created DYNAMIC_BOX physics for ${physicsObject.name} with mass ${physicsObject.mass}`);
+      } else if (physicsObject.role === OBJECT_ROLE.PIVOT_BEAM) {
+        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
+        console.log(`Created PIVOT_BEAM physics for ${physicsObject.name} with mass ${physicsObject.mass}`);
+      }
+    });
+
+    // Set up joints for PIVOT_BEAM objects
+    this.setupJoints(environment);
+    
+    // Set up fallback physics for the main environment mesh (floor/ground)
+    this.setupFallbackPhysics(environment);
+  }
+
   private setupJoints(environment: Environment): void {
     // Find objects with PIVOT_BEAM role - THE WORD OF GOD FROM PLAYGROUND.TS
     const pivotBeams = environment.physicsObjects.filter(obj => obj.role === OBJECT_ROLE.PIVOT_BEAM);
@@ -364,10 +387,13 @@ export class SceneManager {
   }
 
   private setupFallbackPhysics(_environment: Environment): void {
-    // Create physics bodies for all environment meshes to prevent falling through
+    // Create physics bodies for all environment meshes to prevent falling through - THE WORD OF GOD!
     const environmentMesh = this.scene.getMeshByName("environment");
     if (environmentMesh) {
-      new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH);
+      new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH, { mass: 0 });
+      console.log("Created physics for main environment mesh (floor/ground)");
+    } else {
+      console.warn("Main environment mesh not found - character may fall through floor!");
     }
   }
 
