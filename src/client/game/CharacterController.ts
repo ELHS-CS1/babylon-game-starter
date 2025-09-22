@@ -107,7 +107,7 @@ export class CharacterController {
       },
       scene
     );
-    this.displayCapsule.isVisible = CONFIG.DEBUG.CAPSULE_VISIBLE;
+        this.displayCapsule.isVisible = false; // Hidden by default, only show with F1 key
 
     // Initialize player mesh (will be replaced by loaded model)
     this.playerMesh = this.displayCapsule;
