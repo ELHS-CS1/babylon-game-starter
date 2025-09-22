@@ -13,7 +13,7 @@ import {
   PBRMaterial, 
   Texture 
 } from '@babylonjs/core';
-import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
+import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin, Scalar, Quaternion } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
@@ -574,7 +574,7 @@ export class SceneManager {
           console.log("Set player mesh in character controller");
 
           // Determine position for new character
-          let characterPosition: BABYLON.Vector3;
+          let characterPosition: Vector3;
           if (preservedPosition) {
             // Use preserved position when switching characters
             characterPosition = preservedPosition;
@@ -582,7 +582,7 @@ export class SceneManager {
           } else {
             // Use spawn point when loading character for the first time or after environment change
             const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-            characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new BABYLON.Vector3(0, 0, 0);
+            characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
             console.log("Using spawn position:", characterPosition);
           }
 
@@ -603,7 +603,7 @@ export class SceneManager {
           }
 
           // Set up particle system for boost effect
-          const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new BABYLON.Vector3(0, 0, 0));
+          const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new Vector3(0, 0, 0));
           if (thrusterParticleSystem) {
             this.characterController!.setPlayerParticleSystem(thrusterParticleSystem);
             console.log("Set thruster particle system");
@@ -636,7 +636,7 @@ export class SceneManager {
     try {
       for (const item of environment.items) {
         // Load item model
-        const result = await BABYLON.ImportMeshAsync(item.url, this.scene);
+        const result = await ImportMeshAsync(item.url, this.scene);
         
         if (result.meshes && result.meshes.length > 0) {
           const rootMesh = result.meshes.find(mesh => !mesh.parent);
@@ -645,7 +645,7 @@ export class SceneManager {
             rootMesh.position = item.position;
             
             // Add physics body for collectible items
-            new BABYLON.PhysicsAggregate(rootMesh, BABYLON.PhysicsShapeType.BOX, { mass: 0 });
+            new PhysicsAggregate(rootMesh, PhysicsShapeType.BOX, { mass: 0 });
           }
         }
       }
@@ -659,10 +659,10 @@ export class SceneManager {
 
     // Use environment spawn point
     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-    const spawnPoint = environment ? environment.spawnPoint : new BABYLON.Vector3(0, 0, 0);
+    const spawnPoint = environment ? environment.spawnPoint : new Vector3(0, 0, 0);
     
     this.characterController.setPosition(spawnPoint);
-    this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
   }
 
   public forceActivateSmoothFollow(): void {
@@ -671,11 +671,11 @@ export class SceneManager {
     }
   }
 
-  public getScene(): BABYLON.Scene {
+  public getScene(): Scene {
     return this.scene;
   }
 
-  public getCamera(): BABYLON.TargetCamera {
+  public getCamera(): TargetCamera {
     return this.camera;
   }
 
