@@ -9,7 +9,7 @@ import '@mdi/font/css/materialdesignicons.css';
 import 'vuetify/styles';
 
 // Initialize Havok physics engine globally - IDENTICAL TO PLAYGROUND.TS
-import { Havok } from '@babylonjs/havok';
+import Havok from '@babylonjs/havok';
 
 const vuetify = createVuetify({
   components,
