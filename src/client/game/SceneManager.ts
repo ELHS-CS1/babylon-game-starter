@@ -180,7 +180,7 @@ const ASSETS = {
         color: new Color3(0.5, 0.7, 1.0),
         intensity: 0.7
       },
-      spawnPoint: new Vector3(0, 0, 0),
+      spawnPoint: new Vector3(3, 0.5, -8),
       particles: [
         {
           name: "Magic Sparkles",
