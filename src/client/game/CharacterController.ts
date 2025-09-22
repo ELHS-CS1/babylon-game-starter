@@ -703,7 +703,10 @@ export class CharacterController {
     // Update character physics properties based on character configuration - THE WORD OF GOD!
     // Note: PhysicsCharacterController doesn't allow direct property updates after creation,
     // so we recreate it with the new character's physics properties
-    this.characterController.dispose();
+    // Dispose the old physics body if it exists
+    if (this.characterController.getPhysicsBody()) {
+      this.characterController.getPhysicsBody().dispose();
+    }
     
     this.characterController = new PhysicsCharacterController(
       spawnPosition,
@@ -821,7 +824,24 @@ export class CharacterController {
   }
 
   public dispose(): void {
+    // Dispose physics body if it exists
+    if (this.characterController.getPhysicsBody()) {
+      this.characterController.getPhysicsBody().dispose();
+    }
+    
+    // Dispose display capsule
+    if (this.displayCapsule) {
+      this.displayCapsule.dispose();
+    }
+    
+    // Dispose animation controller
+    if (this.animationController) {
+      this.animationController.dispose();
+    }
+    
     // Dispose mobile input manager
     // MobileInputManager.dispose();
+    
+    console.log("CharacterController disposed");
   }
 }

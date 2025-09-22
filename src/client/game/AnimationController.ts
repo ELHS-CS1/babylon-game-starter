@@ -390,4 +390,22 @@ export class AnimationController {
   public isCurrentlyBlending(): boolean {
     return this.isBlending;
   }
+
+  /**
+   * Disposes the animation controller
+   */
+  public dispose(): void {
+    // Stop all animations
+    this.scene.animationGroups.forEach(anim => {
+      anim.stop();
+    });
+    
+    // Clear references
+    this.currentAnimation = null;
+    this.previousAnimation = null;
+    this.isBlending = false;
+    this.weightedAnimation = null;
+    
+    console.log("AnimationController disposed");
+  }
 }
