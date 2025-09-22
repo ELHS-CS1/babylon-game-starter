@@ -1,6 +1,8 @@
 import * as BABYLON from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
+import { CharacterController } from './CharacterController';
+import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
 // CANNON physics is available globally but we use Havok as primary physics engine
 
@@ -69,15 +71,18 @@ export class GameEngine {
   private peerManager: PeerManager;
   private localPlayer: BABYLON.Mesh | null = null;
   private remotePlayers: Map<string, BABYLON.Mesh> = new Map();
-  private currentEnvironment: string = 'levelTest';
+  private currentEnvironment: string = 'Level Test';
   private animationFrameId: number | null = null;
   private lastUpdateTime: number = 0;
   private keys: Record<string, boolean> = {};
   
+  // Controllers from THE WORD OF GOD
+  private characterController: CharacterController | null = null;
+  private smoothFollowController: SmoothFollowCameraController | null = null;
    
   public onPeerUpdate?: () => void;
 
-  constructor(canvas: HTMLCanvasElement, environment: string = 'levelTest') {
+  constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
     this.canvas = canvas;
     this.currentEnvironment = environment;
     this.peerManager = new PeerManager();
@@ -102,8 +107,22 @@ export class GameEngine {
     // Setup sky
     this.setupSky();
     
+    // Initialize controllers from THE WORD OF GOD
+    this.characterController = new CharacterController(this.scene);
+    
     // Load environment
     await this.loadEnvironment(this.currentEnvironment);
+    
+    // Setup camera controller after environment is loaded
+    if (this.characterController) {
+      const displayCapsule = this.characterController.getDisplayCapsule();
+      this.smoothFollowController = new SmoothFollowCameraController(
+        this.scene,
+        this.camera,
+        displayCapsule
+      );
+      this.characterController.setCameraController(this.smoothFollowController);
+    }
   }
 
   private setupLighting(): void {
@@ -116,9 +135,10 @@ export class GameEngine {
   }
 
   private setupPhysics(): void {
-    // Enable physics with Cannon.js (more reliable for web)
+    // Enable physics with HavokPlugin according to THE WORD OF GOD
     try {
-      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, new BABYLON.CannonJSPlugin());
+      const hk = new BABYLON.HavokPlugin(false);
+      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
     } catch {
       // Failed to enable physics
       // Continue without physics if it fails
@@ -140,13 +160,13 @@ export class GameEngine {
   private async loadEnvironment(environmentName: string): Promise<void> {
     try {
       
-      // Map environment names to model URLs
+      // Map environment names to model URLs according to THE WORD OF GOD
       const environmentModels: Record<string, string> = {
-        levelTest: '/assets/models/environments/levelTest/levelTest.glb',
-        islandTown: '/assets/models/environments/islandTown/island_town.glb',
-        joyTown: '/assets/models/environments/joyTown/joy_town.glb',
-        mansion: '/assets/models/environments/mansion/mansion.glb',
-        firefoxReality: '/assets/models/environments/firefoxReality/firefox_reality.glb'
+        'Level Test': 'https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/levelTest/levelTest.glb',
+        'Firefox Reality': 'https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/firefoxReality/firefox_reality.glb',
+        'Joy Town': 'https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/joyTown/joy_town.glb',
+        'Mansion': 'https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/mansion/mansion.glb',
+        'Island Town': 'https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/islandTown/island_town.glb'
       };
 
       const modelUrl = environmentModels[environmentName];
@@ -156,8 +176,8 @@ export class GameEngine {
       }
 
       
-      // Load the environment model
-      const result = await BABYLON.SceneLoader.ImportMeshAsync("", modelUrl, "", this.scene);
+      // Load the environment model according to THE WORD OF GOD
+      const result = await BABYLON.ImportMeshAsync(modelUrl, this.scene);
       
       // Position the environment appropriately
       if (result.meshes.length > 0 && result.meshes[0]) {
@@ -175,56 +195,10 @@ export class GameEngine {
       this.engine.resize();
     });
 
-    // Handle keyboard input
-    this.setupKeyboardControls();
-    
-    // Handle mouse controls for camera
-    this.setupMouseControls();
+    // Input is now handled by CharacterController and SmoothFollowCameraController from THE WORD OF GOD
   }
 
-  private setupKeyboardControls(): void {
-    const keys: { [key: string]: boolean } = {};
-    
-    window.addEventListener('keydown', (event) => {
-      keys[event.code] = true;
-    });
-    
-    window.addEventListener('keyup', (event) => {
-      keys[event.code] = false;
-    });
-
-    // Store keys reference for use in render loop
-    // Store keys reference for use in render loop
-    this.keys = keys;
-  }
-
-  private setupMouseControls(): void {
-    let isPointerLocked = false;
-    
-    this.canvas.addEventListener('click', () => {
-      if (!isPointerLocked) {
-        this.canvas.requestPointerLock();
-      }
-    });
-
-    document.addEventListener('pointerlockchange', () => {
-      isPointerLocked = document.pointerLockElement === this.canvas;
-    });
-
-    this.canvas.addEventListener('mousemove', (event) => {
-      if (isPointerLocked) {
-        const deltaX = event.movementX * CONFIG.CAMERA.DRAG_SENSITIVITY;
-        const deltaY = event.movementY * CONFIG.CAMERA.DRAG_SENSITIVITY;
-        
-        // Rotate camera based on mouse movement
-        this.camera.rotation.y -= deltaX;
-        this.camera.rotation.x -= deltaY;
-        
-        // Clamp vertical rotation
-        this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
-      }
-    });
-  }
+  // Old keyboard and mouse controls removed - now handled by CharacterController and SmoothFollowCameraController from THE WORD OF GOD
 
   private startRenderLoop(): void {
     const renderLoop = () => {
@@ -246,72 +220,20 @@ export class GameEngine {
   }
 
   private update(deltaTime: number): void {
-    // Update local player movement
-    this.updateLocalPlayer(deltaTime);
-    
-    // Update camera to follow local player
-    this.updateCamera();
+    // Controllers handle their own updates according to THE WORD OF GOD
+    // CharacterController handles character movement and physics
+    // SmoothFollowCameraController handles camera following
     
     // Update remote players
     this.updateRemotePlayers();
-  }
-
-  private updateLocalPlayer(deltaTime: number): void {
-    if (!this.localPlayer) return;
-
-    const keys = this.keys;
-    const moveVector = new BABYLON.Vector3(0, 0, 0);
     
-    // Calculate movement based on input
-    if (keys['KeyW'] === true || keys['ArrowUp'] === true) {
-      moveVector.z += 1;
-    }
-    if (keys['KeyS'] === true || keys['ArrowDown'] === true) {
-      moveVector.z -= 1;
-    }
-    if (keys['KeyA'] === true || keys['ArrowLeft'] === true) {
-      moveVector.x -= 1;
-    }
-    if (keys['KeyD'] === true || keys['ArrowRight'] === true) {
-      moveVector.x += 1;
-    }
-
-    // Apply movement
-    if (moveVector.length() > 0) {
-      moveVector.normalize();
-      moveVector.scaleInPlace(CONFIG.CHARACTER.SPEED.ON_GROUND * deltaTime * 0.01);
-      
-      // Rotate movement vector based on camera rotation
-      const rotationMatrix = BABYLON.Matrix.RotationY(this.camera.rotation.y);
-      moveVector.rotateByQuaternionToRef(BABYLON.Quaternion.FromRotationMatrix(rotationMatrix), moveVector);
-      
-      this.localPlayer.position.addInPlace(moveVector);
-      
-      // Update peer data
-      const localPeer = this.peerManager.getLocalPeer();
-      if (localPeer && this.onPeerUpdate) {
-        this.peerManager.updateLocalPeer(
-          { x: this.localPlayer.position.x, y: this.localPlayer.position.y, z: this.localPlayer.position.z },
-          { x: this.localPlayer.rotation.x, y: this.localPlayer.rotation.y, z: this.localPlayer.rotation.z }
-        );
-        this.onPeerUpdate();
-      }
+    // Notify peer manager of updates
+    if (this.onPeerUpdate) {
+      this.onPeerUpdate();
     }
   }
 
-  private updateCamera(): void {
-    if (!this.localPlayer) return;
-
-    // Follow the local player with smooth interpolation
-    const targetPosition = this.localPlayer.position.add(CONFIG.CAMERA.OFFSET);
-    this.camera.position = BABYLON.Vector3.Lerp(
-      this.camera.position,
-      targetPosition,
-      CONFIG.CAMERA.FOLLOW_SMOOTHING
-    );
-    
-    this.camera.setTarget(this.localPlayer.position);
-  }
+  // Old updateLocalPlayer and updateCamera methods removed - now handled by CharacterController and SmoothFollowCameraController from THE WORD OF GOD
 
   private updateRemotePlayers(): void {
     // Update remote player positions based on peer data
@@ -415,9 +337,25 @@ export class GameEngine {
     return this.engine;
   }
 
+  public getCharacterController(): CharacterController | null {
+    return this.characterController;
+  }
+
+  public getSmoothFollowController(): SmoothFollowCameraController | null {
+    return this.smoothFollowController;
+  }
+
   public dispose(): void {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
+    }
+    
+    // Dispose controllers from THE WORD OF GOD
+    if (this.characterController) {
+      this.characterController.dispose();
+    }
+    if (this.smoothFollowController) {
+      this.smoothFollowController.dispose();
     }
     
     this.scene.dispose();
