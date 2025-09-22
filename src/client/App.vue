@@ -77,7 +77,7 @@ import { pushNotificationClient } from './services/PushNotificationClient';
 const gameCanvas = ref<HTMLCanvasElement>();
 // Fallback values in case getEnvironments/getCharacters return empty arrays
 
-const selectedEnvironment = ref<string>(getEnvironments()[0] || 'levelTest');
+const selectedEnvironment = ref<string>(getEnvironments()[0] || 'Level Test');
 const selectedCharacter = ref<string>(getCharacters()[0] || 'Red');
 const environments = ref<string[]>([...getEnvironments()]);
 const characters = ref<string[]>([...getCharacters()]);

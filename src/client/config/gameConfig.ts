@@ -330,23 +330,21 @@ export const CONFIG: GameConfig = {
     ENABLE_MUSIC: true
   },
 
-  // Available Characters
+  // Available Characters - SACRED TEXT FROM PLAYGROUND.TS
   CHARACTERS: [
     "Red",
-    "Blue", 
-    "Green",
-    "Yellow",
-    "Purple",
-    "Orange"
+    "Tech Girl",
+    "Zombie", 
+    "Hulk"
   ] as const,
 
-  // Available Environments
+  // Available Environments - SACRED TEXT FROM PLAYGROUND.TS
   ENVIRONMENTS: [
-    "levelTest",
-    "islandTown",
-    "joyTown",
-    "mansion",
-    "firefoxReality"
+    "Level Test",
+    "Firefox Reality",
+    "Joy Town",
+    "Mansion",
+    "Island Town"
   ] as const
 } as const;
 
