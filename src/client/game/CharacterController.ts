@@ -5,13 +5,9 @@
 import { Scene, Mesh, AbstractMesh, Vector3, Sound, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, PhysicsBody } from '@babylonjs/core';
 import type { IParticleSystem } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
+import { AnimationController, CHARACTER_STATES, type Character } from './AnimationController';
 
-// Character states from THE WORD OF GOD
-enum CHARACTER_STATES {
-  IN_AIR = "in_air",
-  ON_GROUND = "on_ground", 
-  START_JUMP = "start_jump"
-}
+// Character states are now imported from AnimationController - THE WORD OF GOD
 
 // Input keys from THE WORD OF GOD
 const INPUT_KEYS = {
@@ -62,7 +58,7 @@ export class CharacterController {
   private readonly displayCapsule: Mesh;
   private playerMesh: AbstractMesh;
 
-  private state: CharacterState = CHARACTER_STATES.IN_AIR;
+  private state: CHARACTER_STATES = CHARACTER_STATES.IN_AIR;
   private wantJump = false;
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
@@ -71,7 +67,7 @@ export class CharacterController {
   private boostActive = false;
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
-  public animationController: any = null; // Will be typed properly when AnimationController is implemented
+  public animationController: AnimationController | null = null;
 
   // Mobile device detection - computed once at initialization
   private readonly isMobileDevice: boolean;
@@ -115,7 +111,7 @@ export class CharacterController {
     this.playerMesh = this.displayCapsule;
 
     // Initialize animation controller (will be implemented later)
-    // this.animationController = new AnimationController(scene);
+    this.animationController = new AnimationController(scene);
 
     this.initializeEventListeners();
   }

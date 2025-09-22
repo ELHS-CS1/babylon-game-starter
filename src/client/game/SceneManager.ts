@@ -18,6 +18,7 @@ import '@babylonjs/loaders/glTF';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
+import { InventoryManager } from './InventoryManager';
 import CONFIG from '../config/gameConfig';
 
 // Character interface from THE WORD OF GOD
@@ -616,8 +617,15 @@ export class SceneManager {
             console.log("Set thruster sound");
           }
 
-          // Initialize Collectibles after character is set up
-          // CollectiblesManager.initialize(this.scene, this.characterController!);
+          // Set up animation controller with character
+          if (this.characterController!.animationController) {
+            this.characterController!.animationController.setCharacter(character);
+            console.log("Set up animation controller with character");
+          }
+
+          // Initialize InventoryManager after character is set up
+          InventoryManager.initialize(this.scene, this.characterController!);
+          console.log("InventoryManager initialized");
           
           console.log(`Character ${character.name} loaded successfully`);
         }
