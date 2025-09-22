@@ -15,7 +15,6 @@ import {
 } from '@babylonjs/core';
 import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
-import { Havok } from '@babylonjs/havok';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
@@ -328,8 +327,10 @@ export class SceneManager {
   }
 
   private async setupPhysics(): Promise<void> {
-    // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
+    // FOLLOWING BABYLON.JS DOCS FOR HAVOK - THE WORD OF THE LORD!
     try {
+      // Import Havok dynamically as per official docs
+      const { Havok } = await import('@babylonjs/havok');
       const hk = new HavokPlugin(false);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
     } catch (error) {
