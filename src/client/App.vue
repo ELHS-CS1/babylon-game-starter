@@ -75,8 +75,10 @@ import { pushNotificationClient } from './services/PushNotificationClient';
 
 // Reactive state
 const gameCanvas = ref<HTMLCanvasElement>();
-const selectedEnvironment = ref<string>(getEnvironments()[0]);
-const selectedCharacter = ref<string>(getCharacters()[0]);
+// Fallback values in case getEnvironments/getCharacters return empty arrays
+
+const selectedEnvironment = ref<string>(getEnvironments()[0] || 'levelTest');
+const selectedCharacter = ref<string>(getCharacters()[0] || 'Red');
 const environments = ref<string[]>([...getEnvironments()]);
 const characters = ref<string[]>([...getCharacters()]);
 const gameEngine = ref<GameEngine | null>(null);
