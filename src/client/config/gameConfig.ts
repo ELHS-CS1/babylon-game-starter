@@ -713,6 +713,12 @@ const CONFIG = {
         ]
     },
 
+    AUDIO: {
+        MASTER_VOLUME: 1.0,
+        SFX_VOLUME: 1.0,
+        MUSIC_VOLUME: 1.0
+    },
+
     INVENTORY: {
         HEADING_TEXT: "Inventory",
         PANEL_WIDTH_RATIO: 1 / 3,
