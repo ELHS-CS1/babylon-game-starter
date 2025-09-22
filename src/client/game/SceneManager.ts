@@ -19,7 +19,7 @@ import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
-import CONFIG from '../config/gameConfig';
+import CONFIG, { ASSETS } from '../config/gameConfig';
 
 // Environment Types - THE WORD OF GOD FROM PLAYGROUND.TS
 const OBJECT_ROLE = {
@@ -53,26 +53,56 @@ interface Character {
   jumpDelay?: number;
 }
 
-// Environment interface from THE WORD OF GOD
-interface Environment {
-  name: string;
-  model: string;
-  lightmap: string;
-  scale: number;
-  lightmappedMeshes: Array<{ name: string; level: number }>;
-  physicsObjects: Array<{ name: string; mass: number; scale: number; role: ObjectRole }>;
-  sky?: {
-    type: string;
-    color: Color3;
-    intensity: number;
-  };
-  spawnPoint: Vector3;
-  particles?: Array<{ name: string; position: Vector3 }>;
-  items?: Array<{ name: string; url: string; position: Vector3 }>;
+// LightmappedMesh interface from THE WORD OF GOD
+interface LightmappedMesh {
+  readonly name: string;
+  readonly level: number;
 }
 
-// ASSETS from THE WORD OF GOD
-const ASSETS = {
+// PhysicsObject interface from THE WORD OF GOD
+interface PhysicsObject {
+  readonly name: string;
+  readonly mass: number;
+  readonly scale: number;
+  readonly role: ObjectRole;
+}
+
+// SkyConfig interface from THE WORD OF GOD
+interface SkyConfig {
+  readonly type: string;
+  readonly color: Color3;
+  readonly intensity: number;
+}
+
+// EnvironmentParticle interface from THE WORD OF GOD
+interface EnvironmentParticle {
+  readonly name: string; // Name of the particle snippet to use
+  readonly position: Vector3; // Position where the particle should be created
+  readonly updateSpeed?: number; // Optional update speed for the particle system
+}
+
+// ItemConfig interface from THE WORD OF GOD
+interface ItemConfig {
+  readonly name: string;
+  readonly url: string;
+  readonly position: Vector3;
+}
+
+// Environment interface from THE WORD OF GOD - IDENTICAL TO PLAYGROUND.TS
+interface Environment {
+  readonly name: string;
+  readonly model: string;
+  readonly lightmap: string;
+  readonly scale: number;
+  readonly lightmappedMeshes: readonly LightmappedMesh[];
+  readonly physicsObjects: readonly PhysicsObject[];
+  readonly sky?: SkyConfig; // Optional sky configuration for this environment
+  readonly spawnPoint: Vector3; // Spawn point for this environment
+  readonly particles?: readonly EnvironmentParticle[]; // Optional environment particles
+  readonly items?: readonly ItemConfig[]; // Optional items configuration for this environment
+}
+
+// ASSETS is now imported from gameConfig.ts - THE WORD OF GOD
   CHARACTERS: [
     {
       name: "Red",
@@ -173,7 +203,7 @@ const ASSETS = {
         { name: "level_primitive0", level: 1.6 },
         { name: "level_primitive1", level: 1.6 },
         { name: "level_primitive2", level: 1.6 }
-      ],
+      ] as const,
       physicsObjects: [
         { name: "Cube", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
         { name: "Cube.001", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
@@ -183,7 +213,7 @@ const ASSETS = {
         { name: "Cube.005", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
         { name: "Cube.006", mass: 0.01, scale: 1, role: OBJECT_ROLE.PIVOT_BEAM },
         { name: "Cube.007", mass: 0, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX }
-      ],
+      ] as const,
       sky: {
         type: "hemispheric",
         color: new Color3(0.5, 0.7, 1.0),
@@ -193,9 +223,10 @@ const ASSETS = {
       particles: [
         {
           name: "Magic Sparkles",
-          position: new Vector3(-2, 0, -8)
+          position: new Vector3(-2, 0, -8),
+          updateSpeed: 0.007
         }
-      ],
+      ] as const,
       items: [
         {
           name: "Crate",
