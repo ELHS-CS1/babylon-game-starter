@@ -291,7 +291,7 @@ export class SceneManager {
     this.setupLighting();
     console.log("Setup lighting");
     
-    this.setupPhysics();
+    await this.setupPhysics();
     console.log("Setup physics");
     
     this.setupSky();
