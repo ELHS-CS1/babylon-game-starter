@@ -2,6 +2,7 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
+import { Scene, PhysicsCharacterController, Mesh, AbstractMesh, Vector3, IParticleSystem, Sound, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 
 // Character states from THE WORD OF GOD
@@ -55,20 +56,20 @@ interface Character {
 type CharacterState = CHARACTER_STATES;
 
 export class CharacterController {
-  private readonly scene: BABYLON.Scene;
-  private readonly characterController: BABYLON.PhysicsCharacterController;
-  private readonly displayCapsule: BABYLON.Mesh;
-  private playerMesh: BABYLON.AbstractMesh;
+  private readonly scene: Scene;
+  private readonly characterController: PhysicsCharacterController;
+  private readonly displayCapsule: Mesh;
+  private playerMesh: AbstractMesh;
 
   private state: CharacterState = CHARACTER_STATES.IN_AIR;
   private wantJump = false;
-  private inputDirection = new BABYLON.Vector3(0, 0, 0);
+  private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
   private keysDown = new Set<string>();
   private cameraController: any = null; // Will be typed properly when SmoothFollowCameraController is implemented
   private boostActive = false;
-  private playerParticleSystem: BABYLON.IParticleSystem | null = null;
-  private thrusterSound: BABYLON.Sound | null = null;
+  private playerParticleSystem: IParticleSystem | null = null;
+  private thrusterSound: Sound | null = null;
   public animationController: any = null; // Will be typed properly when AnimationController is implemented
 
   // Mobile device detection - computed once at initialization
@@ -80,7 +81,7 @@ export class CharacterController {
   private physicsPaused: boolean = false;
   private currentCharacter: Character | null = null;
 
-  constructor(scene: BABYLON.Scene) {
+  constructor(scene: Scene) {
     this.scene = scene;
 
     // Enhanced device detection
@@ -89,8 +90,8 @@ export class CharacterController {
     this.isIPadWithKeyboard = this.detectIPadWithKeyboard();
 
     // Create character physics controller with default position (will be updated when character is loaded)
-    this.characterController = new BABYLON.PhysicsCharacterController(
-      new BABYLON.Vector3(0, 0, 0), // Default position, will be updated
+    this.characterController = new PhysicsCharacterController(
+      new Vector3(0, 0, 0), // Default position, will be updated
       {
         capsuleHeight: 1.8, // Default height, will be updated when character is loaded
         capsuleRadius: 0.6  // Default radius, will be updated when character is loaded

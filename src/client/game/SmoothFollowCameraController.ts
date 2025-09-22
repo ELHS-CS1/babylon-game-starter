@@ -2,21 +2,22 @@
 // SMOOTH FOLLOW CAMERA CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
+import { Scene, TargetCamera, Mesh, Vector3, Observer, PointerInfo } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 
 export class SmoothFollowCameraController {
-  private readonly scene: BABYLON.Scene;
-  private readonly camera: BABYLON.TargetCamera;
-  private readonly target: BABYLON.Mesh;
-  private readonly offset: BABYLON.Vector3;
+  private readonly scene: Scene;
+  private readonly camera: TargetCamera;
+  private readonly target: Mesh;
+  private readonly offset: Vector3;
   private readonly dragSensitivity: number;
 
   public isDragging = false;
   public dragDeltaX = 0;
   public dragDeltaZ = 0;
 
-  private pointerObserver: BABYLON.Observer<BABYLON.PointerInfo>;
-  private beforeRenderObserver: BABYLON.Observer<BABYLON.Scene>;
+  private pointerObserver: Observer<PointerInfo>;
+  private beforeRenderObserver: Observer<Scene>;
   private lastPointerX = 0;
   private lastPointerY = 0;
   private isTwoFingerPanning = false;
@@ -32,10 +33,10 @@ export class SmoothFollowCameraController {
   private shouldStartRotationOnWalk = false;
 
   constructor(
-    scene: BABYLON.Scene,
-    camera: BABYLON.TargetCamera,
-    target: BABYLON.Mesh,
-    offset: BABYLON.Vector3 = CONFIG.CAMERA.OFFSET,
+    scene: Scene,
+    camera: TargetCamera,
+    target: Mesh,
+    offset: Vector3 = CONFIG.CAMERA.OFFSET,
     dragSensitivity: number = CONFIG.CAMERA.DRAG_SENSITIVITY
   ) {
     this.scene = scene;

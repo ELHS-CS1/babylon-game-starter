@@ -5,6 +5,8 @@
  * with data-driven customizability for all game components.
  */
 
+import { Vector3, Color3 } from '@babylonjs/core';
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -90,7 +92,39 @@ interface AudioConfig {
   readonly ENABLE_MUSIC: boolean;
 }
 
+interface CameraConfig {
+  readonly START_POSITION: Vector3;
+  readonly OFFSET: Vector3;
+  readonly DRAG_SENSITIVITY: number;
+  readonly ZOOM_MIN: number;
+  readonly ZOOM_MAX: number;
+  readonly FOLLOW_SMOOTHING: number;
+}
+
+interface PhysicsConfig {
+  readonly GRAVITY: Vector3;
+  readonly CHARACTER_GRAVITY: Vector3;
+}
+
+interface AnimationConfig {
+  readonly PLAYER_SCALE: number;
+  readonly PLAYER_Y_OFFSET: number;
+}
+
+interface DebugConfig {
+  readonly CAPSULE_VISIBLE: boolean;
+}
+
+interface EffectsConfig {
+  readonly PARTICLE_SNIPPETS: boolean;
+}
+
 interface GameConfig {
+  readonly CAMERA: CameraConfig;
+  readonly PHYSICS: PhysicsConfig;
+  readonly ANIMATION: AnimationConfig;
+  readonly DEBUG: DebugConfig;
+  readonly EFFECTS: EffectsConfig;
   readonly HUD: HUDConfig;
   readonly SETTINGS: SettingsConfig;
   readonly INVENTORY: InventoryConfig;
@@ -104,6 +138,38 @@ interface GameConfig {
 // ============================================================================
 
 export const CONFIG: GameConfig = {
+  // Camera Settings - SACRED TEXT FROM PLAYGROUND.TS
+  CAMERA: {
+    START_POSITION: new Vector3(0, 5, -10),
+    OFFSET: new Vector3(0, 1.2, -3),
+    DRAG_SENSITIVITY: 0.02,
+    ZOOM_MIN: -15,
+    ZOOM_MAX: -2,
+    FOLLOW_SMOOTHING: 0.1
+  },
+
+  // Physics Settings - SACRED TEXT FROM PLAYGROUND.TS
+  PHYSICS: {
+    GRAVITY: new Vector3(0, -9.8, 0),
+    CHARACTER_GRAVITY: new Vector3(0, -18, 0)
+  },
+
+  // Animation Settings - SACRED TEXT FROM PLAYGROUND.TS
+  ANIMATION: {
+    PLAYER_SCALE: 0.7,
+    PLAYER_Y_OFFSET: -0.9
+  },
+
+  // Debug Settings - SACRED TEXT FROM PLAYGROUND.TS
+  DEBUG: {
+    CAPSULE_VISIBLE: false
+  },
+
+  // Effects Settings - SACRED TEXT FROM PLAYGROUND.TS
+  EFFECTS: {
+    PARTICLE_SNIPPETS: true
+  },
+
   // HUD Configuration - SACRED TEXT FROM PLAYGROUND.TS
   HUD: {
     POSITION: "top",

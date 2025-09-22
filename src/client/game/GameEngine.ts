@@ -2,17 +2,17 @@
 // GAME ENGINE - FOLLOWING THE WORD OF THE LORD FROM PLAYGROUND.TS
 // ============================================================================
 
-import * as BABYLON from '@babylonjs/core';
+import { Engine, Mesh, Vector3, MeshBuilder, StandardMaterial, Color3, Scene } from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
 
 export class GameEngine {
-  private engine: BABYLON.Engine;
+  private engine: Engine;
   private canvas: HTMLCanvasElement;
   private peerManager: PeerManager;
   private sceneManager: SceneManager | null = null;
-  private remotePlayers: Map<string, BABYLON.Mesh> = new Map();
+  private remotePlayers: Map<string, Mesh> = new Map();
   private currentEnvironment: string = 'Level Test';
   private animationFrameId: number | null = null;
   private lastUpdateTime: number = 0;
@@ -27,7 +27,7 @@ export class GameEngine {
     this.peerManager = new PeerManager();
     
     // Initialize Babylon.js engine
-    this.engine = new BABYLON.Engine(canvas, true);
+    this.engine = new Engine(canvas, true);
     console.log("Babylon.js engine created");
     
     // Create SceneManager according to THE WORD OF THE LORD
@@ -104,9 +104,9 @@ export class GameEngine {
         this.remotePlayers.set(peer.id, remotePlayer);
       }
       
-      // Update position
-      remotePlayer.position = new BABYLON.Vector3(peer.position.x, peer.position.y, peer.position.z);
-      remotePlayer.rotation = new BABYLON.Vector3(peer.rotation.x, peer.rotation.y, peer.rotation.z);
+            // Update position
+            remotePlayer.position = new Vector3(peer.position.x, peer.position.y, peer.position.z);
+            remotePlayer.rotation = new Vector3(peer.rotation.x, peer.rotation.y, peer.rotation.z);
     });
 
     // Remove players that are no longer in the environment
@@ -119,7 +119,7 @@ export class GameEngine {
     }
   }
 
-  private createPlayerMesh(name: string): BABYLON.Mesh {
+  private createPlayerMesh(name: string): Mesh {
     if (!this.sceneManager) {
       throw new Error('SceneManager not initialized');
     }
@@ -127,14 +127,14 @@ export class GameEngine {
     const scene = this.sceneManager.getScene();
     
     // Create a simple capsule mesh for the player
-    const player = BABYLON.MeshBuilder.CreateCapsule(name, {
+    const player = MeshBuilder.CreateCapsule(name, {
       radius: 0.6,
       height: 1.8
     }, scene);
     
     // Create a material
-    const material = new BABYLON.StandardMaterial(`${name}_material`, scene);
-    material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+    const material = new StandardMaterial(`${name}_material`, scene);
+    material.diffuseColor = new Color3(Math.random(), Math.random(), Math.random());
     player.material = material;
     
     return player;
@@ -163,11 +163,11 @@ export class GameEngine {
     this.peerManager.removePeer(peerId);
   }
 
-  public getScene(): BABYLON.Scene | null {
+  public getScene(): Scene | null {
     return this.sceneManager ? this.sceneManager.getScene() : null;
   }
 
-  public getEngine(): BABYLON.Engine {
+  public getEngine(): Engine {
     return this.engine;
   }
 

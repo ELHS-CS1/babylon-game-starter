@@ -2,17 +2,17 @@
 // EFFECTS MANAGER - BASIC IMPLEMENTATION FOLLOWING THE TEN COMMANDMENTS
 // ============================================================================
 
-import * as BABYLON from '@babylonjs/core';
+import { Scene, IParticleSystem, Sound, ParticleSystem, Vector3, Color4, Texture } from '@babylonjs/core';
 
 export class EffectsManager {
   private static instance: EffectsManager | undefined;
-  private scene: BABYLON.Scene | null = null;
-  private particleSystems: Map<string, BABYLON.IParticleSystem> = new Map();
-  private sounds: Map<string, BABYLON.Sound> = new Map();
+  private scene: Scene | null = null;
+  private particleSystems: Map<string, IParticleSystem> = new Map();
+  private sounds: Map<string, Sound> = new Map();
 
   private constructor() {}
 
-  public static initialize(scene: BABYLON.Scene): void {
+  public static initialize(scene: Scene): void {
     if (!EffectsManager.instance) {
       EffectsManager.instance = new EffectsManager();
     }
@@ -27,7 +27,7 @@ export class EffectsManager {
     return EffectsManager.instance;
   }
 
-  public static async createParticleSystem(name: string, position: BABYLON.Vector3): Promise<BABYLON.IParticleSystem | null> {
+  public static async createParticleSystem(name: string, position: Vector3): Promise<IParticleSystem | null> {
     const instance = EffectsManager.getInstance();
     if (!instance.scene) {
       console.error("Scene not set in EffectsManager");
@@ -38,17 +38,17 @@ export class EffectsManager {
       console.log(`Creating particle system: ${name} at`, position);
       
       // Create a simple particle system
-      const particleSystem = new BABYLON.ParticleSystem(name, 2000, instance.scene);
+      const particleSystem = new ParticleSystem(name, 2000, instance.scene);
       
       // Set basic properties
       particleSystem.emitter = position;
-      particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, 0, -0.5);
-      particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0, 0.5);
+      particleSystem.minEmitBox = new Vector3(-0.5, 0, -0.5);
+      particleSystem.maxEmitBox = new Vector3(0.5, 0, 0.5);
       
       // Set particle properties
-      particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
-      particleSystem.color2 = new BABYLON.Color4(1, 1, 1, 0.5);
-      particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+      particleSystem.color1 = new Color4(1, 1, 1, 1);
+      particleSystem.color2 = new Color4(1, 1, 1, 0.5);
+      particleSystem.colorDead = new Color4(0, 0, 0, 0);
       
       particleSystem.minSize = 0.1;
       particleSystem.maxSize = 0.5;
@@ -58,10 +58,10 @@ export class EffectsManager {
       
       particleSystem.emitRate = 1000;
       
-      particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+      particleSystem.gravity = new Vector3(0, -9.81, 0);
       
       // Create a simple texture
-      const texture = new BABYLON.Texture("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", instance.scene);
+      const texture = new Texture("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", instance.scene);
       particleSystem.particleTexture = texture;
       
       // Store the particle system
@@ -75,7 +75,7 @@ export class EffectsManager {
     }
   }
 
-  public static async createSound(name: string): Promise<BABYLON.Sound | null> {
+  public static async createSound(name: string): Promise<Sound | null> {
     const instance = EffectsManager.getInstance();
     if (!instance.scene) {
       console.error("Scene not set in EffectsManager");
@@ -86,7 +86,7 @@ export class EffectsManager {
       console.log(`Creating sound: ${name}`);
       
       // Create a simple sound (placeholder)
-      const sound = new BABYLON.Sound(name, "", instance.scene, null, {
+      const sound = new Sound(name, "", instance.scene, null, {
         loop: false,
         autoplay: false
       });
@@ -102,12 +102,12 @@ export class EffectsManager {
     }
   }
 
-  public static getSound(name: string): BABYLON.Sound | null {
+  public static getSound(name: string): Sound | null {
     const instance = EffectsManager.getInstance();
     return instance.sounds.get(name) || null;
   }
 
-  public static getParticleSystem(name: string): BABYLON.IParticleSystem | null {
+  public static getParticleSystem(name: string): IParticleSystem | null {
     const instance = EffectsManager.getInstance();
     return instance.particleSystems.get(name) || null;
   }

@@ -2,7 +2,21 @@
 // SCENE MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import * as BABYLON from '@babylonjs/core';
+import { 
+  Scene, 
+  Engine, 
+  TargetCamera, 
+  HemisphericLight, 
+  Vector3, 
+  Color3, 
+  HavokPlugin, 
+  ImportMeshAsync, 
+  PhysicsAggregate, 
+  PhysicsShapeType, 
+  StandardMaterial, 
+  PBRMaterial, 
+  Texture 
+} from '@babylonjs/core';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
@@ -42,12 +56,12 @@ interface Environment {
   physicsObjects: Array<{ name: string; mass: number; scale: number; role: string }>;
   sky?: {
     type: string;
-    color: BABYLON.Color3;
+    color: Color3;
     intensity: number;
   };
-  spawnPoint: BABYLON.Vector3;
-  particles?: Array<{ name: string; position: BABYLON.Vector3 }>;
-  items?: Array<{ name: string; url: string; position: BABYLON.Vector3 }>;
+  spawnPoint: Vector3;
+  particles?: Array<{ name: string; position: Vector3 }>;
+  items?: Array<{ name: string; url: string; position: Vector3 }>;
 }
 
 // ASSETS from THE WORD OF GOD
@@ -253,19 +267,19 @@ const ASSETS = {
 };
 
 export class SceneManager {
-  private readonly scene: BABYLON.Scene;
-  private readonly camera: BABYLON.TargetCamera;
+  private readonly scene: Scene;
+  private readonly camera: TargetCamera;
   private characterController: CharacterController | null = null;
   private smoothFollowController: SmoothFollowCameraController | null = null;
   private currentEnvironment: string = "Level Test"; // Track current environment
 
-  constructor(engine: BABYLON.Engine, canvas: HTMLCanvasElement) {
+  constructor(engine: Engine, canvas: HTMLCanvasElement) {
     console.log("SceneManager constructor called");
     
-    this.scene = new BABYLON.Scene(engine);
+    this.scene = new Scene(engine);
     console.log("Babylon.js scene created");
     
-    this.camera = new BABYLON.TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
+    this.camera = new TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
     console.log("Camera created at position:", CONFIG.CAMERA.START_POSITION);
 
     this.initializeScene().catch(error => {
@@ -422,9 +436,9 @@ export class SceneManager {
     }
   }
 
-  private createSky(skyConfig: { type: string; color: BABYLON.Color3; intensity: number }): void {
+  private createSky(skyConfig: { type: string; color: Color3; intensity: number }): void {
     if (skyConfig.type === "hemispheric") {
-      const skyLight = new BABYLON.HemisphericLight("skyLight", new BABYLON.Vector3(0, 1, 0), this.scene);
+      const skyLight = new HemisphericLight("skyLight", new Vector3(0, 1, 0), this.scene);
       skyLight.intensity = skyConfig.intensity;
       skyLight.diffuse = skyConfig.color;
     }
