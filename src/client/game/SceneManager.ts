@@ -9,14 +9,12 @@ import {
   HemisphericLight, 
   Vector3, 
   Color3, 
-  HavokPlugin, 
-  ImportMeshAsync, 
-  PhysicsAggregate, 
-  PhysicsShapeType, 
   StandardMaterial, 
   PBRMaterial, 
   Texture 
 } from '@babylonjs/core';
+import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, CannonJSPlugin } from '@babylonjs/core';
+import '@babylonjs/loaders/glTF';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
@@ -179,31 +177,31 @@ const ASSETS = {
       ],
       sky: {
         type: "hemispheric",
-        color: new BABYLON.Color3(0.5, 0.7, 1.0),
+        color: new Color3(0.5, 0.7, 1.0),
         intensity: 0.7
       },
-      spawnPoint: new BABYLON.Vector3(0, 0, 0),
+      spawnPoint: new Vector3(0, 0, 0),
       particles: [
         {
           name: "Magic Sparkles",
-          position: new BABYLON.Vector3(-2, 0, -8)
+          position: new Vector3(-2, 0, -8)
         }
       ],
       items: [
         {
           name: "Crate",
           url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/stylized_crate_asset.glb",
-          position: new BABYLON.Vector3(2, 0, -5)
+          position: new Vector3(2, 0, -5)
         },
         {
           name: "Super Jump",
           url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/jump_collectible.glb",
-          position: new BABYLON.Vector3(-5, 0, 3)
+          position: new Vector3(-5, 0, 3)
         },
         {
           name: "Invisibility",
           url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/invisibility_collectible.glb",
-          position: new BABYLON.Vector3(5, 0, 3)
+          position: new Vector3(5, 0, 3)
         }
       ]
     },
@@ -216,10 +214,10 @@ const ASSETS = {
       physicsObjects: [],
       sky: {
         type: "hemispheric",
-        color: new BABYLON.Color3(0.8, 0.9, 1.0),
+        color: new Color3(0.8, 0.9, 1.0),
         intensity: 0.8
       },
-      spawnPoint: new BABYLON.Vector3(0, 5, 0)
+      spawnPoint: new Vector3(0, 5, 0)
     },
     {
       name: "Joy Town",
@@ -230,10 +228,10 @@ const ASSETS = {
       physicsObjects: [],
       sky: {
         type: "hemispheric",
-        color: new BABYLON.Color3(1.0, 0.9, 0.7),
+        color: new Color3(1.0, 0.9, 0.7),
         intensity: 0.9
       },
-      spawnPoint: new BABYLON.Vector3(-15, 15, 0)
+      spawnPoint: new Vector3(-15, 15, 0)
     },
     {
       name: "Mansion",
@@ -244,10 +242,10 @@ const ASSETS = {
       physicsObjects: [],
       sky: {
         type: "hemispheric",
-        color: new BABYLON.Color3(0.6, 0.6, 0.8),
+        color: new Color3(0.6, 0.6, 0.8),
         intensity: 0.6
       },
-      spawnPoint: new BABYLON.Vector3(0, 15, -20)
+      spawnPoint: new Vector3(0, 15, -20)
     },
     {
       name: "Island Town",
@@ -258,10 +256,10 @@ const ASSETS = {
       physicsObjects: [],
       sky: {
         type: "hemispheric",
-        color: new BABYLON.Color3(0.7, 0.9, 1.0),
+        color: new Color3(0.7, 0.9, 1.0),
         intensity: 0.8
       },
-      spawnPoint: new BABYLON.Vector3(0, 10, 0)
+      spawnPoint: new Vector3(0, 10, 0)
     }
   ] as readonly Environment[]
 };
@@ -324,13 +322,14 @@ export class SceneManager {
   }
 
   private setupLighting(): void {
-    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+    const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
     light.intensity = 0.7;
   }
 
   private setupPhysics(): void {
-    const hk = new BABYLON.HavokPlugin(false);
-    this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
+    // Use CannonJS physics plugin
+    const cannonPlugin = new CannonJSPlugin();
+    this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, cannonPlugin);
   }
 
   private setupSky(): void {
@@ -367,7 +366,7 @@ export class SceneManager {
 
     try {
       console.log(`Loading model from: ${environment.model}`);
-      const result = await BABYLON.ImportMeshAsync(environment.model, this.scene);
+      const result = await ImportMeshAsync(environment.model, this.scene);
       console.log(`Loaded environment meshes:`, result.meshes.length);
 
       // Process node materials for environment meshes
@@ -459,21 +458,21 @@ export class SceneManager {
   private setupLightmappedMeshes(environment: Environment): void {
     if (!environment.lightmap) return;
     
-    const lightmap = new BABYLON.Texture(environment.lightmap, this.scene);
+    const lightmap = new Texture(environment.lightmap, this.scene);
 
     environment.lightmappedMeshes.forEach(lightmappedMesh => {
       const mesh = this.scene.getMeshByName(lightmappedMesh.name);
       if (!mesh) return;
 
-      new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.MESH);
+      new PhysicsAggregate(mesh, PhysicsShapeType.MESH);
       mesh.isPickable = false;
 
-      if (mesh.material instanceof BABYLON.StandardMaterial || mesh.material instanceof BABYLON.PBRMaterial) {
+      if (mesh.material instanceof StandardMaterial || mesh.material instanceof PBRMaterial) {
         mesh.material.lightmapTexture = lightmap;
         mesh.material.useLightmapAsShadowmap = true;
-        (mesh.material.lightmapTexture as BABYLON.Texture).uAng = Math.PI;
-        (mesh.material.lightmapTexture as BABYLON.Texture).level = lightmappedMesh.level;
-        (mesh.material.lightmapTexture as BABYLON.Texture).coordinatesIndex = 1;
+        (mesh.material.lightmapTexture as Texture).uAng = Math.PI;
+        (mesh.material.lightmapTexture as Texture).level = lightmappedMesh.level;
+        (mesh.material.lightmapTexture as Texture).coordinatesIndex = 1;
       }
 
       mesh.freezeWorldMatrix();
@@ -490,7 +489,7 @@ export class SceneManager {
           mesh.scaling.setAll(physicsObject.scale);
         }
 
-        new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.BOX, { mass: physicsObject.mass });
+        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
       }
     });
   }
@@ -503,7 +502,7 @@ export class SceneManager {
     // Create physics bodies for all environment meshes to prevent falling through
     const environmentMesh = this.scene.getMeshByName("environment");
     if (environmentMesh) {
-      new BABYLON.PhysicsAggregate(environmentMesh, BABYLON.PhysicsShapeType.MESH);
+      new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH);
     }
   }
 
@@ -527,7 +526,7 @@ export class SceneManager {
     this.loadCharacter(character);
   }
 
-  private loadCharacter(character: Character, preservedPosition?: BABYLON.Vector3 | null): void {
+  private loadCharacter(character: Character, preservedPosition?: Vector3 | null): void {
     if (!this.characterController) {
       console.error("CharacterController not initialized");
       return;
@@ -538,7 +537,7 @@ export class SceneManager {
     // Remove all animation groups from the scene before loading a new character
     this.scene.animationGroups.slice().forEach(group => group.dispose());
 
-    BABYLON.ImportMeshAsync(character.model, this.scene)
+    ImportMeshAsync(character.model, this.scene)
       .then(async result => {
         console.log(`Loaded character meshes:`, result.meshes.length);
         

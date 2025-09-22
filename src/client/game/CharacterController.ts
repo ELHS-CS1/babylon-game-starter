@@ -2,7 +2,8 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, PhysicsCharacterController, Mesh, AbstractMesh, Vector3, IParticleSystem, Sound, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
+import { Scene, Mesh, AbstractMesh, Vector3, Sound, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, PhysicsBody } from '@babylonjs/core';
+import type { IParticleSystem } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 
 // Character states from THE WORD OF GOD
@@ -100,7 +101,7 @@ export class CharacterController {
     );
 
     // Create display capsule for debug
-    this.displayCapsule = BABYLON.MeshBuilder.CreateCapsule(
+    this.displayCapsule = MeshBuilder.CreateCapsule(
       "CharacterDisplay",
       {
         height: 1.8, // Default height, will be updated when character is loaded
@@ -202,12 +203,12 @@ export class CharacterController {
     const key = kbInfo.event.key.toLowerCase();
 
     switch (kbInfo.type) {
-      case BABYLON.KeyboardEventTypes.KEYDOWN:
+      case KeyboardEventTypes.KEYDOWN:
         this.keysDown.add(key);
         this.handleKeyDown(key);
         break;
 
-      case BABYLON.KeyboardEventTypes.KEYUP:
+      case KeyboardEventTypes.KEYUP:
         this.keysDown.delete(key);
         this.handleKeyUp(key);
         break;
@@ -433,7 +434,7 @@ export class CharacterController {
     // Update player mesh rotation
     if (this.displayCapsule.rotationQuaternion) {
       if (!this.playerMesh.rotationQuaternion) {
-        this.playerMesh.rotationQuaternion = new BABYLON.Quaternion();
+        this.playerMesh.rotationQuaternion = new Quaternion();
       }
       this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
     } else {
@@ -492,10 +493,10 @@ export class CharacterController {
     // Skip physics updates if paused
     if (this.physicsPaused) return;
 
-    const down = BABYLON.Vector3.Down();
+    const down = Vector3.Down();
     const support = this.characterController.checkSupport(deltaTime, down);
 
-    const characterOrientation = BABYLON.Quaternion.FromEulerAngles(0, this.displayCapsule.rotation.y, 0);
+    const characterOrientation = Quaternion.FromEulerAngles(0, this.displayCapsule.rotation.y, 0);
     const desiredVelocity = this.calculateDesiredVelocity(deltaTime, support, characterOrientation);
 
     this.characterController.setVelocity(desiredVelocity);
@@ -504,9 +505,9 @@ export class CharacterController {
 
   private calculateDesiredVelocity(
     deltaTime: number,
-    supportInfo: BABYLON.CharacterSurfaceInfo,
-    characterOrientation: BABYLON.Quaternion
-  ): BABYLON.Vector3 {
+    supportInfo: any, // CharacterSurfaceInfo type not available in Babylon.js 8
+    characterOrientation: Quaternion
+  ): Vector3 {
     const nextState = this.getNextState(supportInfo);
     if (nextState !== this.state) {
       this.state = nextState;
@@ -515,7 +516,7 @@ export class CharacterController {
     const upWorld = CONFIG.PHYSICS.CHARACTER_GRAVITY.normalizeToNew();
     upWorld.scaleInPlace(-1.0);
 
-    const forwardLocalSpace = BABYLON.Vector3.Forward();
+    const forwardLocalSpace = Vector3.Forward();
     const forwardWorld = forwardLocalSpace.applyRotationQuaternion(characterOrientation);
     const currentVelocity = this.characterController.getVelocity();
 
@@ -530,17 +531,17 @@ export class CharacterController {
         return this.calculateJumpVelocity(currentVelocity, upWorld);
 
       default:
-        return BABYLON.Vector3.Zero();
+        return Vector3.Zero();
     }
   }
 
   private calculateAirVelocity(
     deltaTime: number,
-    forwardWorld: BABYLON.Vector3,
-    upWorld: BABYLON.Vector3,
-    currentVelocity: BABYLON.Vector3,
-    characterOrientation: BABYLON.Quaternion
-  ): BABYLON.Vector3 {
+    forwardWorld: Vector3,
+    upWorld: Vector3,
+    currentVelocity: Vector3,
+    characterOrientation: Quaternion
+  ): Vector3 {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
@@ -559,7 +560,7 @@ export class CharacterController {
       const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
       outputVelocity = this.characterController.calculateMovement(
         deltaTime, forwardWorld, upWorld, currentVelocity,
-        BABYLON.Vector3.Zero(), desiredVelocity, upWorld
+        Vector3.Zero(), desiredVelocity, upWorld
       );
     } else {
       // Maintain initial jump velocity while in air - no input-based velocity modification
@@ -584,12 +585,12 @@ export class CharacterController {
 
   private calculateGroundVelocity(
     deltaTime: number,
-    forwardWorld: BABYLON.Vector3,
-    upWorld: BABYLON.Vector3,
-    currentVelocity: BABYLON.Vector3,
-    supportInfo: BABYLON.CharacterSurfaceInfo,
-    characterOrientation: BABYLON.Quaternion
-  ): BABYLON.Vector3 {
+    forwardWorld: Vector3,
+    upWorld: Vector3,
+    currentVelocity: Vector3,
+    supportInfo: any, // CharacterSurfaceInfo type not available in Babylon.js 8
+    characterOrientation: Quaternion
+  ): Vector3 {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
@@ -648,7 +649,7 @@ export class CharacterController {
     return outputVelocity;
   }
 
-  private calculateJumpVelocity(currentVelocity: BABYLON.Vector3, upWorld: BABYLON.Vector3): BABYLON.Vector3 {
+  private calculateJumpVelocity(currentVelocity: Vector3, upWorld: Vector3): Vector3 {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
@@ -669,15 +670,15 @@ export class CharacterController {
     return currentVelocity.add(upWorld.scale(u - curRelVel));
   }
 
-  private getNextState(supportInfo: BABYLON.CharacterSurfaceInfo): CharacterState {
+  private getNextState(supportInfo: any): CharacterState { // CharacterSurfaceInfo type not available in Babylon.js 8
     switch (this.state) {
       case CHARACTER_STATES.IN_AIR:
-        return supportInfo.supportedState === BABYLON.CharacterSupportedState.SUPPORTED
+        return supportInfo.supportedState === CharacterSupportedState.SUPPORTED
           ? CHARACTER_STATES.ON_GROUND
           : CHARACTER_STATES.IN_AIR;
 
       case CHARACTER_STATES.ON_GROUND:
-        if (supportInfo.supportedState !== BABYLON.CharacterSupportedState.SUPPORTED) {
+        if (supportInfo.supportedState !== CharacterSupportedState.SUPPORTED) {
           return CHARACTER_STATES.IN_AIR;
         }
         return this.wantJump ? CHARACTER_STATES.START_JUMP : CHARACTER_STATES.ON_GROUND;
@@ -691,16 +692,16 @@ export class CharacterController {
   }
 
   // Public methods from THE WORD OF GOD
-  public setPlayerMesh(mesh: BABYLON.AbstractMesh): void {
+  public setPlayerMesh(mesh: AbstractMesh): void {
     this.playerMesh = mesh;
     mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
   }
 
-  public getPlayerMesh(): BABYLON.AbstractMesh {
+  public getPlayerMesh(): AbstractMesh {
     return this.playerMesh;
   }
 
-  public getPhysicsCharacterController(): BABYLON.PhysicsCharacterController {
+  public getPhysicsCharacterController(): PhysicsCharacterController {
     return this.characterController;
   }
 
@@ -708,7 +709,7 @@ export class CharacterController {
     return this.currentCharacter;
   }
 
-  public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
+  public updateCharacterPhysics(character: Character, spawnPosition: Vector3): void {
     // Update character position to spawn point
     this.characterController.setPosition(spawnPosition);
 
@@ -724,14 +725,14 @@ export class CharacterController {
     this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
 
     // Reset physics state for new character
-    this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;
     this.state = CHARACTER_STATES.IN_AIR;
   }
 
-  public getDisplayCapsule(): BABYLON.Mesh {
+  public getDisplayCapsule(): Mesh {
     return this.displayCapsule;
   }
 
@@ -739,7 +740,7 @@ export class CharacterController {
     this.cameraController = cameraController;
   }
 
-  public setPlayerParticleSystem(particleSystem: BABYLON.IParticleSystem | null): void {
+  public setPlayerParticleSystem(particleSystem: IParticleSystem | null): void {
     this.playerParticleSystem = particleSystem;
     // Start with particle system stopped if it exists
     if (particleSystem) {
@@ -747,11 +748,11 @@ export class CharacterController {
     }
   }
 
-  public getPlayerParticleSystem(): BABYLON.IParticleSystem | null {
+  public getPlayerParticleSystem(): IParticleSystem | null {
     return this.playerParticleSystem;
   }
 
-  public setThrusterSound(sound: BABYLON.Sound): void {
+  public setThrusterSound(sound: Sound): void {
     this.thrusterSound = sound;
     // Start with sound stopped
     sound.stop();
@@ -773,32 +774,32 @@ export class CharacterController {
     return this.state === CHARACTER_STATES.ON_GROUND;
   }
 
-  public getPhysicsBody(): BABYLON.PhysicsBody | null {
+  public getPhysicsBody(): PhysicsBody | null {
     // PhysicsCharacterController doesn't expose its physics body directly
     // We'll use the display capsule for collision detection instead
     return null;
   }
 
-  public getVelocity(): BABYLON.Vector3 {
+  public getVelocity(): Vector3 {
     return this.characterController.getVelocity();
   }
 
-  public getPosition(): BABYLON.Vector3 {
+  public getPosition(): Vector3 {
     return this.characterController.getPosition();
   }
 
-  public setPosition(position: BABYLON.Vector3): void {
+  public setPosition(position: Vector3): void {
     this.characterController.setPosition(position);
   }
 
-  public setVelocity(velocity: BABYLON.Vector3): void {
+  public setVelocity(velocity: Vector3): void {
     this.characterController.setVelocity(velocity);
   }
 
   public pausePhysics(): void {
     this.physicsPaused = true;
     // Set velocity to zero to stop movement
-    this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
   }
 
   public resumePhysics(): void {
@@ -812,10 +813,10 @@ export class CharacterController {
   public resetToStartPosition(): void {
     // Use environment spawn point instead of character start position
     // const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
-    // const spawnPoint = environment?.spawnPoint || new BABYLON.Vector3(0, 0, 0);
-    const spawnPoint = new BABYLON.Vector3(0, 0, 0); // Default spawn point
+    // const spawnPoint = environment?.spawnPoint || new Vector3(0, 0, 0);
+    const spawnPoint = new Vector3(0, 0, 0); // Default spawn point
     this.characterController.setPosition(spawnPoint);
-    this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;

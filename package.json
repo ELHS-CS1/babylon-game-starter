@@ -113,10 +113,10 @@
     "npm": ">=10.0.0"
   },
   "dependencies": {
-    "@babylonjs/core": "^6.0.0",
-    "@babylonjs/gui": "^6.0.0",
-    "@babylonjs/loaders": "^6.0.0",
-    "@babylonjs/materials": "^6.0.0",
+    "@babylonjs/core": "^8.28.1",
+    "@babylonjs/gui": "^8.28.1",
+    "@babylonjs/loaders": "^8.28.1",
+    "@babylonjs/materials": "^8.28.1",
     "@mdi/font": "^7.4.47",
     "date-fns": "^4.1.0",
     "jspdf": "^3.0.3",

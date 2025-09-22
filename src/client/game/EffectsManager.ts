@@ -2,7 +2,8 @@
 // EFFECTS MANAGER - BASIC IMPLEMENTATION FOLLOWING THE TEN COMMANDMENTS
 // ============================================================================
 
-import { Scene, IParticleSystem, Sound, ParticleSystem, Vector3, Color4, Texture } from '@babylonjs/core';
+import { Scene, Sound, ParticleSystem, Vector3, Color4, Texture } from '@babylonjs/core';
+import type { IParticleSystem } from '@babylonjs/core';
 
 export class EffectsManager {
   private static instance: EffectsManager | undefined;
