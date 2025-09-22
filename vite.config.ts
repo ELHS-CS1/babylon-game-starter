@@ -8,7 +8,11 @@ export default defineConfig(({ mode }) => ({
   ],
   server: {
     port: 3000,
-    host: true
+    host: true,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin'
+    }
   },
   preview: {
     port: 3000,
@@ -24,10 +28,14 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'vue-vendor': ['vue'],
           'vuetify-vendor': ['vuetify'],
-          'babylon-vendor': ['@babylonjs/core', '@babylonjs/loaders']
+          'babylon-vendor': ['@babylonjs/core', '@babylonjs/loaders'],
+          'havok-vendor': ['@babylonjs/havok']
         }
       }
     }
+  },
+  optimizeDeps: {
+    include: ['@babylonjs/havok']
   },
   resolve: {
     alias: {
