@@ -326,10 +326,18 @@ export class SceneManager {
     light.intensity = 0.7;
   }
 
-  private setupPhysics(): void {
+  private async setupPhysics(): Promise<void> {
     // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
-    const hk = new HavokPlugin(false);
-    this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
+    try {
+      // Initialize Havok exactly as in playground.ts
+      const hk = await (window as any).HK();
+      const hkPlugin = new HavokPlugin(false, hk);
+      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hkPlugin);
+    } catch (error) {
+      console.warn("HavokPlugin failed, falling back to default physics:", error);
+      // Fallback to default physics if Havok fails
+      this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY);
+    }
   }
 
   private setupSky(): void {
