@@ -29,7 +29,7 @@ export class AnimationController {
   // Jump delay tracking
   private jumpDelayStartTime: number = 0;
   private isJumpDelayed: boolean = false;
-  private lastCharacterState: CHARACTER_STATES | null = null;
+  // private lastCharacterState: CHARACTER_STATES | null = null; // Unused for now
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -60,7 +60,7 @@ export class AnimationController {
   /**
    * Updates the animation state based on character movement and state
    */
-  public updateAnimation(isMoving: boolean, characterState?: CHARACTER_STATES): void {
+  public updateAnimation(isMoving: boolean, characterState?: string): void {
     if (!this.currentCharacter) return;
 
     // Handle jump delay logic
@@ -69,7 +69,7 @@ export class AnimationController {
     let targetAnimationName: string;
 
     // Determine animation based on character state first, then movement
-    if (characterState === CHARACTER_STATES.IN_AIR && !this.isJumpDelayed) {
+    if (characterState === 'IN_AIR' && !this.isJumpDelayed) {
       targetAnimationName = this.currentCharacter.animations.jump;
     } else if (isMoving) {
       targetAnimationName = this.currentCharacter.animations.walk;
@@ -83,7 +83,7 @@ export class AnimationController {
     }
 
     // If no animation is currently playing, start the target animation
-    if (!this.currentAnimation) {
+    if (this.currentAnimation === null) {
       this.startAnimation(targetAnimationName);
       return;
     }
@@ -111,15 +111,15 @@ export class AnimationController {
     let animation = this.scene.getAnimationGroupByName(animationName);
 
     // If not found, try to find it by partial name match
-    if (!animation) {
-      animation = this.scene.animationGroups.find(anim =>
+    if (animation === null) {
+      animation ??= this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
         animationName.toLowerCase().includes(anim.name.toLowerCase())
       ) ?? null;
     }
 
     // If still not found, try common fallbacks
-    if (!animation) {
+    if (animation === null || animation === undefined) {
       if (animationName.toLowerCase().includes('idle')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -140,9 +140,8 @@ export class AnimationController {
       }
     }
 
-    if (!animation) {
-      console.warn(`Animation not found: ${animationName}. Available animations:`,
-        this.scene.animationGroups.map(a => a.name));
+    if (animation === null || animation === undefined) {
+      // Animation not found - handled silently
       return;
     }
 
@@ -165,11 +164,11 @@ export class AnimationController {
    * Switches animation directly without blending
    */
   private switchAnimationDirectly(targetAnimation: string): void {
-    const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation!);
+    const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation ?? '');
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (!targetAnim) {
+    if (targetAnim === null || targetAnim === undefined) {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
@@ -177,7 +176,7 @@ export class AnimationController {
     }
 
     // If still not found, try common fallbacks
-    if (!targetAnim) {
+    if (targetAnim === null || targetAnim === undefined) {
       if (targetAnimation.toLowerCase().includes('idle')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -217,7 +216,7 @@ export class AnimationController {
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (!targetAnim) {
+    if (targetAnim === null || targetAnim === undefined) {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
@@ -225,7 +224,7 @@ export class AnimationController {
     }
 
     // If still not found, try common fallbacks
-    if (!targetAnim) {
+    if (targetAnim === null || targetAnim === undefined) {
       if (targetAnimation.toLowerCase().includes('idle')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -348,25 +347,25 @@ export class AnimationController {
   /**
    * Handles jump delay logic to avoid awkward jump transitions
    */
-  private handleJumpDelay(characterState?: CHARACTER_STATES): void {
+  private handleJumpDelay(characterState?: string): void {
     if (!this.currentCharacter || !characterState) return;
 
     const jumpDelay = this.currentCharacter.jumpDelay || 100; // Default to 100ms
 
     // Check if we just entered IN_AIR state
-    if (characterState === CHARACTER_STATES.IN_AIR && this.lastCharacterState !== CHARACTER_STATES.IN_AIR) {
+    if (characterState === 'IN_AIR' && this.lastCharacterState !== 'IN_AIR') {
       // Start jump delay
       this.isJumpDelayed = true;
       this.jumpDelayStartTime = Date.now();
     }
     // Check if we left IN_AIR state
-    else if (characterState !== CHARACTER_STATES.IN_AIR && this.lastCharacterState === CHARACTER_STATES.IN_AIR) {
+    else if (characterState !== 'IN_AIR' && this.lastCharacterState === 'IN_AIR') {
       // Reset jump delay when leaving air state
       this.isJumpDelayed = false;
       this.jumpDelayStartTime = 0;
     }
     // Check if jump delay has expired
-    else if (this.isJumpDelayed && characterState === CHARACTER_STATES.IN_AIR) {
+    else if (this.isJumpDelayed && characterState === 'IN_AIR') {
       const elapsedTime = Date.now() - this.jumpDelayStartTime;
       if (elapsedTime >= jumpDelay) {
         this.isJumpDelayed = false;

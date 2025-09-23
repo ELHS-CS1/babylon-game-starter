@@ -138,7 +138,7 @@ interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: readonly string[]; // For dropdown elements
-    readonly onChange?: (_value: boolean | string) => void | Promise<void>;
+    readonly onChange?: (value: boolean | string) => void | Promise<void>;
 }
 
 interface SettingsConfig {
@@ -173,7 +173,7 @@ interface GameConfig {
 type ItemEffectKind = "superJump" | "invisibility";
 
 type ItemEffect = {
-    readonly [_K in ItemEffectKind]: (_characterController: CharacterController) => void;
+    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
 };
 
 interface Tile {
