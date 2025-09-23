@@ -69,6 +69,8 @@ export class GDCReportManager {
           // Type guard for StoredReport
           if ('id' in reportData && 'filePath' in reportData && 'format' in reportData && 'generatedAt' in reportData) {
             const report: StoredReport = {
+              reportId: typeof reportData.id === 'string' ? reportData.id : '',
+              reportData: reportData as unknown as ReportData,
               id: typeof reportData.id === 'string' ? reportData.id : '',
               filePath: typeof reportData.filePath === 'string' ? reportData.filePath : '',
               format: (() => {
@@ -82,7 +84,7 @@ export class GDCReportManager {
                 return 'txt' as const;
               })(),
               generatedAt: reportData['generatedAt'] instanceof Date ? reportData['generatedAt'].toISOString() : new Date().toISOString(),
-              size: typeof reportData['size'] === 'number' ? reportData['size'] : 0
+              size: typeof (reportData as Record<string, unknown>)['size'] === 'number' ? (reportData as Record<string, unknown>)['size'] as number : 0
             };
           
             // Verify file still exists

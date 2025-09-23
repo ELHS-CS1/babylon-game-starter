@@ -206,7 +206,7 @@ class PushNotificationService {
           }
           
           const dataObj = data as Record<string, unknown>;
-          if (dataObj.userId === null || dataObj.userId === undefined || dataObj.subscription === null || dataObj.subscription === undefined) {
+          if (dataObj['userId'] === null || dataObj['userId'] === undefined || dataObj['subscription'] === null || dataObj['subscription'] === undefined) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Missing userId or subscription' }));
             return;
@@ -214,7 +214,7 @@ class PushNotificationService {
 
           const userId = typeof dataObj['userId'] === 'string' ? dataObj['userId'] : '';
           
-          if (!isPushSubscription(dataObj['subscription'])) {
+          if (!isPushSubscription(dataObj['subscription'] as unknown)) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Invalid subscription data' }));
             return;
@@ -243,13 +243,14 @@ class PushNotificationService {
             return;
           }
           
-          if (data.userId === null || data.userId === undefined || data.userId === '') {
+          const dataObj2 = data as Record<string, unknown>;
+          if (dataObj2['userId'] === null || dataObj2['userId'] === undefined || dataObj2['userId'] === '') {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Missing userId' }));
             return;
           }
 
-          const userId = typeof data['userId'] === 'string' ? data['userId'] : '';
+          const userId = typeof dataObj2['userId'] === 'string' ? dataObj2['userId'] : '';
           const success = await this.unsubscribeUser(userId);
           
           res.writeHead(success ? 200 : 404, { 'Content-Type': 'application/json' });
@@ -286,7 +287,8 @@ class PushNotificationService {
             return;
           }
           
-          if (data.payload === null || data.payload === undefined) {
+          const dataObj3 = data as Record<string, unknown>;
+          if (dataObj3['payload'] === null || dataObj3['payload'] === undefined) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Missing payload' }));
             return;
@@ -294,25 +296,25 @@ class PushNotificationService {
 
           let successCount: number;
           
-          if (data['userId'] !== null && data['userId'] !== undefined && data['userId'] !== '') {
-            const userId = typeof data['userId'] === 'string' ? data['userId'] : '';
+          if (dataObj3['userId'] !== null && dataObj3['userId'] !== undefined && dataObj3['userId'] !== '') {
+            const userId = typeof dataObj3['userId'] === 'string' ? dataObj3['userId'] : '';
             
-            if (!isNotificationPayload(data['payload'])) {
+            if (!isNotificationPayload(dataObj3['payload'] as unknown)) {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: 'Invalid payload data' }));
               return;
             }
             
-            const success = await this.sendNotificationToUser(userId, data['payload']);
+            const success = await this.sendNotificationToUser(userId, dataObj3['payload'] as unknown);
             successCount = success ? 1 : 0;
           } else {
-            if (!isNotificationPayload(data['payload'])) {
+            if (!isNotificationPayload(dataObj3['payload'] as unknown)) {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: 'Invalid payload data' }));
               return;
             }
-            
-            successCount = await this.sendNotificationToAll(data['payload']);
+
+            successCount = await this.sendNotificationToAll(dataObj3['payload'] as unknown);
           }
           
           res.writeHead(200, { 'Content-Type': 'application/json' });

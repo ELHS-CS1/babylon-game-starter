@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * Canvas Rendering E2E Tests
@@ -53,10 +53,10 @@ class CanvasTestHelper {
       const data = imageData.data;
 
       return {
-        r: data[0],
-        g: data[1],
-        b: data[2],
-        a: data[3]
+        r: data[0] ?? 0,
+        g: data[1] ?? 0,
+        b: data[2] ?? 0,
+        a: data[3] ?? 0
       };
     }, { x, y });
   }

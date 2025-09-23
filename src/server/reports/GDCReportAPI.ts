@@ -124,7 +124,7 @@ export class GDCReportAPI {
       const validFormats = Array.isArray(formats) ? formats.filter((format): format is 'pdf' | 'txt' | 'csv' | 'json' | 'md' => {
         return typeof format === 'string' && (format === 'pdf' || format === 'txt' || format === 'csv' || format === 'json' || format === 'md');
       }) : ['pdf', 'txt', 'json'];
-      const storedReports = await this.reportManager.generateAndStoreReport(reportData, validFormats);
+      const storedReports = await this.reportManager.generateAndStoreReport(reportData, validFormats as ('pdf' | 'txt' | 'csv' | 'json' | 'md')[]);
 
       this.sendJSON(res, 201, {
         message: 'Report generated successfully',
