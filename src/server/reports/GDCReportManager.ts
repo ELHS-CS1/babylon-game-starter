@@ -70,7 +70,7 @@ export class GDCReportManager {
           if ('id' in reportData && 'filePath' in reportData && 'format' in reportData && 'generatedAt' in reportData) {
             const report: StoredReport = {
               reportId: typeof reportData.id === 'string' ? reportData.id : '',
-              reportData: reportData as unknown as ReportData,
+              reportData: reportData as unknown as any, // TODO: Define proper ReportData type
               id: typeof reportData.id === 'string' ? reportData.id : '',
               filePath: typeof reportData.filePath === 'string' ? reportData.filePath : '',
               format: (() => {

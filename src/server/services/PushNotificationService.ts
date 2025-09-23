@@ -214,7 +214,7 @@ class PushNotificationService {
 
           const userId = typeof dataObj['userId'] === 'string' ? dataObj['userId'] : '';
           
-          if (!isPushSubscription(dataObj['subscription'] as unknown)) {
+          if (!isPushSubscription(dataObj['subscription'] as Record<string, unknown>)) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Invalid subscription data' }));
             return;
@@ -305,7 +305,7 @@ class PushNotificationService {
               return;
             }
             
-            const success = await this.sendNotificationToUser(userId, dataObj3['payload'] as unknown);
+            const success = await this.sendNotificationToUser(userId, dataObj3['payload'] as Record<string, unknown>);
             successCount = success ? 1 : 0;
           } else {
             if (!isNotificationPayload(dataObj3['payload'] as unknown)) {
@@ -314,7 +314,7 @@ class PushNotificationService {
               return;
             }
 
-            successCount = await this.sendNotificationToAll(dataObj3['payload'] as unknown);
+            successCount = await this.sendNotificationToAll(dataObj3['payload'] as Record<string, unknown>);
           }
           
           res.writeHead(200, { 'Content-Type': 'application/json' });

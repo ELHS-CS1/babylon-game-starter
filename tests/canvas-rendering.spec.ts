@@ -161,11 +161,11 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Check sky colors (top and middle areas)
-    expect(isColorWithinTolerance(pixelSamples.sky_top, EXPECTED_COLORS.levelTest.sky)).toBe(true);
-    expect(isColorWithinTolerance(pixelSamples.sky_mid, EXPECTED_COLORS.levelTest.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_top']!, EXPECTED_COLORS.levelTest.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_mid']!, EXPECTED_COLORS.levelTest.sky)).toBe(true);
 
     // Check ground color
-    expect(isColorWithinTolerance(pixelSamples.ground_area, EXPECTED_COLORS.levelTest.ground)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['ground_area']!, EXPECTED_COLORS.levelTest.ground)).toBe(true);
 
     // Log actual colors for debugging
     console.log('LevelTest Environment Colors:', pixelSamples);
@@ -181,8 +181,8 @@ test.describe('Canvas Rendering Tests', () => {
       { x: 300, y: 200, name: 'ground_area' }
     ]);
 
-    expect(isColorWithinTolerance(pixelSamples.sky_top, EXPECTED_COLORS.islandTown.sky)).toBe(true);
-    expect(isColorWithinTolerance(pixelSamples.ground_area, EXPECTED_COLORS.islandTown.ground)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_top']!, EXPECTED_COLORS.islandTown.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['ground_area']!, EXPECTED_COLORS.islandTown.ground)).toBe(true);
 
     console.log('IslandTown Environment Colors:', pixelSamples);
   });
@@ -197,8 +197,8 @@ test.describe('Canvas Rendering Tests', () => {
       { x: 300, y: 200, name: 'ground_area' }
     ]);
 
-    expect(isColorWithinTolerance(pixelSamples.sky_top, EXPECTED_COLORS.joyTown.sky)).toBe(true);
-    expect(isColorWithinTolerance(pixelSamples.ground_area, EXPECTED_COLORS.joyTown.ground)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_top']!, EXPECTED_COLORS.joyTown.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['ground_area']!, EXPECTED_COLORS.joyTown.ground)).toBe(true);
 
     console.log('JoyTown Environment Colors:', pixelSamples);
   });
@@ -213,8 +213,8 @@ test.describe('Canvas Rendering Tests', () => {
       { x: 300, y: 200, name: 'ground_area' }
     ]);
 
-    expect(isColorWithinTolerance(pixelSamples.sky_top, EXPECTED_COLORS.mansion.sky)).toBe(true);
-    expect(isColorWithinTolerance(pixelSamples.ground_area, EXPECTED_COLORS.mansion.ground)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_top']!, EXPECTED_COLORS.mansion.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['ground_area']!, EXPECTED_COLORS.mansion.ground)).toBe(true);
 
     console.log('Mansion Environment Colors:', pixelSamples);
   });
@@ -229,8 +229,8 @@ test.describe('Canvas Rendering Tests', () => {
       { x: 300, y: 200, name: 'ground_area' }
     ]);
 
-    expect(isColorWithinTolerance(pixelSamples.sky_top, EXPECTED_COLORS.firefoxReality.sky)).toBe(true);
-    expect(isColorWithinTolerance(pixelSamples.ground_area, EXPECTED_COLORS.firefoxReality.ground)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['sky_top']!, EXPECTED_COLORS.firefoxReality.sky)).toBe(true);
+    expect(isColorWithinTolerance(pixelSamples['ground_area']!, EXPECTED_COLORS.firefoxReality.ground)).toBe(true);
 
     console.log('FirefoxReality Environment Colors:', pixelSamples);
   });
@@ -262,12 +262,12 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Colors should be consistent when returning to the same environment
-    expect(isColorWithinTolerance(levelTestColors.sky, levelTestColorsAgain.sky)).toBe(true);
-    expect(isColorWithinTolerance(levelTestColors.ground, levelTestColorsAgain.ground)).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, levelTestColorsAgain['sky']!)).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, levelTestColorsAgain['ground']!)).toBe(true);
 
     // Colors should be different between environments
-    expect(isColorWithinTolerance(levelTestColors.sky, joyTownColors.sky)).toBe(false);
-    expect(isColorWithinTolerance(levelTestColors.ground, joyTownColors.ground)).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, joyTownColors['sky']!)).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, joyTownColors['ground']!)).toBe(false);
 
     console.log('Environment Switching Colors:', {
       levelTest: levelTestColors,
