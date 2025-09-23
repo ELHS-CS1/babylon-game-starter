@@ -7,6 +7,7 @@ import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } 
 import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController, CHARACTER_STATES } from './AnimationController';
 import type { Character } from '../config/gameConfig';
+import { logger } from '../utils/Logger';
 
 // Character states are now imported from AnimationController - THE WORD OF GOD
 
@@ -37,12 +38,12 @@ export class CharacterController {
   private displayCapsule: Mesh;
   private playerMesh: AbstractMesh;
 
-  private state: CHARACTER_STATES = CHARACTER_STATES.IN_AIR;
+  private state: string = 'IN_AIR';
   private wantJump = false;
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
   private keysDown = new Set<string>();
-  private cameraController: any = null; // Will be typed properly when SmoothFollowCameraController is implemented
+  private cameraController: unknown = null; // Will be typed properly when SmoothFollowCameraController is implemented
   private boostActive = false;
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
@@ -67,8 +68,8 @@ export class CharacterController {
 
     // Get default character configuration from ASSETS - THE WORD OF GOD!
     const defaultCharacter = ASSETS.CHARACTERS[0];
-    const defaultHeight = defaultCharacter?.height || 1.8;
-    const defaultRadius = defaultCharacter?.radius || 0.6;
+    const defaultHeight = defaultCharacter?.height ?? 1.8;
+    const defaultRadius = defaultCharacter?.radius ?? 0.6;
 
     // Create character physics controller with default position (will be updated when character is loaded)
     this.characterController = new PhysicsCharacterController(
@@ -159,7 +160,7 @@ export class CharacterController {
         if (this.keyboardEventCount >= keyboardThreshold) {
           // Remove the listener once we've confirmed keyboard presence
           document.removeEventListener('keydown', checkKeyboardEvents);
-          if (this.keyboardDetectionTimeout) {
+          if (this.keyboardDetectionTimeout !== null && this.keyboardDetectionTimeout !== undefined) {
             clearTimeout(this.keyboardDetectionTimeout);
           }
           return true;
@@ -179,12 +180,12 @@ export class CharacterController {
     return false; // Will be updated by the event listener
   }
 
-  private handleKeyboard = (kbInfo: any): void => {
+  private handleKeyboard = (kbInfo: { event: { key: string }; type: string }): void => {
     const key = kbInfo.event.key.toLowerCase();
     
     // Debug logging for key events
     if (key === 'shift' || key === '0' || key === 'h' || key === 'p' || key === '1') {
-      console.log(`Key event: ${key}, type: ${kbInfo.type}`);
+      logger.debug(`Key event: ${key}, type: ${kbInfo.type}`, 'CharacterController');
     }
 
     switch (kbInfo.type) {
@@ -202,32 +203,32 @@ export class CharacterController {
 
   private handleKeyDown(key: string): void {
     // Movement input
-    if (INPUT_KEYS.FORWARD.includes(key as any)) {
+    if (INPUT_KEYS.FORWARD.includes(key)) {
       this.inputDirection.z = 1;
 
-    } else if (INPUT_KEYS.BACKWARD.includes(key as any)) {
+    } else if (INPUT_KEYS.BACKWARD.includes(key)) {
       this.inputDirection.z = -1;
 
-    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key as any)) {
+    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key)) {
       this.inputDirection.x = -1;
 
-    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key as any)) {
+    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
       this.inputDirection.x = 1;
 
-    } else if (INPUT_KEYS.JUMP.includes(key as any)) {
+    } else if (INPUT_KEYS.JUMP.includes(key)) {
       this.wantJump = true;
-    } else if (INPUT_KEYS.BOOST.includes(key as any)) {
-      console.log("Boost key pressed!");
+    } else if (INPUT_KEYS.BOOST.includes(key)) {
+      logger.info("Boost key pressed!", 'CharacterController');
       this.boostActive = true;
       this.updateParticleSystem();
-    } else if (INPUT_KEYS.DEBUG.includes(key as any)) {
-      console.log("Debug key pressed!");
+    } else if (INPUT_KEYS.DEBUG.includes(key)) {
+      logger.info("Debug key pressed!", 'CharacterController');
       this.toggleDebugDisplay();
-    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key as any)) {
+    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key)) {
       this.toggleHUD();
-    } else if (INPUT_KEYS.HUD_POSITION.includes(key as any)) {
+    } else if (INPUT_KEYS.HUD_POSITION.includes(key)) {
       this.cycleHUDPosition();
-    } else if (INPUT_KEYS.RESET_CAMERA.includes(key as any)) {
+    } else if (INPUT_KEYS.RESET_CAMERA.includes(key)) {
       this.resetCameraToDefaultOffset();
     }
 
@@ -239,20 +240,20 @@ export class CharacterController {
 
   private handleKeyUp(key: string): void {
     // Reset movement input
-    if (INPUT_KEYS.FORWARD.includes(key as any) || INPUT_KEYS.BACKWARD.includes(key as any)) {
+    if (INPUT_KEYS.FORWARD.includes(key) || INPUT_KEYS.BACKWARD.includes(key)) {
       this.inputDirection.z = 0;
     }
-    if (INPUT_KEYS.LEFT.includes(key as any) || INPUT_KEYS.RIGHT.includes(key as any)) {
+    if (INPUT_KEYS.LEFT.includes(key) || INPUT_KEYS.RIGHT.includes(key)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.STRAFE_LEFT.includes(key as any) || INPUT_KEYS.STRAFE_RIGHT.includes(key as any)) {
+    if (INPUT_KEYS.STRAFE_LEFT.includes(key) || INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.JUMP.includes(key as any)) {
+    if (INPUT_KEYS.JUMP.includes(key)) {
       this.wantJump = false;
     }
-    if (INPUT_KEYS.BOOST.includes(key as any)) {
-      console.log("Boost key released!");
+    if (INPUT_KEYS.BOOST.includes(key)) {
+      logger.info("Boost key released!", 'CharacterController');
       this.boostActive = false;
       this.updateParticleSystem();
     }

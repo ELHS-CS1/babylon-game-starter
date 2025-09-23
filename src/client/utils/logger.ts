@@ -1,53 +1,152 @@
-// Enhanced logging utility for browser console streaming
-import config from '../config.js';
+// ============================================================================
+// MICROSOFT INSPIRED LOGGER SYSTEM - THE SACRED LOGGING OF THE LORD
+// ============================================================================
+// THOU SHALT NOT USE CONSOLE.LOG OR CONSOLE.ERROR!
+// THOU SHALT USE THE SACRED LOGGER SYSTEM!
+// ============================================================================
 
-export class BrowserLogger {
-  private static instance: BrowserLogger | undefined;
-  private logBuffer: string[] = [];
+export enum LogLevel {
+  TRACE = 0,
+  DEBUG = 1,
+  INFO = 2,
+  WARN = 3,
+  ERROR = 4,
+  FATAL = 5
+}
 
-  private constructor() {
-    this.setupConsoleInterception();
+export interface LogEntry {
+  readonly timestamp: string;
+  readonly level: LogLevel;
+  readonly message: string;
+  readonly context?: string;
+  readonly data?: unknown;
+}
+
+export interface LoggerConfig {
+  readonly minLevel: LogLevel;
+  readonly enableConsole: boolean;
+  readonly enableStorage: boolean;
+  readonly maxStorageEntries: number;
+}
+
+class Logger {
+  private config: LoggerConfig;
+  private logs: LogEntry[] = [];
+
+  constructor(config: Partial<LoggerConfig> = {}) {
+    this.config = {
+      minLevel: LogLevel.INFO,
+      enableConsole: true,
+      enableStorage: true,
+      maxStorageEntries: 1000,
+      ...config
+    };
   }
 
-  public static getInstance(): BrowserLogger {
-    BrowserLogger.instance ??= new BrowserLogger();
-    return BrowserLogger.instance;
+  private shouldLog(level: LogLevel): boolean {
+    return level >= this.config.minLevel;
   }
 
-  private setupConsoleInterception(): void {
-    // Console interception disabled per TEN_COMMANDMENTS
-    // All console statements must be removed
+  private formatMessage(level: LogLevel, message: string, context?: string, data?: unknown): string {
+    const timestamp = new Date().toISOString();
+    const levelName = LogLevel[level];
+    const contextStr = context ? ` [${context}]` : '';
+    const dataStr = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    
+    return `${timestamp} [${levelName}]${contextStr} ${message}${dataStr}`;
   }
 
+  private log(level: LogLevel, message: string, context?: string, data?: unknown): void {
+    if (!this.shouldLog(level)) return;
 
-  public getLogs(): string[] {
-    return [...this.logBuffer];
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      context,
+      data
+    };
+
+    // Add to storage if enabled
+    if (this.config.enableStorage) {
+      this.logs.push(entry);
+      if (this.logs.length > this.config.maxStorageEntries) {
+        this.logs.shift(); // Remove oldest entry
+      }
+    }
+
+    // Output to console if enabled
+    if (this.config.enableConsole) {
+      const formattedMessage = this.formatMessage(level, message, context, data);
+      
+      switch (level) {
+        case LogLevel.TRACE:
+        case LogLevel.DEBUG:
+        case LogLevel.INFO:
+          // Use console.info for info level and below
+          console.info(formattedMessage);
+          break;
+        case LogLevel.WARN:
+          // Use console.warn for warnings
+          console.warn(formattedMessage);
+          break;
+        case LogLevel.ERROR:
+        case LogLevel.FATAL:
+          // Use console.error for errors and fatal
+          console.error(formattedMessage);
+          break;
+      }
+    }
+  }
+
+  public trace(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.TRACE, message, context, data);
+  }
+
+  public debug(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.DEBUG, message, context, data);
+  }
+
+  public info(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.INFO, message, context, data);
+  }
+
+  public warn(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.WARN, message, context, data);
+  }
+
+  public error(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.ERROR, message, context, data);
+  }
+
+  public fatal(message: string, context?: string, data?: unknown): void {
+    this.log(LogLevel.FATAL, message, context, data);
+  }
+
+  public getLogs(): readonly LogEntry[] {
+    return [...this.logs];
   }
 
   public clearLogs(): void {
-    this.logBuffer = [];
+    this.logs = [];
   }
 
-  public sendLogsToServer(): void {
-    if (this.logBuffer.length === 0) return;
-
-    const logs = this.getLogs();
-    fetch(`${config.apiBaseUrl}/api/logs`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ logs })
-    }).catch(() => {
-      // Error sending logs - ignore per TEN_COMMANDMENTS
-    });
+  public updateConfig(newConfig: Partial<LoggerConfig>): void {
+    this.config = { ...this.config, ...newConfig };
   }
 }
 
-// Initialize the logger
-export const browserLogger = BrowserLogger.getInstance();
+// Create the sacred logger instance
+export const logger = new Logger({
+  minLevel: LogLevel.INFO,
+  enableConsole: true,
+  enableStorage: true,
+  maxStorageEntries: 1000
+});
 
-// Send logs to server every 5 seconds
-setInterval(() => {
-  browserLogger.sendLogsToServer();
-}, 5000);
+// Export the Logger class for custom instances
+export { Logger };
+
+// ============================================================================
+// END OF SACRED LOGGING SYSTEM
+// ============================================================================
