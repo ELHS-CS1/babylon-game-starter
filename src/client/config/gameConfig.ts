@@ -138,7 +138,7 @@ interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: readonly string[]; // For dropdown elements
-    readonly onChange?: (value: boolean | string) => void | Promise<void>;
+    readonly onChange?: (_value: boolean | string) => void | Promise<void>;
 }
 
 interface SettingsConfig {
@@ -173,7 +173,7 @@ interface GameConfig {
 type ItemEffectKind = "superJump" | "invisibility";
 
 type ItemEffect = {
-    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
+    readonly [_K in ItemEffectKind]: (_characterController: CharacterController) => void;
 };
 
 interface Tile {
@@ -192,13 +192,6 @@ interface InventoryConfig {
     readonly Z_INDEX: number;
     readonly BUTTON_Z_INDEX: number;
     readonly TILES: readonly Tile[];
-}
-
-interface ItemsConfig {
-    readonly ITEMS: readonly ItemConfig[];
-    readonly COLLECTION_RADIUS: number;
-    readonly COLLECTION_SOUND: string;
-    readonly SHOW_COLLECTION_EFFECTS: boolean;
 }
 
 // Environment Types

@@ -446,11 +446,11 @@ const onSectionChange = (section: Record<string, unknown>, value: boolean | stri
     onEnvironmentChange(typeof value === 'string' ? value : '');
   } else if (sectionTitle === 'Screen Controls') {
     // Handle screen controls toggle
-    console.log('Screen Controls changed:', value);
+    // Screen controls changed - handled silently
   }
   
   // Call the section's onChange callback if it exists
-  if (section.onChange) {
+  if (section.onChange && typeof section.onChange === 'function') {
     section.onChange(value);
   }
 };

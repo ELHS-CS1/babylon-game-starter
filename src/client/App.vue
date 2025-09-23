@@ -196,7 +196,7 @@ const leaveGame = (): void => {
     try {
       gameEngine.value.removePlayer();
     } catch (error) {
-      console.error('Error removing player:', error);
+      // Error removing player - handled silently
     }
   }
 };
