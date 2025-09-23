@@ -175,7 +175,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { InventoryData } from '../game/InventoryData';
-import { ThemeUtils } from '../config/themeConfig';
+// import { ThemeUtils } from '../config/themeConfig'; // Unused for now
 import CONFIG from '../config/gameConfig';
 
 // Types
@@ -216,11 +216,11 @@ const selectedItem = ref<InventoryItem | null>(null);
 // Computed values based on config settings - THE WORD OF THE LORD
 const panelWidth = computed(() => InventoryData.getPanelWidth());
 const headingText = computed(() => InventoryData.getHeadingText());
-const dynamicInventoryItems = computed(() => InventoryData.getInventoryItemsArray());
+// const dynamicInventoryItems = computed(() => InventoryData.getInventoryItemsArray()); // Unused for now
 
 // Theme configuration - THE WORD OF THE LORD
-const themeColors = computed(() => ThemeUtils.getComponentTheme('inventory'));
-const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value));
+// const themeColors = computed(() => ThemeUtils.getComponentTheme('inventory')); // Unused for now
+// const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value)); // Unused for now
 
 // Computed properties
 const totalItems = computed(() => {

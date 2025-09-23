@@ -307,21 +307,23 @@ const hudPosition = ref(CONFIG.HUD.POSITION);
 const initializeReactiveValues = () => {
   settingsSections.value.forEach(section => {
     if (section.uiElement === 'toggle') {
-      if (!toggleValues.value[section.title]) {
+      if (toggleValues.value[section.title] === null || toggleValues.value[section.title] === undefined) {
         if (section.title === 'Screen Controls') {
           toggleValues.value[section.title] = true;
         } else {
-          toggleValues.value[section.title] = SettingsData.getDefaultValue(section) as boolean;
+          const defaultValue = SettingsData.getDefaultValue(section);
+          toggleValues.value[section.title] = typeof defaultValue === 'boolean' ? defaultValue : false;
         }
       }
     } else if (section.uiElement === 'dropdown') {
-      if (!dropdownValues.value[section.title]) {
+      if (dropdownValues.value[section.title] === null || dropdownValues.value[section.title] === undefined) {
         if (section.title === 'Character') {
           dropdownValues.value[section.title] = selectedCharacter.value;
         } else if (section.title === 'Environment') {
           dropdownValues.value[section.title] = selectedEnvironment.value;
         } else {
-          dropdownValues.value[section.title] = SettingsData.getDefaultValue(section) as string;
+          const defaultValue = SettingsData.getDefaultValue(section);
+          dropdownValues.value[section.title] = typeof defaultValue === 'string' ? defaultValue : '';
         }
       }
     }
@@ -331,14 +333,14 @@ const initializeReactiveValues = () => {
 // Computed values based on config settings - THE WORD OF THE LORD
 const panelWidth = computed(() => SettingsData.getPanelWidth());
 const headingText = computed(() => SettingsData.getHeadingText());
-const characters = computed(() => SettingsData.getCharacters());
-const environments = computed(() => SettingsData.getEnvironments());
-const defaultCharacter = computed(() => SettingsData.getDefaultCharacter());
-const defaultEnvironment = computed(() => SettingsData.getDefaultEnvironment());
+// const characters = computed(() => SettingsData.getCharacters()); // Unused for now
+// const environments = computed(() => SettingsData.getEnvironments()); // Unused for now
+// const defaultCharacter = computed(() => SettingsData.getDefaultCharacter()); // Unused for now
+// const defaultEnvironment = computed(() => SettingsData.getDefaultEnvironment()); // Unused for now
 
 // Theme configuration - THE WORD OF THE LORD
-const themeColors = computed(() => ThemeUtils.getComponentTheme('settings'));
-const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value));
+// const themeColors = computed(() => ThemeUtils.getComponentTheme('settings')); // Unused for now
+// const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value)); // Unused for now
 
 // Helper methods for dynamic settings - THE WORD OF THE LORD
 const getSectionIcon = (title: string): string => {
@@ -347,7 +349,7 @@ const getSectionIcon = (title: string): string => {
     'Character': 'mdi-account',
     'Environment': 'mdi-earth'
   };
-  return iconMap[title] || 'mdi-cog';
+  return iconMap[title] ?? 'mdi-cog';
 };
 
 const getSectionIconColor = (title: string): string => {
@@ -356,19 +358,20 @@ const getSectionIconColor = (title: string): string => {
     'Character': 'purple-lighten-2',
     'Environment': 'green-lighten-2'
   };
-  return colorMap[title] || 'blue-lighten-2';
+  return colorMap[title] ?? 'blue-lighten-2';
 };
 
-const getToggleValue = (section: any): boolean => {
-  if (!toggleValues.value[section.title]) {
-    if (section.title === 'Screen Controls') {
-      toggleValues.value[section.title] = true; // Always default to true for screen controls
-    } else {
-      toggleValues.value[section.title] = SettingsData.getDefaultValue(section) as boolean;
-    }
-  }
-  return toggleValues.value[section.title];
-};
+// const getToggleValue = (section: any): boolean => { // Unused for now
+//   if (toggleValues.value[section.title] === null || toggleValues.value[section.title] === undefined) {
+//     if (section.title === 'Screen Controls') {
+//       toggleValues.value[section.title] = true; // Always default to true for screen controls
+//     } else {
+//       const defaultValue = SettingsData.getDefaultValue(section);
+//       toggleValues.value[section.title] = typeof defaultValue === 'boolean' ? defaultValue : false;
+//     }
+//   }
+//   return toggleValues.value[section.title];
+// };
 
 const getDropdownValue = (section: any): string => {
   if (!dropdownValues.value[section.title]) {

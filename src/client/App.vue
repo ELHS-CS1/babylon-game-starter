@@ -77,8 +77,8 @@ import { pushNotificationClient } from './services/PushNotificationClient';
 const gameCanvas = ref<HTMLCanvasElement>();
 // Fallback values in case getEnvironments/getCharacters return empty arrays
 
-const selectedEnvironment = ref<string>(ASSETS.ENVIRONMENTS[0]?.name || 'Level Test');
-const selectedCharacter = ref<string>(ASSETS.CHARACTERS[0]?.name || 'Red');
+const selectedEnvironment = ref<string>(ASSETS.ENVIRONMENTS[0]?.name ?? 'Level Test');
+const selectedCharacter = ref<string>(ASSETS.CHARACTERS[0]?.name ?? 'Red');
 const environments = ref<string[]>(ASSETS.ENVIRONMENTS.map(env => env.name));
 const characters = ref<string[]>(ASSETS.CHARACTERS.map(char => char.name));
 const gameEngine = ref<GameEngine | null>(null);
@@ -170,6 +170,9 @@ const joinGame = async (): Promise<void> => {
   try {
     const playerName = `Player_${Math.random().toString(36).substr(2, 9)}`;
     const playerPeer = gameEngine.value.createPlayer(playerName);
+    if (playerPeer === null || playerPeer === undefined) {
+      throw new Error('Failed to create player');
+    }
     
     const response = await fetch(`${config.apiBaseUrl}/api/peers`, {
       method: 'POST',
