@@ -2,8 +2,8 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, Mesh, AbstractMesh, Vector3, Sound, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, PhysicsBody } from '@babylonjs/core';
-import type { IParticleSystem } from '@babylonjs/core';
+import { Vector3, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState } from '@babylonjs/core';
+import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
 import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController, CHARACTER_STATES } from './AnimationController';
 import type { Character } from '../config/gameConfig';
@@ -20,10 +20,10 @@ const INPUT_KEYS = {
   STRAFE_RIGHT: ['e'],
   JUMP: [' '],
   BOOST: ['shift'],
-  DEBUG: ['f1'],
-  HUD_TOGGLE: ['f2'],
-  HUD_POSITION: ['f3'],
-  RESET_CAMERA: ['f4']
+  DEBUG: ['0'],
+  HUD_TOGGLE: ['h'],
+  HUD_POSITION: ['p'],
+  RESET_CAMERA: ['1']
 } as const;
 
 // Character interface is imported from gameConfig - THE WORD OF GOD
@@ -33,8 +33,8 @@ type CharacterState = CHARACTER_STATES;
 
 export class CharacterController {
   private readonly scene: Scene;
-  private readonly characterController: PhysicsCharacterController;
-  private readonly displayCapsule: Mesh;
+  private characterController: PhysicsCharacterController;
+  private displayCapsule: Mesh;
   private playerMesh: AbstractMesh;
 
   private state: CHARACTER_STATES = CHARACTER_STATES.IN_AIR;
@@ -181,6 +181,11 @@ export class CharacterController {
 
   private handleKeyboard = (kbInfo: any): void => {
     const key = kbInfo.event.key.toLowerCase();
+    
+    // Debug logging for key events
+    if (key === 'shift' || key === '0' || key === 'h' || key === 'p' || key === '1') {
+      console.log(`Key event: ${key}, type: ${kbInfo.type}`);
+    }
 
     switch (kbInfo.type) {
       case KeyboardEventTypes.KEYDOWN:
@@ -212,9 +217,11 @@ export class CharacterController {
     } else if (INPUT_KEYS.JUMP.includes(key as any)) {
       this.wantJump = true;
     } else if (INPUT_KEYS.BOOST.includes(key as any)) {
+      console.log("Boost key pressed!");
       this.boostActive = true;
       this.updateParticleSystem();
     } else if (INPUT_KEYS.DEBUG.includes(key as any)) {
+      console.log("Debug key pressed!");
       this.toggleDebugDisplay();
     } else if (INPUT_KEYS.HUD_TOGGLE.includes(key as any)) {
       this.toggleHUD();
@@ -245,6 +252,7 @@ export class CharacterController {
       this.wantJump = false;
     }
     if (INPUT_KEYS.BOOST.includes(key as any)) {
+      console.log("Boost key released!");
       this.boostActive = false;
       this.updateParticleSystem();
     }
@@ -345,25 +353,93 @@ export class CharacterController {
   }
 
   private updateParticleSystem(): void {
+    console.log(`updateParticleSystem called - boostActive: ${this.boostActive}, particleSystem: ${!!this.playerParticleSystem}, sound: ${!!this.thrusterSound}`);
+    
     if (this.playerParticleSystem) {
-      if (this.boostActive) {
-        this.playerParticleSystem.start();
-      } else {
-        this.playerParticleSystem.stop();
+      // Update particle system position to follow character
+      if (this.playerMesh) {
+        this.playerParticleSystem.emitter = this.playerMesh.position;
       }
+      
+      if (this.boostActive) {
+        console.log("Starting particle system...");
+        console.log("Particle system state before start:", {
+          isStarted: this.playerParticleSystem.isStarted,
+          emitRate: this.playerParticleSystem.emitRate,
+          emitter: this.playerParticleSystem.emitter,
+          color1: this.playerParticleSystem.color1,
+          color2: this.playerParticleSystem.color2
+        });
+        try {
+          this.playerParticleSystem.start();
+          console.log("Particle system start() called successfully");
+        } catch (error) {
+          console.error("Error starting particle system:", error);
+        }
+        
+        console.log("Particle system state after start:", {
+          isStarted: this.playerParticleSystem.isStarted,
+          emitRate: this.playerParticleSystem.emitRate,
+          emitter: this.playerParticleSystem.emitter
+        });
+      } else {
+        console.log("Stopping particle system...");
+        console.log("Particle system state before stop:", {
+          isStarted: this.playerParticleSystem.isStarted
+        });
+        this.playerParticleSystem.stop();
+        console.log("Particle system state after stop:", {
+          isStarted: this.playerParticleSystem.isStarted
+        });
+      }
+    } else {
+      console.log("No particle system available!");
     }
 
     // Update thruster sound
     if (this.thrusterSound) {
       if (this.boostActive) {
         if (!this.thrusterSound.isPlaying) {
-          this.thrusterSound.play();
+          console.log("Starting thruster sound...");
+          console.log("Sound state before play:", {
+            isPlaying: this.thrusterSound.isPlaying,
+            isPaused: this.thrusterSound.isPaused,
+            volume: this.thrusterSound.getVolume(),
+            loop: this.thrusterSound.loop
+          });
+          
+          // Try to play the sound
+          try {
+            this.thrusterSound.play();
+            console.log("Sound play() called successfully");
+          } catch (error) {
+            console.error("Error playing sound:", error);
+          }
+          
+          // Check state after a short delay
+          setTimeout(() => {
+            console.log("Sound state after play (delayed):", {
+              isPlaying: this.thrusterSound?.isPlaying,
+              isPaused: this.thrusterSound?.isPaused
+            });
+          }, 100);
         }
       } else {
         if (this.thrusterSound.isPlaying) {
+          console.log("Stopping thruster sound...");
+          console.log("Sound state before stop:", {
+            isPlaying: this.thrusterSound.isPlaying,
+            isPaused: this.thrusterSound.isPaused
+          });
           this.thrusterSound.stop();
+          console.log("Sound state after stop:", {
+            isPlaying: this.thrusterSound.isPlaying,
+            isPaused: this.thrusterSound.isPaused
+          });
         }
       }
+    } else {
+      console.log("No thruster sound available!");
     }
   }
 
@@ -378,7 +454,7 @@ export class CharacterController {
 
   private updateRotation(): void {
     // If camera is controlling rotation, don't interfere
-    if (this.cameraController && this.cameraController.isRotatingCharacter) {
+    if (this.cameraController?.isRotatingCharacter) {
       // Update target rotation to match current rotation to prevent jerking
       this.targetRotationY = this.displayCapsule.rotation.y;
       return;
@@ -738,10 +814,19 @@ export class CharacterController {
   }
 
   public setPlayerParticleSystem(particleSystem: IParticleSystem | null): void {
+    console.log("setPlayerParticleSystem called with:", particleSystem);
     this.playerParticleSystem = particleSystem;
     // Start with particle system stopped if it exists
     if (particleSystem) {
+      // Attach particle system to player mesh if available
+      if (this.playerMesh) {
+        particleSystem.emitter = this.playerMesh.position;
+        console.log("Particle system attached to player mesh at position:", this.playerMesh.position);
+      }
       particleSystem.stop();
+      console.log("Particle system set and stopped");
+    } else {
+      console.log("No particle system provided");
     }
   }
 
@@ -750,9 +835,11 @@ export class CharacterController {
   }
 
   public setThrusterSound(sound: Sound): void {
+    console.log("setThrusterSound called with:", sound);
     this.thrusterSound = sound;
     // Start with sound stopped
     sound.stop();
+    console.log("Thruster sound set and stopped");
   }
 
   public isMoving(): boolean {
@@ -779,10 +866,6 @@ export class CharacterController {
 
   public getVelocity(): Vector3 {
     return this.characterController.getVelocity();
-  }
-
-  public getPosition(): Vector3 {
-    return this.characterController.getPosition();
   }
 
   public setPosition(position: Vector3): void {

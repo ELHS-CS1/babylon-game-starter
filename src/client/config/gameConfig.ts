@@ -137,7 +137,7 @@ interface SettingsSection {
     readonly uiElement: UIElementType;
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
-    readonly options?: string[]; // For dropdown elements
+    readonly options?: readonly string[]; // For dropdown elements
     readonly onChange?: (value: boolean | string) => void | Promise<void>;
 }
 
@@ -192,6 +192,13 @@ interface InventoryConfig {
     readonly Z_INDEX: number;
     readonly BUTTON_Z_INDEX: number;
     readonly TILES: readonly Tile[];
+}
+
+interface ItemsConfig {
+    readonly ITEMS: readonly ItemConfig[];
+    readonly COLLECTION_RADIUS: number;
+    readonly COLLECTION_SOUND: string;
+    readonly SHOW_COLLECTION_EFFECTS: boolean;
 }
 
 // Environment Types
@@ -626,6 +633,12 @@ const CONFIG = {
                 description: "Dramatic explosion with debris",
                 category: "fire",
                 snippetId: "S0T1U2"
+            },
+            {
+                name: "Thruster",
+                description: "Rocket thruster particle system with blue flames",
+                category: "tech",
+                snippetId: "THRUSTER01"
             }
         ] as const,
         DEFAULT_PARTICLE: "Magic Sparkles",
@@ -719,15 +732,22 @@ const CONFIG = {
         MUSIC_VOLUME: 1.0
     },
 
-    INVENTORY: {
-        HEADING_TEXT: "Inventory",
-        PANEL_WIDTH_RATIO: 1 / 3,
-        FULL_SCREEN_THRESHOLD: 500,
-        Z_INDEX: 1800,
-        BUTTON_Z_INDEX: 2000,
-        TILES: [] // Tiles will be added dynamically by InventoryManager
-    }
-} as const;
+           INVENTORY: {
+               HEADING_TEXT: "Inventory",
+               PANEL_WIDTH_RATIO: 1 / 3,
+               FULL_SCREEN_THRESHOLD: 500,
+               Z_INDEX: 1800,
+               BUTTON_Z_INDEX: 2000,
+               TILES: [] // Tiles will be added dynamically by InventoryManager
+           },
+
+           ITEMS: {
+               ITEMS: [], // Items will be populated from environment configurations
+               COLLECTION_RADIUS: 2.0,
+               COLLECTION_SOUND: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/sounds/effects/collect.wav",
+               SHOW_COLLECTION_EFFECTS: true
+           }
+       } as const;
 
 // Input Mapping
 const INPUT_KEYS = {

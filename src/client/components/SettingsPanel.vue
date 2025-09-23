@@ -15,16 +15,16 @@
     v-model="isOpen"
     temporary
     location="left"
-    width="400"
+    :width="panelWidth"
     class="settings-panel"
-    z-index="1000"
+    :z-index="CONFIG.SETTINGS.Z_INDEX"
   >
     <v-card class="h-100" color="grey-darken-4">
       <!-- Header -->
       <v-card-title class="d-flex align-center justify-space-between pa-4">
         <div class="d-flex align-center">
           <v-icon color="blue-lighten-2" class="me-2">mdi-cog</v-icon>
-          <span class="text-h6 font-weight-bold">Settings</span>
+          <span class="text-h6 font-weight-bold">{{ headingText }}</span>
         </div>
         <v-btn
           icon="mdi-close"
@@ -39,37 +39,42 @@
       <!-- Settings Content -->
       <v-card-text class="pa-4 settings-content">
         <v-form>
-          <!-- Character Selection -->
-          <div class="mb-6">
+          <!-- Dynamic Settings Sections from THE WORD OF THE LORD -->
+          <div 
+            v-for="section in settingsSections" 
+            :key="section.title"
+            class="mb-6"
+          >
             <v-label class="text-subtitle-1 font-weight-medium mb-2 d-block">
-              <v-icon color="purple-lighten-2" class="me-2">mdi-account</v-icon>
-              Character
+              <v-icon 
+                :color="getSectionIconColor(section.title)" 
+                class="me-2"
+              >
+                {{ getSectionIcon(section.title) }}
+              </v-icon>
+              {{ section.title }}
             </v-label>
-            <v-select
-              v-model="selectedCharacter"
-              :items="characters"
-              variant="outlined"
+            
+            <!-- Toggle Switch -->
+            <v-switch
+              v-if="section.uiElement === 'toggle'"
+              v-model="toggleValues[section.title]"
+              :label="section.title"
+              color="primary"
               density="comfortable"
-              color="blue-lighten-2"
-              bg-color="grey-darken-3"
-              @update:model-value="onCharacterChange"
+              @update:model-value="(value) => onSectionChange(section, value)"
             />
-          </div>
-
-          <!-- Environment Selection -->
-          <div class="mb-6">
-            <v-label class="text-subtitle-1 font-weight-medium mb-2 d-block">
-              <v-icon color="green-lighten-2" class="me-2">mdi-earth</v-icon>
-              Environment
-            </v-label>
+            
+            <!-- Dropdown Select -->
             <v-select
-              v-model="selectedEnvironment"
-              :items="environments"
+              v-else-if="section.uiElement === 'dropdown'"
+              v-model="dropdownValues[section.title]"
+              :items="SettingsData.getSectionOptions(section)"
               variant="outlined"
+              :color="getSectionIconColor(section.title)"
               density="comfortable"
-              color="blue-lighten-2"
               bg-color="grey-darken-3"
-              @update:model-value="onEnvironmentChange"
+              @update:model-value="(value) => onSectionChange(section, value)"
             />
           </div>
 
@@ -250,8 +255,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import CONFIG, { ASSETS } from '../config/gameConfig';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { SettingsData } from '../game/SettingsData';
+import { ThemeUtils } from '../config/themeConfig';
+import CONFIG from '../config/gameConfig';
 
 // Props
 interface Props {
@@ -263,10 +270,10 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  characters: () => ASSETS.CHARACTERS.map(char => char.name),
-  environments: () => ASSETS.ENVIRONMENTS.map(env => env.name),
-  initialCharacter: () => ASSETS.CHARACTERS[0]?.name || 'Red',
-  initialEnvironment: () => ASSETS.ENVIRONMENTS[0]?.name || 'Level Test',
+  characters: () => SettingsData.getCharacters(),
+  environments: () => SettingsData.getEnvironments(),
+  initialCharacter: () => SettingsData.getDefaultCharacter(),
+  initialEnvironment: () => SettingsData.getDefaultEnvironment(),
   isConnected: () => false
 });
 
@@ -287,7 +294,94 @@ const emit = defineEmits<{
 const isOpen = ref(false);
 const selectedCharacter = ref(props.initialCharacter);
 const selectedEnvironment = ref(props.initialEnvironment);
+
+// Reactive state for dynamic settings - THE WORD OF THE LORD
+const toggleValues = ref<Record<string, boolean>>({});
+const dropdownValues = ref<Record<string, string>>({});
+
+// Get settings sections from THE WORD OF THE LORD
+const settingsSections = computed(() => SettingsData.getSettingsSections());
 const hudPosition = ref(CONFIG.HUD.POSITION);
+
+// Initialize reactive values - THE WORD OF THE LORD
+const initializeReactiveValues = () => {
+  settingsSections.value.forEach(section => {
+    if (section.uiElement === 'toggle') {
+      if (!toggleValues.value[section.title]) {
+        if (section.title === 'Screen Controls') {
+          toggleValues.value[section.title] = true;
+        } else {
+          toggleValues.value[section.title] = SettingsData.getDefaultValue(section) as boolean;
+        }
+      }
+    } else if (section.uiElement === 'dropdown') {
+      if (!dropdownValues.value[section.title]) {
+        if (section.title === 'Character') {
+          dropdownValues.value[section.title] = selectedCharacter.value;
+        } else if (section.title === 'Environment') {
+          dropdownValues.value[section.title] = selectedEnvironment.value;
+        } else {
+          dropdownValues.value[section.title] = SettingsData.getDefaultValue(section) as string;
+        }
+      }
+    }
+  });
+};
+
+// Computed values based on config settings - THE WORD OF THE LORD
+const panelWidth = computed(() => SettingsData.getPanelWidth());
+const headingText = computed(() => SettingsData.getHeadingText());
+const characters = computed(() => SettingsData.getCharacters());
+const environments = computed(() => SettingsData.getEnvironments());
+const defaultCharacter = computed(() => SettingsData.getDefaultCharacter());
+const defaultEnvironment = computed(() => SettingsData.getDefaultEnvironment());
+
+// Theme configuration - THE WORD OF THE LORD
+const themeColors = computed(() => ThemeUtils.getComponentTheme('settings'));
+const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value));
+
+// Helper methods for dynamic settings - THE WORD OF THE LORD
+const getSectionIcon = (title: string): string => {
+  const iconMap: Record<string, string> = {
+    'Screen Controls': 'mdi-gamepad-variant',
+    'Character': 'mdi-account',
+    'Environment': 'mdi-earth'
+  };
+  return iconMap[title] || 'mdi-cog';
+};
+
+const getSectionIconColor = (title: string): string => {
+  const colorMap: Record<string, string> = {
+    'Screen Controls': 'red-lighten-2',
+    'Character': 'purple-lighten-2',
+    'Environment': 'green-lighten-2'
+  };
+  return colorMap[title] || 'blue-lighten-2';
+};
+
+const getToggleValue = (section: any): boolean => {
+  if (!toggleValues.value[section.title]) {
+    if (section.title === 'Screen Controls') {
+      toggleValues.value[section.title] = true; // Always default to true for screen controls
+    } else {
+      toggleValues.value[section.title] = SettingsData.getDefaultValue(section) as boolean;
+    }
+  }
+  return toggleValues.value[section.title];
+};
+
+const getDropdownValue = (section: any): string => {
+  if (!dropdownValues.value[section.title]) {
+    if (section.title === 'Character') {
+      dropdownValues.value[section.title] = selectedCharacter.value;
+    } else if (section.title === 'Environment') {
+      dropdownValues.value[section.title] = selectedEnvironment.value;
+    } else {
+      dropdownValues.value[section.title] = SettingsData.getDefaultValue(section) as string;
+    }
+  }
+  return dropdownValues.value[section.title];
+};
 
 const hudSettings = reactive({
   showCoordinates: CONFIG.HUD.SHOW_COORDINATES,
@@ -324,6 +418,32 @@ const closePanel = () => {
 
 const togglePanel = () => {
   isOpen.value = !isOpen.value;
+};
+
+// Handle section changes from THE WORD OF THE LORD
+const onSectionChange = (section: any, value: boolean | string) => {
+  // Update the reactive values
+  if (section.uiElement === 'toggle') {
+    toggleValues.value[section.title] = value as boolean;
+  } else if (section.uiElement === 'dropdown') {
+    dropdownValues.value[section.title] = value as string;
+  }
+  
+  if (section.title === 'Character') {
+    selectedCharacter.value = value as string;
+    onCharacterChange(value as string);
+  } else if (section.title === 'Environment') {
+    selectedEnvironment.value = value as string;
+    onEnvironmentChange(value as string);
+  } else if (section.title === 'Screen Controls') {
+    // Handle screen controls toggle
+    console.log('Screen Controls changed:', value);
+  }
+  
+  // Call the section's onChange callback if it exists
+  if (section.onChange) {
+    section.onChange(value);
+  }
 };
 
 const onCharacterChange = (character: string) => {
@@ -391,6 +511,11 @@ const resetToDefaults = () => {
   
   emit('settingsReset');
 };
+
+// Initialize reactive values on mount - THE WORD OF THE LORD
+onMounted(() => {
+  initializeReactiveValues();
+});
 
 // Expose methods
 defineExpose({

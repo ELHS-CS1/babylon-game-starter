@@ -2,17 +2,19 @@
 // SCENE MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
+import type { 
+  Engine,
+  AbstractMesh
+} from '@babylonjs/core';
 import { 
   Scene, 
-  Engine, 
   TargetCamera, 
   HemisphericLight, 
   Vector3, 
   Color3, 
   StandardMaterial, 
   PBRMaterial, 
-  Texture,
-  AbstractMesh
+  Texture
 } from '@babylonjs/core';
 import { ImportMeshAsync, PhysicsAggregate, PhysicsShapeType, HavokPlugin } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -141,7 +143,7 @@ export class SceneManager {
     this.setupCharacter();
     console.log("Setup character");
     
-    this.loadCharacterModel();
+    await this.loadCharacterModel();
     console.log("Loaded character model");
 
     // Set up environment items after character is fully loaded
@@ -422,7 +424,7 @@ export class SceneManager {
     this.characterController = new CharacterController(this.scene);
   }
 
-  private loadCharacterModel(): void {
+  private async loadCharacterModel(): Promise<void> {
     // Load the first character from the CHARACTERS array
     const character = ASSETS.CHARACTERS[0];
     if (!character) {
@@ -430,10 +432,10 @@ export class SceneManager {
       return;
     }
 
-    this.loadCharacter(character);
+    await this.loadCharacter(character);
   }
 
-  private loadCharacter(character: Character, preservedPosition?: Vector3 | null): void {
+  private async loadCharacter(character: Character, preservedPosition?: Vector3 | null): Promise<void> {
     if (!this.characterController) {
       console.error("CharacterController not initialized");
       return;
@@ -442,98 +444,97 @@ export class SceneManager {
     console.log(`Loading character: ${character.name} from ${character.model}`);
 
     // Remove all animation groups from the scene before loading a new character
-    this.scene.animationGroups.slice().forEach(group => group.dispose());
+    this.scene.animationGroups.slice().forEach(group => { group.dispose(); });
 
-    ImportMeshAsync(character.model, this.scene)
-      .then(async result => {
-        console.log(`Loaded character meshes:`, result.meshes.length);
-        
-        // Process node materials for character meshes
-        // await NodeMaterialManager.processImportResult(result);
+    try {
+      const result = await ImportMeshAsync(character.model, this.scene);
+      console.log(`Loaded character meshes:`, result.meshes.length);
+      
+      // Process node materials for character meshes
+      // await NodeMaterialManager.processImportResult(result);
 
-        // Rename the root node to "player" for better organization
-        if (result.meshes && result.meshes.length > 0) {
-          // Find the root mesh (the one without a parent)
-          const rootMesh = result.meshes.find(mesh => !mesh.parent);
-          if (rootMesh) {
-            rootMesh.name = "player";
-            rootMesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
-            console.log(`Set player mesh name to: ${rootMesh.name} with scale: ${CONFIG.ANIMATION.PLAYER_SCALE}`);
-          } else {
-            console.warn("No root mesh found in character");
-          }
+      // Rename the root node to "player" for better organization
+      if (result.meshes && result.meshes.length > 0) {
+        // Find the root mesh (the one without a parent)
+        const rootMesh = result.meshes.find(mesh => !mesh.parent);
+        if (rootMesh) {
+          rootMesh.name = "player";
+          rootMesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+          console.log(`Set player mesh name to: ${rootMesh.name} with scale: ${CONFIG.ANIMATION.PLAYER_SCALE}`);
         } else {
-          console.warn("No meshes loaded for character");
+          console.warn("No root mesh found in character");
+        }
+      } else {
+        console.warn("No meshes loaded for character");
+      }
+
+      // Set up the character controller with the loaded mesh
+      if (result.meshes && result.meshes.length > 0) {
+        const playerMesh = result.meshes[0];
+        if (playerMesh) {
+          this.characterController.setPlayerMesh(playerMesh);
+        }
+        console.log("Set player mesh in character controller");
+
+        // Determine position for new character
+        let characterPosition: Vector3;
+        if (preservedPosition) {
+          // Use preserved position when switching characters
+          characterPosition = preservedPosition;
+          console.log("Using preserved position:", characterPosition);
+        } else {
+          // Use spawn point when loading character for the first time or after environment change
+          const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+          characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
+          console.log("Using spawn position:", characterPosition);
         }
 
-        // Set up the character controller with the loaded mesh
-        if (result.meshes && result.meshes.length > 0) {
-          const playerMesh = result.meshes[0];
-          if (playerMesh) {
-            this.characterController!.setPlayerMesh(playerMesh);
-          }
-          console.log("Set player mesh in character controller");
+        // Update character physics with determined position
+        this.characterController.updateCharacterPhysics(character, characterPosition);
+        console.log("Updated character physics");
 
-          // Determine position for new character
-          let characterPosition: Vector3;
-          if (preservedPosition) {
-            // Use preserved position when switching characters
-            characterPosition = preservedPosition;
-            console.log("Using preserved position:", characterPosition);
-          } else {
-            // Use spawn point when loading character for the first time or after environment change
-            const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-            characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
-            console.log("Using spawn position:", characterPosition);
-          }
-
-          // Update character physics with determined position
-          this.characterController!.updateCharacterPhysics(character, characterPosition);
-          console.log("Updated character physics");
-
-          // Set up camera controller after character is loaded
-          if (!this.smoothFollowController) {
-            const displayCapsule = this.characterController!.getDisplayCapsule();
-            this.smoothFollowController = new SmoothFollowCameraController(
-              this.scene,
-              this.camera,
-              displayCapsule
-            );
-            this.characterController!.setCameraController(this.smoothFollowController);
-            console.log("Set up smooth follow camera controller");
-          }
-
-          // Set up particle system for boost effect
-          const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new Vector3(0, 0, 0));
-          if (thrusterParticleSystem) {
-            this.characterController!.setPlayerParticleSystem(thrusterParticleSystem);
-            console.log("Set thruster particle system");
-          }
-
-          // Set up thruster sound
-          const thrusterSound = EffectsManager.getSound("Thruster");
-          if (thrusterSound) {
-            this.characterController!.setThrusterSound(thrusterSound);
-            console.log("Set thruster sound");
-          }
-
-          // Set up animation controller with character
-          if (this.characterController!.animationController) {
-            this.characterController!.animationController.setCharacter(character);
-            console.log("Set up animation controller with character");
-          }
-
-          // Initialize InventoryManager after character is set up
-          InventoryManager.initialize(this.scene, this.characterController!);
-          console.log("InventoryManager initialized");
-          
-          console.log(`Character ${character.name} loaded successfully`);
+        // Set up camera controller after character is loaded
+        if (!this.smoothFollowController) {
+          const displayCapsule = this.characterController.getDisplayCapsule();
+          this.smoothFollowController = new SmoothFollowCameraController(
+            this.scene,
+            this.camera,
+            displayCapsule
+          );
+          this.characterController.setCameraController(this.smoothFollowController);
+          console.log("Set up smooth follow camera controller");
         }
-      })
-      .catch(error => {
-        console.error("Failed to load character:", error);
-        console.error("Error details:", error);
-      });
+
+        // Set up particle system for boost effect
+        const thrusterParticleSystem = await EffectsManager.createParticleSystem("Thruster", new Vector3(0, 0, 0));
+        if (thrusterParticleSystem) {
+          this.characterController.setPlayerParticleSystem(thrusterParticleSystem);
+          console.log("Set thruster particle system");
+        }
+
+        // Set up thruster sound
+        const thrusterSound = EffectsManager.getSound("Thruster");
+        if (thrusterSound) {
+          this.characterController.setThrusterSound(thrusterSound);
+          console.log("Set thruster sound");
+        }
+
+        // Set up animation controller with character
+        if (this.characterController.animationController) {
+          this.characterController.animationController.setCharacter(character);
+          console.log("Set up animation controller with character");
+        }
+
+        // Initialize InventoryManager after character is set up
+        InventoryManager.initialize(this.scene, this.characterController);
+        console.log("InventoryManager initialized");
+        
+        console.log(`Character ${character.name} loaded successfully`);
+      }
+    } catch (error) {
+      console.error("Failed to load character:", error);
+      console.error("Error details:", error);
+    }
   }
 
   private async setupEnvironmentItems(): Promise<void> {

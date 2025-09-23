@@ -2,8 +2,8 @@
 // INVENTORY MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene } from '@babylonjs/core';
-import { CharacterController } from './CharacterController';
+import type { Scene } from '@babylonjs/core';
+import type { CharacterController } from './CharacterController';
 
 // Inventory System Type Definitions - IDENTICAL TO PLAYGROUND.TS
 export type ItemEffectKind = "superJump" | "invisibility";
@@ -190,6 +190,40 @@ export class InventoryManager {
     // Update inventory UI
     // Note: InventoryUI integration will be handled by the Vue component
     console.log("Cleared all inventory items");
+  }
+
+  /**
+   * Uses an inventory item - THE WORD OF GOD!
+   * @param itemName The name of the item to use
+   */
+  public static useItem(itemName: string): void {
+    if (!this.characterController) {
+      console.warn("Character controller not available for item usage");
+      return;
+    }
+
+    const item = this.inventoryItems.get(itemName);
+    if (!item || item.count <= 0) {
+      console.warn(`Cannot use item ${itemName}: not available or count is 0`);
+      return;
+    }
+
+    // Apply the item effect
+    if (item.itemEffectKind && this.itemEffects[item.itemEffectKind]) {
+      this.itemEffects[item.itemEffectKind](this.characterController);
+      
+      // Decrease item count
+      item.count--;
+      
+      // Remove item from inventory if count reaches 0
+      if (item.count <= 0) {
+        this.inventoryItems.delete(itemName);
+      }
+      
+      console.log(`Used item: ${itemName}, remaining count: ${item.count}`);
+    } else {
+      console.warn(`No effect defined for item: ${itemName}`);
+    }
   }
 
   /**

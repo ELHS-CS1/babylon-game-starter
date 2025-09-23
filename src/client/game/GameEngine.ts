@@ -2,7 +2,8 @@
 // GAME ENGINE - FOLLOWING THE WORD OF THE LORD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Engine, Mesh, Vector3, MeshBuilder, StandardMaterial, Color3, Scene } from '@babylonjs/core';
+import type { Mesh, Scene } from '@babylonjs/core';
+import { Engine, Vector3, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
@@ -183,6 +184,10 @@ export class GameEngine {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
+    
+    // Dispose UI systems according to THE WORD OF GOD!
+    SettingsUI.dispose();
+    InventoryUI.dispose();
     
     // Dispose SceneManager from THE WORD OF THE LORD
     if (this.sceneManager) {

@@ -2,9 +2,12 @@
 // COLLECTIBLES MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, AbstractMesh, PhysicsBody, Sound, Mesh, PhysicsShape, Observable, Observer } from '@babylonjs/core';
-import { CharacterController } from './CharacterController';
-import CONFIG, { ASSETS, type ItemConfig, type ItemInstance } from '../config/gameConfig';
+import type { Scene, AbstractMesh, PhysicsBody, PhysicsShape, Observer} from '@babylonjs/core';
+import { Sound, Mesh, Observable, PhysicsAggregate, PhysicsShapeType } from '@babylonjs/core';
+import { ImportMeshAsync } from '@babylonjs/core';
+import '@babylonjs/loaders/glTF';
+import type { CharacterController } from './CharacterController';
+import CONFIG, { type ItemConfig, type ItemInstance } from '../config/gameConfig';
 
 export class CollectiblesManager {
   private static scene: Scene | null = null;
@@ -107,7 +110,7 @@ export class CollectiblesManager {
 
     try {
       // Import the item model
-      const result = await this.scene.importMeshAsync("", "", itemConfig.url);
+      const result = await ImportMeshAsync(itemConfig.url, this.scene);
       
       if (result.meshes && result.meshes.length > 0) {
         // Find the root mesh (the one without a parent)
@@ -164,10 +167,11 @@ export class CollectiblesManager {
       const scaledSize = boundingBox.boundingBox.extendSize.scale(2); // Multiply by 2 to get full size
 
       // Create physics body with dynamic box shape based on scaled dimensions
-      const physicsAggregate = new (this.scene as any).PhysicsAggregate(
+      const physicsAggregate = new PhysicsAggregate(
         meshInstance,
-        (this.scene as any).PhysicsShapeType.BOX,
-        { mass: instance.mass }
+        PhysicsShapeType.BOX,
+        { mass: instance.mass },
+        this.scene
       );
 
       // Store references
@@ -209,9 +213,9 @@ export class CollectiblesManager {
     }
 
     const characterPosition = this.characterController.getPosition();
-    const collectionRadius = CONFIG.INVENTORY.COLLECTION_RADIUS || 2.0;
+    const collectionRadius = CONFIG.ITEMS.COLLECTION_RADIUS || 2.0;
 
-    for (const [id, mesh] of this.collectibles) {
+    for (const [id, mesh] of Array.from(this.collectibles)) {
       if (this.collectedItems.has(id)) {
         continue; // Already collected
       }
@@ -311,12 +315,12 @@ export class CollectiblesManager {
     }
 
     // Dispose all collectible meshes
-    for (const [id, mesh] of this.collectibles) {
+    for (const [id, mesh] of Array.from(this.collectibles)) {
       mesh.dispose();
     }
 
     // Dispose all physics bodies
-    for (const [id, body] of this.collectibleBodies) {
+    for (const [id, body] of Array.from(this.collectibleBodies)) {
       body.dispose();
     }
 

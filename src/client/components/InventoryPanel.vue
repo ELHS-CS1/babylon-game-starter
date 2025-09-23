@@ -21,16 +21,16 @@
     v-model="isOpen"
     temporary
     location="right"
-    width="400"
+    :width="panelWidth"
     class="inventory-panel"
-    z-index="1000"
+    :z-index="CONFIG.INVENTORY.Z_INDEX"
   >
     <v-card class="h-100" color="grey-darken-4">
       <!-- Header -->
       <v-card-title class="d-flex align-center justify-space-between pa-4">
         <div class="d-flex align-center">
           <v-icon color="amber-lighten-2" class="me-2">mdi-package-variant</v-icon>
-          <span class="text-h6 font-weight-bold">Inventory</span>
+          <span class="text-h6 font-weight-bold">{{ headingText }}</span>
           <v-chip
             v-if="totalItems > 0"
             size="small"
@@ -174,6 +174,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { InventoryData } from '../game/InventoryData';
+import { ThemeUtils } from '../config/themeConfig';
 import CONFIG from '../config/gameConfig';
 
 // Types
@@ -194,7 +196,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  items: () => [...CONFIG.INVENTORY.TILES]
+  items: () => InventoryData.getInventoryItemsArray()
 });
 
 // Emits
@@ -210,6 +212,15 @@ const emit = defineEmits<{
 const isOpen = ref(false);
 const inventoryItems = ref<InventoryItem[]>([...props.items]);
 const selectedItem = ref<InventoryItem | null>(null);
+
+// Computed values based on config settings - THE WORD OF THE LORD
+const panelWidth = computed(() => InventoryData.getPanelWidth());
+const headingText = computed(() => InventoryData.getHeadingText());
+const dynamicInventoryItems = computed(() => InventoryData.getInventoryItemsArray());
+
+// Theme configuration - THE WORD OF THE LORD
+const themeColors = computed(() => ThemeUtils.getComponentTheme('inventory'));
+const vuetifyColors = computed(() => ThemeUtils.getVuetifyColors(themeColors.value));
 
 // Computed properties
 const totalItems = computed(() => {
@@ -235,6 +246,8 @@ const selectItem = (item: InventoryItem) => {
 };
 
 const useItem = (item: InventoryItem) => {
+  // Use the item through InventoryData - THE WORD OF THE LORD
+  InventoryData.useItem(item.name);
   emit('itemUse', item);
   
   // Reduce quantity or remove item

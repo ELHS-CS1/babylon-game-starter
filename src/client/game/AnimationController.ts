@@ -2,7 +2,7 @@
 // ANIMATION CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, AnimationGroup } from '@babylonjs/core';
+import type { Scene, AnimationGroup } from '@babylonjs/core';
 import CONFIG, { type Character } from '../config/gameConfig';
 
 // Character state enum - IDENTICAL TO PLAYGROUND.TS
@@ -115,7 +115,7 @@ export class AnimationController {
       animation = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
         animationName.toLowerCase().includes(anim.name.toLowerCase())
-      );
+      ) ?? null;
     }
 
     // If still not found, try common fallbacks
@@ -124,19 +124,19 @@ export class AnimationController {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
-        );
+        ) ?? null;
       } else if (animationName.toLowerCase().includes('walk')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
-        );
+        ) ?? null;
       } else if (animationName.toLowerCase().includes('jump')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('jump') ||
           anim.name.toLowerCase().includes('leap') ||
           anim.name.toLowerCase().includes('hop')
-        );
+        ) ?? null;
       }
     }
 
@@ -173,7 +173,7 @@ export class AnimationController {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-      );
+      ) ?? null;
     }
 
     // If still not found, try common fallbacks
@@ -182,13 +182,13 @@ export class AnimationController {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
-        );
+        ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('walk')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
-        );
+        ) ?? null;
       }
     }
 
@@ -221,7 +221,7 @@ export class AnimationController {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-      );
+      ) ?? null;
     }
 
     // If still not found, try common fallbacks
@@ -230,19 +230,19 @@ export class AnimationController {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
-        );
+        ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('walk')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
-        );
+        ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('jump')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('jump') ||
           anim.name.toLowerCase().includes('leap') ||
           anim.name.toLowerCase().includes('hop')
-        );
+        ) ?? null;
       }
     }
 

@@ -2,7 +2,8 @@
 // SMOOTH FOLLOW CAMERA CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, TargetCamera, Mesh, Vector3, Observer, PointerInfo, PointerEventTypes, Scalar, Quaternion } from '@babylonjs/core';
+import type { Scene, TargetCamera, Mesh, Observer, PointerInfo} from '@babylonjs/core';
+import { Vector3, PointerEventTypes, Scalar, Quaternion } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 
 export class SmoothFollowCameraController {
@@ -16,8 +17,8 @@ export class SmoothFollowCameraController {
   public dragDeltaX = 0;
   public dragDeltaZ = 0;
 
-  private pointerObserver: Observer<PointerInfo>;
-  private beforeRenderObserver: Observer<Scene>;
+  private pointerObserver!: Observer<PointerInfo>;
+  private beforeRenderObserver!: Observer<Scene>;
   private lastPointerX = 0;
   private lastPointerY = 0;
   private isTwoFingerPanning = false;
@@ -124,8 +125,8 @@ export class SmoothFollowCameraController {
     if (e.touches.length === 2) {
       this.isTwoFingerPanning = true;
       this.lastPanPositions = [
-        e.touches[0].clientX, e.touches[0].clientY,
-        e.touches[1].clientX, e.touches[1].clientY
+        e.touches[0]!.clientX, e.touches[0]!.clientY,
+        e.touches[1]!.clientX, e.touches[1]!.clientY
       ] as [number, number, number, number];
     }
   };
@@ -141,8 +142,8 @@ export class SmoothFollowCameraController {
 
   private handleTwoFingerPan(e: TouchEvent): void {
     const currentPositions = [
-      e.touches[0].clientX, e.touches[0].clientY,
-      e.touches[1].clientX, e.touches[1].clientY
+      e.touches[0]!.clientX, e.touches[0]!.clientY,
+      e.touches[1]!.clientX, e.touches[1]!.clientY
     ] as [number, number, number, number];
 
     const lastMidX = (this.lastPanPositions![0] + this.lastPanPositions![2]) / 2;
