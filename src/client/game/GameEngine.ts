@@ -2,15 +2,14 @@
 // GAME ENGINE - FOLLOWING THE WORD OF THE LORD FROM PLAYGROUND.TS
 // ============================================================================
 
-import type { Mesh, Scene } from '@babylonjs/core';
-import { Engine, Vector3, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
+import { Engine, Mesh, Vector3, MeshBuilder, StandardMaterial, Color3, Scene } from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
 
 export class GameEngine {
   private engine: Engine;
-  private canvas: HTMLCanvasElement;
+  // private canvas: HTMLCanvasElement; // Unused for now
   private peerManager: PeerManager;
   private sceneManager: SceneManager | null = null;
   private remotePlayers: Map<string, Mesh> = new Map();
@@ -23,7 +22,7 @@ export class GameEngine {
   constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
     console.log("GameEngine constructor called with environment:", environment);
     
-    this.canvas = canvas;
+    // this.canvas = canvas; // Unused for now
     this.currentEnvironment = environment;
     this.peerManager = new PeerManager();
     
@@ -74,7 +73,7 @@ export class GameEngine {
     this.animationFrameId = requestAnimationFrame(renderLoop);
   }
 
-  private update(deltaTime: number): void {
+  private update(_deltaTime: number): void {
     // Controllers handle their own updates according to THE WORD OF THE LORD
     // CharacterController handles character movement and physics
     // SmoothFollowCameraController handles camera following
@@ -184,10 +183,6 @@ export class GameEngine {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
-    
-    // Dispose UI systems according to THE WORD OF GOD!
-    SettingsUI.dispose();
-    InventoryUI.dispose();
     
     // Dispose SceneManager from THE WORD OF THE LORD
     if (this.sceneManager) {

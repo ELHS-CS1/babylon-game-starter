@@ -2,8 +2,8 @@
 // COLLECTIBLES MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import type { Scene, AbstractMesh, PhysicsBody, PhysicsShape, Observer} from '@babylonjs/core';
-import { Sound, Mesh, Observable, PhysicsAggregate, PhysicsShapeType } from '@babylonjs/core';
+import type { Scene, AbstractMesh, PhysicsBody, Observer} from '@babylonjs/core';
+import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType } from '@babylonjs/core';
 import { ImportMeshAsync } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
@@ -19,12 +19,12 @@ export class CollectiblesManager {
   private static collectionObserver: Observer<Scene> | null = null;
   private static collectedItems: Set<string> = new Set();
   private static instanceBasis: Mesh | null = null;
-  private static physicsShape: PhysicsShape | null = null; // Reusable physics shape
+  // private static physicsShape: PhysicsShape | null = null; // Reusable physics shape - unused for now
   private static itemConfigs: Map<string, ItemConfig> = new Map(); // Store item configs by collectible ID
 
-  // Custom physics ready event system
-  private static physicsReadyObservable = new Observable<void>();
-  private static physicsReadyObserver: Observer<Scene> | null = null;
+  // Custom physics ready event system - unused for now
+  // private static physicsReadyObservable = new Observable<void>();
+  // private static physicsReadyObserver: Observer<Scene> | null = null;
 
   /**
    * Waits for physics to be properly initialized
@@ -164,7 +164,8 @@ export class CollectiblesManager {
 
       // Get the scaled bounding box dimensions after applying instance scaling
       const boundingBox = meshInstance.getBoundingInfo();
-      const scaledSize = boundingBox.boundingBox.extendSize.scale(2); // Multiply by 2 to get full size
+      // const scaledSize = boundingBox.boundingBox.extendSize.scale(2); // Multiply by 2 to get full size - unused for now
+      // const _boundingBox = boundingBox; // Suppress unused variable warning
 
       // Create physics body with dynamic box shape based on scaled dimensions
       const physicsAggregate = new PhysicsAggregate(
@@ -315,12 +316,12 @@ export class CollectiblesManager {
     }
 
     // Dispose all collectible meshes
-    for (const [id, mesh] of Array.from(this.collectibles)) {
+    for (const [, mesh] of Array.from(this.collectibles)) {
       mesh.dispose();
     }
 
     // Dispose all physics bodies
-    for (const [id, body] of Array.from(this.collectibleBodies)) {
+    for (const [, body] of Array.from(this.collectibleBodies)) {
       body.dispose();
     }
 

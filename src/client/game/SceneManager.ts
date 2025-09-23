@@ -315,19 +315,19 @@ export class SceneManager {
     });
   }
 
-  private setupPhysicsObjects(environment: Environment): void {
-    environment.physicsObjects.forEach(physicsObject => {
-      const mesh = this.scene.getMeshByName(physicsObject.name);
-      if (mesh) {
-        // Apply scaling if specified
-        if (physicsObject.scale !== 1) {
-          mesh.scaling.setAll(physicsObject.scale);
-        }
+  // private setupPhysicsObjects(environment: Environment): void { // Unused for now
+  //   environment.physicsObjects.forEach(physicsObject => {
+  //     const mesh = this.scene.getMeshByName(physicsObject.name);
+  //     if (mesh) {
+  //       // Apply scaling if specified
+  //       if (physicsObject.scale !== 1) {
+  //         mesh.scaling.setAll(physicsObject.scale);
+  //       }
 
-        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
-      }
-    });
-  }
+  //       new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
+  //     }
+  //   });
+  // }
 
   private setupEnvironmentPhysics(environment: Environment): void {
     // Set up lightmapped meshes first - THE WORD OF GOD FROM PLAYGROUND.TS
@@ -381,8 +381,8 @@ export class SceneManager {
       if (!fixedMesh) return;
 
       // Create physics aggregates if they don't exist
-      const _fixedMass = new PhysicsAggregate(fixedMesh, PhysicsShapeType.BOX, { mass: 0 });
-      const _beam = new PhysicsAggregate(beamMesh, PhysicsShapeType.BOX, { mass: pivotBeam.mass });
+      new PhysicsAggregate(fixedMesh, PhysicsShapeType.BOX, { mass: 0 });
+      new PhysicsAggregate(beamMesh, PhysicsShapeType.BOX, { mass: pivotBeam.mass });
 
       // Create hinge constraint - IDENTICAL TO PLAYGROUND.TS
       console.log(`Setting up joint between ${fixedMassObject.name} and ${pivotBeam.name}`);

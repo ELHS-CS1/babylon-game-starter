@@ -706,7 +706,7 @@ const CONFIG = {
                 uiElement: "dropdown",
                 visibility: "all",
                 defaultValue: "Red", // Default to first character (Red)
-                options: ASSETS.CHARACTERS.map((character, index) => character.name),
+                options: ASSETS.CHARACTERS.map((character) => character.name),
                 onChange: async (value: boolean | string) => {
                     // Character change - placeholder for future implementation
                     console.log('Character changed:', value);
@@ -717,7 +717,7 @@ const CONFIG = {
                 uiElement: "dropdown",
                 visibility: "all",
                 defaultValue: "Level Test", // Default to first environment
-                options: ASSETS.ENVIRONMENTS.map((environment, index) => environment.name),
+                options: ASSETS.ENVIRONMENTS.map((environment) => environment.name),
                 onChange: async (value: boolean | string) => {
                     // Environment change - placeholder for future implementation
                     console.log('Environment changed:', value);
@@ -809,8 +809,8 @@ const CHARACTER_STATES = {
 
 type CharacterState = typeof CHARACTER_STATES[keyof typeof CHARACTER_STATES];
 
-// Animation Groups
-const playerAnimations: Record<string, any> = {};
+// Animation Groups - unused for now
+// const playerAnimations: Record<string, any> = {};
 
 export default CONFIG;
 export { ASSETS, INPUT_KEYS, MOBILE_CONTROLS, CHARACTER_STATES, OBJECT_ROLE };

@@ -2,8 +2,8 @@
 // ANIMATION CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import type { Scene, AnimationGroup } from '@babylonjs/core';
-import CONFIG, { type Character } from '../config/gameConfig';
+import type { Scene } from '@babylonjs/core';
+import { type Character } from '../config/gameConfig';
 
 // Character state enum - IDENTICAL TO PLAYGROUND.TS
 export enum CHARACTER_STATES {
@@ -24,7 +24,7 @@ export class AnimationController {
   private blendStartTime: number = 0;
   private blendDuration: number = 400; // Default blend duration in milliseconds
   private isBlending: boolean = false;
-  private weightedAnimation: AnimationGroup | null = null;
+  // private weightedAnimation: AnimationGroup | null = null; // Unused for now
 
   // Jump delay tracking
   private jumpDelayStartTime: number = 0;
@@ -46,7 +46,7 @@ export class AnimationController {
     this.currentAnimation = null;
     this.previousAnimation = null;
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
 
     // Reset jump delay state
     this.isJumpDelayed = false;
@@ -158,7 +158,7 @@ export class AnimationController {
     this.currentAnimation = animation.name; // Use the actual animation name
     this.previousAnimation = null;
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
   }
 
   /**
@@ -206,7 +206,7 @@ export class AnimationController {
     this.previousAnimation = this.currentAnimation;
     this.currentAnimation = targetAnim.name; // Use the actual animation name
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
   }
 
   /**
@@ -320,7 +320,7 @@ export class AnimationController {
 
     // Reset blend state
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
     this.previousAnimation = null;
   }
 
@@ -342,7 +342,7 @@ export class AnimationController {
     this.currentAnimation = null;
     this.previousAnimation = null;
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
   }
 
   /**
@@ -404,7 +404,7 @@ export class AnimationController {
     this.currentAnimation = null;
     this.previousAnimation = null;
     this.isBlending = false;
-    this.weightedAnimation = null;
+    // this.weightedAnimation = null; // Commented out - property removed
     
     console.log("AnimationController disposed");
   }

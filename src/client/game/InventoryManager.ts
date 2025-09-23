@@ -19,11 +19,11 @@ export interface InventoryItem {
 }
 
 export class InventoryManager {
-  private static scene: Scene | null = null;
+  // private static scene: Scene | null = null; // Unused for now
   private static characterController: CharacterController | null = null;
   private static inventoryItems: Map<string, InventoryItem> = new Map();
   private static originalJumpHeight: number = 0;
-  private static originalVisibility: number = 1;
+  // private static originalVisibility: number = 1; // Unused for now
   private static activeEffects: Set<string> = new Set();
 
   // Item effects implementation - IDENTICAL TO PLAYGROUND.TS
@@ -96,8 +96,8 @@ export class InventoryManager {
    * @param scene The Babylon.js scene
    * @param characterController The character controller
    */
-  public static initialize(scene: Scene, characterController: CharacterController): void {
-    this.scene = scene;
+  public static initialize(_scene: Scene, characterController: CharacterController): void {
+    // this.scene = _scene; // Unused for now
     this.characterController = characterController;
     this.inventoryItems.clear();
     this.activeEffects.clear();
@@ -230,7 +230,7 @@ export class InventoryManager {
    * Disposes the InventoryManager
    */
   public static dispose(): void {
-    this.scene = null;
+    // this.scene = null; // Unused for now
     this.characterController = null;
     this.inventoryItems.clear();
     this.activeEffects.clear();

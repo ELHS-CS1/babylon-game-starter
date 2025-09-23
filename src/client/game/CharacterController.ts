@@ -2,7 +2,7 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Vector3, MeshBuilder, StandardMaterial, Color3, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState } from '@babylonjs/core';
+import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
 import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController, CHARACTER_STATES } from './AnimationController';
@@ -278,8 +278,8 @@ export class CharacterController {
         // }
 
         // For movement (Z-axis), use keyboard if available, otherwise use touch
-        const hasKeyboardMovement = this.keysDown.has('w') || this.keysDown.has('s') ||
-          this.keysDown.has('arrowup') || this.keysDown.has('arrowdown');
+        // const hasKeyboardMovement = this.keysDown.has('w') || this.keysDown.has('s') ||
+        //   this.keysDown.has('arrowup') || this.keysDown.has('arrowdown');
 
         // if (!hasKeyboardMovement && Math.abs(mobileDirection.z) > 0.1) {
         //   // Use touch input for forward/backward movement when no keyboard movement

@@ -333,11 +333,12 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
           if (peerData === null || peerData === undefined || typeof peerData !== 'object') {
             return;
           }
+          const peerDataObj = peerData as Record<string, unknown>;
           const peer: Peer = {
-            id: typeof peerData['id'] === 'string' ? peerData['id'] : '',
-            name: typeof peerData['name'] === 'string' ? peerData['name'] : 'Unknown',
-            position: isVector3(peerData['position']) ? peerData['position'] : { x: 0, y: 0, z: 0 },
-            rotation: isVector3(peerData['rotation']) ? peerData['rotation'] : { x: 0, y: 0, z: 0 },
+            id: typeof peerDataObj['id'] === 'string' ? peerDataObj['id'] : '',
+            name: typeof peerDataObj['name'] === 'string' ? peerDataObj['name'] : 'Unknown',
+            position: isVector3(peerDataObj['position']) ? peerDataObj['position'] : { x: 0, y: 0, z: 0 },
+            rotation: isVector3(peerDataObj['rotation']) ? peerDataObj['rotation'] : { x: 0, y: 0, z: 0 },
             environment: gameState.currentEnvironment,
             lastUpdate: Date.now()
           };
@@ -347,7 +348,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                     gameState.peers[peer.id] = peer;
 
                     // Collect peer metrics
-                    reportCollector.collectPeerMetrics(peer.id, peer);
+                    reportCollector.collectPeerMetrics(peer.id, peer as Record<string, unknown>);
                     reportCollector.collectEnvironmentMetrics(gameState.currentEnvironment,
                       Object.values(gameState.peers).filter(p => p.environment === gameState.currentEnvironment).length);
 
@@ -411,6 +412,11 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
   
           if (url.pathname.startsWith('/api/peer/') && req.method === 'PUT') {
             const peerId = url.pathname.split('/')[3];
+            if (!peerId) {
+              res.writeHead(400);
+              res.end(JSON.stringify({ error: 'Peer ID is required' }));
+              return;
+            }
             let body = '';
             
             req.on('data', (chunk: unknown) => {
@@ -423,6 +429,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                 if (updateData === null || updateData === undefined || typeof updateData !== 'object') {
                   return;
                 }
+                const updateDataObj = updateData as Record<string, unknown>;
                 
                 if (peerId !== '' && peerId in gameState.peers) {
                   const existingPeer = getPeerSafely(gameState.peers, peerId);
@@ -439,11 +446,11 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                   };
                   
                   // Safely update only known properties
-                  if (typeof updateData['id'] === 'string') updatedPeer.id = updateData['id'];
-                  if (typeof updateData['name'] === 'string') updatedPeer.name = updateData['name'];
-                  if (isVector3(updateData['position'])) updatedPeer.position = updateData['position'];
-                  if (isVector3(updateData['rotation'])) updatedPeer.rotation = updateData['rotation'];
-                  if (typeof updateData['environment'] === 'string') updatedPeer.environment = updateData['environment'];
+                  if (typeof updateDataObj['id'] === 'string') updatedPeer.id = updateDataObj['id'];
+                  if (typeof updateDataObj['name'] === 'string') updatedPeer.name = updateDataObj['name'];
+                  if (isVector3(updateDataObj['position'])) updatedPeer.position = updateDataObj['position'];
+                  if (isVector3(updateDataObj['rotation'])) updatedPeer.rotation = updateDataObj['rotation'];
+                  if (typeof updateDataObj['environment'] === 'string') updatedPeer.environment = updateDataObj['environment'];
                   
                   gameState.peers[peerId] = updatedPeer;
                   
@@ -456,7 +463,9 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                     environment: updatedPeer.environment,
                     lastUpdate: updatedPeer.lastUpdate
                   };
-                  reportCollector.collectPeerMetrics(peerId, peerMetrics);
+                  if (peerId) {
+                    reportCollector.collectPeerMetrics(peerId, peerMetrics);
+                  }
                   
                   res.writeHead(200);
                   res.end(JSON.stringify(updatedPeer));
@@ -486,7 +495,8 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                 if (logData === null || logData === undefined || typeof logData !== 'object') {
                   return;
                 }
-                if (logData.logs !== undefined && Array.isArray(logData.logs)) {
+                const logDataObj = logData as Record<string, unknown>;
+                if (logDataObj.logs !== undefined && Array.isArray(logDataObj.logs)) {
                   // Browser logs processing disabled per TEN_COMMANDMENTS
                   // All console statements must be removed
                 }
