@@ -138,7 +138,7 @@ interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: readonly string[]; // For dropdown elements
-    readonly onChange?: (_value: boolean | string) => void | Promise<void>;
+    readonly onChange?: (value: boolean | string) => void | Promise<void>;
 }
 
 interface SettingsConfig {
@@ -173,7 +173,7 @@ interface GameConfig {
 type ItemEffectKind = "superJump" | "invisibility";
 
 type ItemEffect = {
-    readonly [_K in ItemEffectKind]: (_characterController: CharacterController) => void;
+    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
 };
 
 interface Tile {
@@ -381,7 +381,7 @@ const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/cartoon-river-with-orange-sky.jpg",
                 ROTATION_Y: 0,
                 BLUR: 0.3,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE"
             },
             spawnPoint: new Vector3(3, 0.5, -8),
             particles: [
@@ -480,7 +480,7 @@ const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/orange-desert-night.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE"
             },
             spawnPoint: new Vector3(0, 5, 0) // Higher spawn point for Firefox Reality
         },
@@ -495,7 +495,7 @@ const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE"
             },
             spawnPoint: new Vector3(-15, 15, 0)
         },
@@ -510,7 +510,7 @@ const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE"
             },
             spawnPoint: new Vector3(0, 15, -20)
         },
@@ -525,7 +525,7 @@ const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE"
             },
             spawnPoint: new Vector3(0, 77, -20)
         }
@@ -648,7 +648,7 @@ const CONFIG = {
 
     // HUD Settings
     HUD: {
-        POSITION: "top" as HUDPosition,
+        POSITION: "top",
         FONT_FAMILY: "'Segoe UI', 'Roboto', 'Arial', sans-serif",
         PRIMARY_COLOR: "#ffffff",
         SECONDARY_COLOR: "#cccccc",
