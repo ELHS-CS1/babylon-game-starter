@@ -4,12 +4,13 @@
 
 import type { Scene } from '@babylonjs/core';
 import type { CharacterController } from './CharacterController';
+import { logger } from '../utils/logger';
 
 // Inventory System Type Definitions - IDENTICAL TO PLAYGROUND.TS
 export type ItemEffectKind = "superJump" | "invisibility";
 
 export type ItemEffect = {
-  readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
+  readonly [_K in ItemEffectKind]: (_characterController: CharacterController) => void;
 };
 
 export interface InventoryItem {
@@ -35,12 +36,12 @@ export class InventoryManager {
 
       // Store original jump height
       const currentCharacter = characterController.getCurrentCharacter();
-      InventoryManager.originalJumpHeight = currentCharacter?.jumpHeight || 2.0;
+      InventoryManager.originalJumpHeight = currentCharacter?.jumpHeight ?? 2.0;
 
       // Triple the jump height
       const newJumpHeight = InventoryManager.originalJumpHeight * 3;
       if (currentCharacter) {
-        (currentCharacter as any).jumpHeight = newJumpHeight;
+        (currentCharacter as { jumpHeight: number }).jumpHeight = newJumpHeight;
         // Update character physics to apply the new jump height
         characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
       }
@@ -51,7 +52,7 @@ export class InventoryManager {
       setTimeout(() => {
         const currentCharacter = characterController.getCurrentCharacter();
         if (currentCharacter) {
-          (currentCharacter as any).jumpHeight = InventoryManager.originalJumpHeight;
+          (currentCharacter as { jumpHeight: number }).jumpHeight = InventoryManager.originalJumpHeight;
           // Update character physics to revert the jump height
           characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
         }
@@ -65,7 +66,8 @@ export class InventoryManager {
       // Store original visibility - commented out as property is unused
       // InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
 
-      if (characterController.getPlayerMesh()) {
+      const playerMesh = characterController.getPlayerMesh();
+      if (playerMesh !== null && playerMesh !== undefined) {
         characterController.getPlayerMesh().getChildMeshes()
           .forEach(m => {
             if (m.material) {
@@ -78,7 +80,8 @@ export class InventoryManager {
 
       // Revert after 20 seconds
       setTimeout(() => {
-        if (characterController.getPlayerMesh()) {
+        const playerMesh = characterController.getPlayerMesh();
+        if (playerMesh !== null && playerMesh !== undefined) {
           characterController.getPlayerMesh().getChildMeshes()
             .forEach(m => {
               if (m.material) {
@@ -126,7 +129,7 @@ export class InventoryManager {
 
     // Update inventory UI if it's open
     // Note: InventoryUI integration will be handled by the Vue component
-    console.log(`Added inventory item: ${itemName}, count: ${existingItem ? existingItem.count : 1}`);
+    logger.info(`Added inventory item: ${itemName}, count: ${existingItem ? existingItem.count : 1}`, 'InventoryManager');
   }
 
   /**
@@ -151,13 +154,13 @@ export class InventoryManager {
 
     // Apply the item effect
     const effectFunction = this.itemEffects[item.itemEffectKind];
-    if (effectFunction && this.characterController) {
+    if (effectFunction !== null && effectFunction !== undefined && this.characterController !== null && this.characterController !== undefined) {
       effectFunction(this.characterController);
     }
 
     // Update inventory UI
     // Note: InventoryUI integration will be handled by the Vue component
-    console.log(`Used inventory item: ${itemName}, remaining count: ${item.count}`);
+    logger.info(`Used inventory item: ${itemName}, remaining count: ${item.count}`, 'InventoryManager');
 
     return true;
   }
@@ -189,7 +192,7 @@ export class InventoryManager {
 
     // Update inventory UI
     // Note: InventoryUI integration will be handled by the Vue component
-    console.log("Cleared all inventory items");
+    logger.info("Cleared all inventory items", 'InventoryManager');
   }
 
   /**
@@ -198,18 +201,18 @@ export class InventoryManager {
    */
   public static useItem(itemName: string): void {
     if (!this.characterController) {
-      console.warn("Character controller not available for item usage");
+      logger.warn("Character controller not available for item usage", 'InventoryManager');
       return;
     }
 
     const item = this.inventoryItems.get(itemName);
     if (!item || item.count <= 0) {
-      console.warn(`Cannot use item ${itemName}: not available or count is 0`);
+      logger.warn(`Cannot use item ${itemName}: not available or count is 0`, 'InventoryManager');
       return;
     }
 
     // Apply the item effect
-    if (item.itemEffectKind && this.itemEffects[item.itemEffectKind]) {
+    if (item.itemEffectKind !== null && item.itemEffectKind !== undefined && this.itemEffects[item.itemEffectKind] !== null && this.itemEffects[item.itemEffectKind] !== undefined) {
       this.itemEffects[item.itemEffectKind](this.characterController);
       
       // Decrease item count
@@ -220,9 +223,9 @@ export class InventoryManager {
         this.inventoryItems.delete(itemName);
       }
       
-      console.log(`Used item: ${itemName}, remaining count: ${item.count}`);
+      logger.info(`Used item: ${itemName}, remaining count: ${item.count}`, 'InventoryManager');
     } else {
-      console.warn(`No effect defined for item: ${itemName}`);
+      logger.warn(`No effect defined for item: ${itemName}`, 'InventoryManager');
     }
   }
 
