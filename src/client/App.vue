@@ -193,7 +193,11 @@ const joinGame = async (): Promise<void> => {
 // Leave game
 const leaveGame = (): void => {
   if (gameEngine.value) {
-    gameEngine.value.removePlayer();
+    try {
+      gameEngine.value.removePlayer();
+    } catch (error) {
+      console.error('Error removing player:', error);
+    }
   }
 };
 

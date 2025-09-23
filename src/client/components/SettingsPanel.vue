@@ -257,7 +257,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { SettingsData } from '../game/SettingsData';
-import { ThemeUtils } from '../config/themeConfig';
+// import { ThemeUtils } from '../config/themeConfig'; // Unused for now
 import CONFIG from '../config/gameConfig';
 
 // Props
@@ -305,25 +305,28 @@ const hudPosition = ref(CONFIG.HUD.POSITION);
 
 // Initialize reactive values - THE WORD OF THE LORD
 const initializeReactiveValues = () => {
-  settingsSections.value.forEach(section => {
-    if (section.uiElement === 'toggle') {
-      if (toggleValues.value[section.title] === null || toggleValues.value[section.title] === undefined) {
-        if (section.title === 'Screen Controls') {
-          toggleValues.value[section.title] = true;
+  settingsSections.value.forEach((section: Record<string, unknown>) => {
+    const sectionTitle = typeof section.title === 'string' ? section.title : '';
+    const uiElement = typeof section.uiElement === 'string' ? section.uiElement : '';
+    
+    if (uiElement === 'toggle') {
+      if (toggleValues.value[sectionTitle] === null || toggleValues.value[sectionTitle] === undefined) {
+        if (sectionTitle === 'Screen Controls') {
+          toggleValues.value[sectionTitle] = true;
         } else {
           const defaultValue = SettingsData.getDefaultValue(section);
-          toggleValues.value[section.title] = typeof defaultValue === 'boolean' ? defaultValue : false;
+          toggleValues.value[sectionTitle] = typeof defaultValue === 'boolean' ? defaultValue : false;
         }
       }
-    } else if (section.uiElement === 'dropdown') {
-      if (dropdownValues.value[section.title] === null || dropdownValues.value[section.title] === undefined) {
-        if (section.title === 'Character') {
-          dropdownValues.value[section.title] = selectedCharacter.value;
-        } else if (section.title === 'Environment') {
-          dropdownValues.value[section.title] = selectedEnvironment.value;
+    } else if (uiElement === 'dropdown') {
+      if (dropdownValues.value[sectionTitle] === null || dropdownValues.value[sectionTitle] === undefined) {
+        if (sectionTitle === 'Character') {
+          dropdownValues.value[sectionTitle] = selectedCharacter.value;
+        } else if (sectionTitle === 'Environment') {
+          dropdownValues.value[sectionTitle] = selectedEnvironment.value;
         } else {
           const defaultValue = SettingsData.getDefaultValue(section);
-          dropdownValues.value[section.title] = typeof defaultValue === 'string' ? defaultValue : '';
+          dropdownValues.value[sectionTitle] = typeof defaultValue === 'string' ? defaultValue : '';
         }
       }
     }
@@ -373,18 +376,18 @@ const getSectionIconColor = (title: string): string => {
 //   return toggleValues.value[section.title];
 // };
 
-const getDropdownValue = (section: any): string => {
-  if (!dropdownValues.value[section.title]) {
-    if (section.title === 'Character') {
-      dropdownValues.value[section.title] = selectedCharacter.value;
-    } else if (section.title === 'Environment') {
-      dropdownValues.value[section.title] = selectedEnvironment.value;
-    } else {
-      dropdownValues.value[section.title] = SettingsData.getDefaultValue(section) as string;
-    }
-  }
-  return dropdownValues.value[section.title];
-};
+// const getDropdownValue = (section: any): string => { // Unused for now
+//   if (!dropdownValues.value[section.title]) {
+//     if (section.title === 'Character') {
+//       dropdownValues.value[section.title] = selectedCharacter.value;
+//     } else if (section.title === 'Environment') {
+//       dropdownValues.value[section.title] = selectedEnvironment.value;
+//     } else {
+//       dropdownValues.value[section.title] = SettingsData.getDefaultValue(section) as string;
+//     }
+//   }
+//   return dropdownValues.value[section.title];
+// };
 
 const hudSettings = reactive({
   showCoordinates: CONFIG.HUD.SHOW_COORDINATES,
@@ -424,21 +427,24 @@ const togglePanel = () => {
 };
 
 // Handle section changes from THE WORD OF THE LORD
-const onSectionChange = (section: any, value: boolean | string) => {
+const onSectionChange = (section: Record<string, unknown>, value: boolean | string) => {
+  const sectionTitle = typeof section.title === 'string' ? section.title : '';
+  const uiElement = typeof section.uiElement === 'string' ? section.uiElement : '';
+  
   // Update the reactive values
-  if (section.uiElement === 'toggle') {
-    toggleValues.value[section.title] = value as boolean;
-  } else if (section.uiElement === 'dropdown') {
-    dropdownValues.value[section.title] = value as string;
+  if (uiElement === 'toggle') {
+    toggleValues.value[sectionTitle] = typeof value === 'boolean' ? value : false;
+  } else if (uiElement === 'dropdown') {
+    dropdownValues.value[sectionTitle] = typeof value === 'string' ? value : '';
   }
   
-  if (section.title === 'Character') {
-    selectedCharacter.value = value as string;
-    onCharacterChange(value as string);
-  } else if (section.title === 'Environment') {
-    selectedEnvironment.value = value as string;
-    onEnvironmentChange(value as string);
-  } else if (section.title === 'Screen Controls') {
+  if (sectionTitle === 'Character') {
+    selectedCharacter.value = typeof value === 'string' ? value : '';
+    onCharacterChange(typeof value === 'string' ? value : '');
+  } else if (sectionTitle === 'Environment') {
+    selectedEnvironment.value = typeof value === 'string' ? value : '';
+    onEnvironmentChange(typeof value === 'string' ? value : '');
+  } else if (sectionTitle === 'Screen Controls') {
     // Handle screen controls toggle
     console.log('Screen Controls changed:', value);
   }

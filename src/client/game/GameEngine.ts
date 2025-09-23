@@ -140,6 +140,16 @@ export class GameEngine {
     return player;
   }
 
+  public createPlayer(playerName: string): Peer | null {
+    try {
+      const peer = this.peerManager.createLocalPeer(playerName, this.currentEnvironment);
+      return peer;
+    } catch (error) {
+      console.error('Failed to create player:', error);
+      return null;
+    }
+  }
+
   public setEnvironment(environment: string): void {
     if (this.currentEnvironment !== environment && this.sceneManager) {
       this.currentEnvironment = environment;
