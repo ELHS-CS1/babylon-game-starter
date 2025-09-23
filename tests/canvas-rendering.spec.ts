@@ -89,11 +89,11 @@ class CanvasTestHelper {
   }
 
   async joinGame(): Promise<void> {
-    const joinButton = this.page.locator('button:has-text("Join Game")');
+    const joinButton = (this as any).page.locator('button:has-text("Join Game")');
     await joinButton.click({ timeout: 20000 });
     
     // Wait for player to be created
-    await this.page.waitForTimeout(1000);
+    await (this as any).page.waitForTimeout(1000);
   }
 }
 
@@ -262,12 +262,12 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Colors should be consistent when returning to the same environment
-    expect(isColorWithinTolerance(levelTestColors['sky']!, levelTestColorsAgain['sky']!)).toBe(true);
-    expect(isColorWithinTolerance(levelTestColors['ground']!, levelTestColorsAgain['ground']!)).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, levelTestColorsAgain['sky']!, 10)).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, levelTestColorsAgain['ground']!, 10)).toBe(true);
 
     // Colors should be different between environments
-    expect(isColorWithinTolerance(levelTestColors['sky']!, joyTownColors['sky']!)).toBe(false);
-    expect(isColorWithinTolerance(levelTestColors['ground']!, joyTownColors['ground']!)).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, joyTownColors['sky']!, 10)).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, joyTownColors['ground']!, 10)).toBe(false);
 
     console.log('Environment Switching Colors:', {
       levelTest: levelTestColors,
@@ -289,7 +289,7 @@ test.describe('Canvas Rendering Tests', () => {
     await helper.joinGame();
     
     // Wait for character to be rendered
-    await helper.page.waitForTimeout(2000);
+    await (helper as any).page.waitForTimeout(2000);
     
     // Sample colors after joining
     const afterJoin = await helper.sampleMultiplePixels([
@@ -299,9 +299,9 @@ test.describe('Canvas Rendering Tests', () => {
 
     // Character should be visible (colors should change)
     const characterVisible = 
-      beforeJoin.character_area.r !== afterJoin.character_area.r ||
-      beforeJoin.character_area.g !== afterJoin.character_area.g ||
-      beforeJoin.character_area.b !== afterJoin.character_area.b;
+      beforeJoin['character_area']!.r !== afterJoin['character_area']!.r ||
+      beforeJoin['character_area']!.g !== afterJoin['character_area']!.g ||
+      beforeJoin['character_area']!.b !== afterJoin['character_area']!.b;
 
     expect(characterVisible).toBe(true);
 
@@ -323,8 +323,8 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Resize the browser window
-    await helper.page.setViewportSize({ width: 1200, height: 800 });
-    await helper.page.waitForTimeout(1000);
+    await (helper as any).page.setViewportSize({ width: 1200, height: 800 });
+    await (helper as any).page.waitForTimeout(1000);
 
     // Get colors after resize
     const resizedColors = await helper.sampleMultiplePixels([
@@ -333,8 +333,8 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Colors should remain consistent after resize
-    expect(isColorWithinTolerance(initialColors.sky, resizedColors.sky)).toBe(true);
-    expect(isColorWithinTolerance(initialColors.ground, resizedColors.ground)).toBe(true);
+    expect(isColorWithinTolerance(initialColors['sky']!, resizedColors['sky']!, 10)).toBe(true);
+    expect(isColorWithinTolerance(initialColors['ground']!, resizedColors['ground']!, 10)).toBe(true);
 
     console.log('Canvas Resize Colors:', {
       initial: initialColors,

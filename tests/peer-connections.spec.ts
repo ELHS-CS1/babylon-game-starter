@@ -1,4 +1,4 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 interface PeerState {
   id: string;
@@ -158,8 +158,8 @@ test.describe('Multiplayer Peer Connections', () => {
     await page2.waitForFunction(() => window.isConnected === true);
 
     // Get initial game states
-    const initialState1 = await helper1.getGameState();
-    const initialState2 = await helper2.getGameState();
+    // const initialState1 = await helper1.getGameState(); // Unused for now
+    // const initialState2 = await helper2.getGameState(); // Unused for now
 
     // Player 1 moves around
     await helper1.simulatePlayerMovement();

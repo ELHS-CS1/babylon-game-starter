@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { beforeEach, afterEach } from 'vitest';
 
 // Mock WebSocket for unit tests
 class MockWebSocket {
@@ -39,45 +39,45 @@ class MockWebSocket {
 }
 
 // Mock fetch for API calls
-global.fetch = vi.fn();
+(global as any).fetch = (global as any).vi.fn();
 
 // Mock WebSocket
-global.WebSocket = MockWebSocket as any;
+(global as any).WebSocket = MockWebSocket as any;
 
 // Mock Canvas and WebGL for Babylon.js
 const mockCanvas = {
-  getContext: vi.fn(() => ({
-    fillRect: vi.fn(),
-    clearRect: vi.fn(),
-    getImageData: vi.fn(() => ({ data: new Array(4) })),
-    putImageData: vi.fn(),
-    createImageData: vi.fn(() => ({ data: new Array(4) })),
-    setTransform: vi.fn(),
-    drawImage: vi.fn(),
-    save: vi.fn(),
-    fillText: vi.fn(),
-    restore: vi.fn(),
-    beginPath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    closePath: vi.fn(),
-    stroke: vi.fn(),
-    translate: vi.fn(),
-    scale: vi.fn(),
-    rotate: vi.fn(),
-    arc: vi.fn(),
-    fill: vi.fn(),
-    measureText: vi.fn(() => ({ width: 0 })),
-    transform: vi.fn(),
-    rect: vi.fn(),
-    clip: vi.fn(),
+  getContext: (global as any).vi.fn(() => ({
+    fillRect: (global as any).vi.fn(),
+    clearRect: (global as any).vi.fn(),
+    getImageData: (global as any).vi.fn(() => ({ data: new Array(4) })),
+    putImageData: (global as any).vi.fn(),
+    createImageData: (global as any).vi.fn(() => ({ data: new Array(4) })),
+    setTransform: (global as any).vi.fn(),
+    drawImage: (global as any).vi.fn(),
+    save: (global as any).vi.fn(),
+    fillText: (global as any).vi.fn(),
+    restore: (global as any).vi.fn(),
+    beginPath: (global as any).vi.fn(),
+    moveTo: (global as any).vi.fn(),
+    lineTo: (global as any).vi.fn(),
+    closePath: (global as any).vi.fn(),
+    stroke: (global as any).vi.fn(),
+    translate: (global as any).vi.fn(),
+    scale: (global as any).vi.fn(),
+    rotate: (global as any).vi.fn(),
+    arc: (global as any).vi.fn(),
+    fill: (global as any).vi.fn(),
+    measureText: (global as any).vi.fn(() => ({ width: 0 })),
+    transform: (global as any).vi.fn(),
+    rect: (global as any).vi.fn(),
+    clip: (global as any).vi.fn(),
   })),
   width: 800,
   height: 600,
   style: {},
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
+  addEventListener: (global as any).vi.fn(),
+  removeEventListener: (global as any).vi.fn(),
+  dispatchEvent: (global as any).vi.fn(),
 };
 
 // Mock HTMLCanvasElement
