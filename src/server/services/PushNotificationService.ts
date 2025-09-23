@@ -220,7 +220,7 @@ class PushNotificationService {
             return;
           }
           
-          const success = await this.subscribeUser(userId, dataObj['subscription'] as Record<string, unknown>);
+          const success = await this.subscribeUser(userId, dataObj['subscription'] as any);
           res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success }));
         } catch {

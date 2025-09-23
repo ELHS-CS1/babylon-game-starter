@@ -90,37 +90,37 @@ Object.defineProperty(global, 'HTMLCanvasElement', {
 });
 
 // Mock requestAnimationFrame
-global.requestAnimationFrame = vi.fn((cb) => {
+(global as any).requestAnimationFrame = (global as any).vi.fn((cb: any) => {
   return setTimeout(cb, 16);
 });
 
-global.cancelAnimationFrame = vi.fn((id) => {
+(global as any).cancelAnimationFrame = (global as any).vi.fn((id: any) => {
   clearTimeout(id);
 });
 
 // Mock performance
-global.performance = {
-  now: vi.fn(() => Date.now()),
+(global as any).performance = {
+  now: (global as any).vi.fn(() => Date.now()),
 } as any;
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
+(global as any).ResizeObserver = (global as any).vi.fn().mockImplementation(() => ({
+  observe: (global as any).vi.fn(),
+  unobserve: (global as any).vi.fn(),
+  disconnect: (global as any).vi.fn(),
 }));
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
+(global as any).IntersectionObserver = (global as any).vi.fn().mockImplementation(() => ({
+  observe: (global as any).vi.fn(),
+  unobserve: (global as any).vi.fn(),
+  disconnect: (global as any).vi.fn(),
 }));
 
 // Setup and teardown for each test
 beforeEach(() => {
   // Clear all mocks before each test
-  vi.clearAllMocks();
+  (global as any).vi.clearAllMocks();
   
   // Reset fetch mock
   (global.fetch as any).mockResolvedValue({
@@ -132,5 +132,5 @@ beforeEach(() => {
 
 afterEach(() => {
   // Clean up after each test
-  vi.clearAllTimers();
+  (global as any).vi.clearAllTimers();
 });

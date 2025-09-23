@@ -262,12 +262,12 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Colors should be consistent when returning to the same environment
-    expect(isColorWithinTolerance(levelTestColors['sky']!, levelTestColorsAgain['sky']!, 10)).toBe(true);
-    expect(isColorWithinTolerance(levelTestColors['ground']!, levelTestColorsAgain['ground']!, 10)).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, { ...levelTestColorsAgain['sky']!, tolerance: 10 })).toBe(true);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, { ...levelTestColorsAgain['ground']!, tolerance: 10 })).toBe(true);
 
     // Colors should be different between environments
-    expect(isColorWithinTolerance(levelTestColors['sky']!, joyTownColors['sky']!, 10)).toBe(false);
-    expect(isColorWithinTolerance(levelTestColors['ground']!, joyTownColors['ground']!, 10)).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['sky']!, { ...joyTownColors['sky']!, tolerance: 10 })).toBe(false);
+    expect(isColorWithinTolerance(levelTestColors['ground']!, { ...joyTownColors['ground']!, tolerance: 10 })).toBe(false);
 
     console.log('Environment Switching Colors:', {
       levelTest: levelTestColors,
@@ -333,8 +333,8 @@ test.describe('Canvas Rendering Tests', () => {
     ]);
 
     // Colors should remain consistent after resize
-    expect(isColorWithinTolerance(initialColors['sky']!, resizedColors['sky']!, 10)).toBe(true);
-    expect(isColorWithinTolerance(initialColors['ground']!, resizedColors['ground']!, 10)).toBe(true);
+    expect(isColorWithinTolerance(initialColors['sky']!, { ...resizedColors['sky']!, tolerance: 10 })).toBe(true);
+    expect(isColorWithinTolerance(initialColors['ground']!, { ...resizedColors['ground']!, tolerance: 10 })).toBe(true);
 
     console.log('Canvas Resize Colors:', {
       initial: initialColors,
