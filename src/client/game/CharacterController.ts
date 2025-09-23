@@ -2,12 +2,12 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState } from '@babylonjs/core';
+import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
 import CONFIG, { ASSETS } from '../config/gameConfig';
-import { AnimationController, CHARACTER_STATES } from './AnimationController';
+import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
-import { logger } from '../utils/Logger';
+import { logger } from '../utils/logger';
 
 // Character states are now imported from AnimationController - THE WORD OF GOD
 
@@ -30,7 +30,7 @@ const INPUT_KEYS = {
 // Character interface is imported from gameConfig - THE WORD OF GOD
 
 // Character state type
-type CharacterState = CHARACTER_STATES;
+type CharacterState = string;
 
 export class CharacterController {
   private readonly scene: Scene;
@@ -180,7 +180,7 @@ export class CharacterController {
     return false; // Will be updated by the event listener
   }
 
-  private handleKeyboard = (kbInfo: { event: { key: string }; type: string }): void => {
+  private handleKeyboard = (kbInfo: KeyboardInfo): void => {
     const key = kbInfo.event.key.toLowerCase();
     
     // Debug logging for key events
@@ -203,32 +203,32 @@ export class CharacterController {
 
   private handleKeyDown(key: string): void {
     // Movement input
-    if (INPUT_KEYS.FORWARD.includes(key)) {
+    if (INPUT_KEYS.FORWARD.includes(key as 'w' | 'arrowup')) {
       this.inputDirection.z = 1;
 
-    } else if (INPUT_KEYS.BACKWARD.includes(key)) {
+    } else if (INPUT_KEYS.BACKWARD.includes(key as 's' | 'arrowdown')) {
       this.inputDirection.z = -1;
 
-    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key)) {
+    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key as 'q')) {
       this.inputDirection.x = -1;
 
-    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
+    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key as 'e')) {
       this.inputDirection.x = 1;
 
-    } else if (INPUT_KEYS.JUMP.includes(key)) {
+    } else if (INPUT_KEYS.JUMP.includes(key as ' ')) {
       this.wantJump = true;
-    } else if (INPUT_KEYS.BOOST.includes(key)) {
+    } else if (INPUT_KEYS.BOOST.includes(key as 'shift')) {
       logger.info("Boost key pressed!", 'CharacterController');
       this.boostActive = true;
       this.updateParticleSystem();
-    } else if (INPUT_KEYS.DEBUG.includes(key)) {
+    } else if (INPUT_KEYS.DEBUG.includes(key as '0')) {
       logger.info("Debug key pressed!", 'CharacterController');
       this.toggleDebugDisplay();
-    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key)) {
+    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key as 'h')) {
       this.toggleHUD();
-    } else if (INPUT_KEYS.HUD_POSITION.includes(key)) {
+    } else if (INPUT_KEYS.HUD_POSITION.includes(key as 'p')) {
       this.cycleHUDPosition();
-    } else if (INPUT_KEYS.RESET_CAMERA.includes(key)) {
+    } else if (INPUT_KEYS.RESET_CAMERA.includes(key as '1')) {
       this.resetCameraToDefaultOffset();
     }
 
@@ -240,19 +240,19 @@ export class CharacterController {
 
   private handleKeyUp(key: string): void {
     // Reset movement input
-    if (INPUT_KEYS.FORWARD.includes(key) || INPUT_KEYS.BACKWARD.includes(key)) {
+    if (INPUT_KEYS.FORWARD.includes(key as 'w' | 'arrowup') || INPUT_KEYS.BACKWARD.includes(key as 's' | 'arrowdown')) {
       this.inputDirection.z = 0;
     }
-    if (INPUT_KEYS.LEFT.includes(key) || INPUT_KEYS.RIGHT.includes(key)) {
+    if (INPUT_KEYS.LEFT.includes(key as 'a' | 'arrowleft') || INPUT_KEYS.RIGHT.includes(key as 'd' | 'arrowright')) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.STRAFE_LEFT.includes(key) || INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
+    if (INPUT_KEYS.STRAFE_LEFT.includes(key as 'q') || INPUT_KEYS.STRAFE_RIGHT.includes(key as 'e')) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.JUMP.includes(key)) {
+    if (INPUT_KEYS.JUMP.includes(key as ' ')) {
       this.wantJump = false;
     }
-    if (INPUT_KEYS.BOOST.includes(key)) {
+    if (INPUT_KEYS.BOOST.includes(key as 'shift')) {
       logger.info("Boost key released!", 'CharacterController');
       this.boostActive = false;
       this.updateParticleSystem();
@@ -348,8 +348,8 @@ export class CharacterController {
   }
 
   private resetCameraToDefaultOffset(): void {
-    if (this.cameraController) {
-      this.cameraController.resetCameraToDefaultOffset();
+    if (this.cameraController && typeof this.cameraController === 'object' && 'resetCameraToDefaultOffset' in this.cameraController) {
+      (this.cameraController as { resetCameraToDefaultOffset: () => void }).resetCameraToDefaultOffset();
     }
   }
 
@@ -455,7 +455,7 @@ export class CharacterController {
 
   private updateRotation(): void {
     // If camera is controlling rotation, don't interfere
-    if (this.cameraController?.isRotatingCharacter) {
+    if (this.cameraController && typeof this.cameraController === 'object' && 'isRotatingCharacter' in this.cameraController && (this.cameraController as { isRotatingCharacter: boolean }).isRotatingCharacter) {
       // Update target rotation to match current rotation to prevent jerking
       this.targetRotationY = this.displayCapsule.rotation.y;
       return;
@@ -510,8 +510,8 @@ export class CharacterController {
     }
 
     // Check for walk activation to trigger character rotation
-    if (isMoving && this.cameraController) {
-      this.cameraController.checkForWalkActivation();
+    if (isMoving && this.cameraController && typeof this.cameraController === 'object' && 'checkForWalkActivation' in this.cameraController) {
+      (this.cameraController as { checkForWalkActivation: () => void }).checkForWalkActivation();
     }
   }
 

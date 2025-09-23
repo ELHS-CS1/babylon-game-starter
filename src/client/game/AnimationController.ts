@@ -29,7 +29,7 @@ export class AnimationController {
   // Jump delay tracking
   private jumpDelayStartTime: number = 0;
   private isJumpDelayed: boolean = false;
-  // private lastCharacterState: CHARACTER_STATES | null = null; // Unused for now
+  private lastCharacterState: string | null = null;
 
   constructor(scene: Scene) {
     this.scene = scene;
