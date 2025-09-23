@@ -113,15 +113,16 @@ export class GDCReportAPI {
         this.sendError(res, 400, 'Invalid request data');
         return;
       }
-      const reportPeriodHours = typeof requestData['reportPeriodHours'] === 'number' ? requestData['reportPeriodHours'] : 24;
-      const formats = Array.isArray(requestData['formats']) ? requestData['formats'] : ['pdf', 'txt', 'json'];
+      const requestDataObj = requestData as Record<string, unknown>;
+      const reportPeriodHours = typeof requestDataObj['reportPeriodHours'] === 'number' ? requestDataObj['reportPeriodHours'] : 24;
+      const formats = Array.isArray(requestDataObj['formats']) ? requestDataObj['formats'] : ['pdf', 'txt', 'json'];
 
       // Generate report data
       const reportData = this.reportCollector.generateReportData(reportPeriodHours);
 
       // Generate and store reports
       const validFormats = Array.isArray(formats) ? formats.filter((format): format is 'pdf' | 'txt' | 'csv' | 'json' | 'md' => {
-        return format === 'pdf' || format === 'txt' || format === 'csv' || format === 'json' || format === 'md';
+        return typeof format === 'string' && (format === 'pdf' || format === 'txt' || format === 'csv' || format === 'json' || format === 'md');
       }) : ['pdf', 'txt', 'json'];
       const storedReports = await this.reportManager.generateAndStoreReport(reportData, validFormats);
 
@@ -160,7 +161,7 @@ export class GDCReportAPI {
       }
 
       // Return specific format
-      const content = await this.reportManager.getReportContent(reportId, format);
+      const content = await this.reportManager.getReportContent(reportId!, format);
       if (!content) {
         this.sendError(res, 404, 'Report not found');
         return;
@@ -203,7 +204,7 @@ export class GDCReportAPI {
         return;
       }
 
-      const deleted = await this.reportManager.deleteReport(reportId, format);
+      const deleted = await this.reportManager.deleteReport(reportId!, format);
       if (!deleted) {
         this.sendError(res, 404, 'Report not found');
         return;
@@ -237,8 +238,9 @@ export class GDCReportAPI {
         this.sendError(res, 400, 'Invalid request data');
         return;
       }
-      const reportIds: unknown = requestData['reportIds'];
-      const exportPath: unknown = requestData['exportPath'];
+      const requestDataObj = requestData as Record<string, unknown>;
+      const reportIds: unknown = requestDataObj['reportIds'];
+      const exportPath: unknown = requestDataObj['exportPath'];
 
       if (exportPath === null || exportPath === undefined || exportPath === '') {
         this.sendError(res, 400, 'Export path is required');

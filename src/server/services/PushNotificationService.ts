@@ -102,7 +102,9 @@ class PushNotificationService {
       if (keysDataParsed !== null && keysDataParsed !== undefined && typeof keysDataParsed === 'object' && 'publicKey' in keysDataParsed && 'privateKey' in keysDataParsed) {
         this.vapidKeys = {
           publicKey: typeof keysDataParsed.publicKey === 'string' ? keysDataParsed.publicKey : '',
-          privateKey: typeof keysDataParsed.privateKey === 'string' ? keysDataParsed.privateKey : ''
+          privateKey: typeof keysDataParsed.privateKey === 'string' ? keysDataParsed.privateKey : '',
+          generatedAt: new Date().toISOString(),
+          subject: 'mailto:admin@example.com'
         };
       }
     } catch {
@@ -203,15 +205,16 @@ class PushNotificationService {
             return;
           }
           
-          if (data.userId === null || data.userId === undefined || data.subscription === null || data.subscription === undefined) {
+          const dataObj = data as Record<string, unknown>;
+          if (dataObj.userId === null || dataObj.userId === undefined || dataObj.subscription === null || dataObj.subscription === undefined) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Missing userId or subscription' }));
             return;
           }
 
-          const userId = typeof data['userId'] === 'string' ? data['userId'] : '';
+          const userId = typeof dataObj['userId'] === 'string' ? dataObj['userId'] : '';
           
-          if (!isPushSubscription(data['subscription'])) {
+          if (!isPushSubscription(dataObj['subscription'])) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Invalid subscription data' }));
             return;

@@ -62,8 +62,8 @@ export class InventoryManager {
       if (InventoryManager.activeEffects.has('invisibility')) {
         return; // Effect already active
       }
-      // Store original visibility
-      InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
+      // Store original visibility - commented out as property is unused
+      // InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
 
       if (characterController.getPlayerMesh()) {
         characterController.getPlayerMesh().getChildMeshes()

@@ -81,7 +81,7 @@ export class GDCReportManager {
                 }
                 return 'txt' as const;
               })(),
-              generatedAt: reportData['generatedAt'] instanceof Date ? reportData['generatedAt'] : new Date(),
+              generatedAt: reportData['generatedAt'] instanceof Date ? reportData['generatedAt'].toISOString() : new Date().toISOString(),
               size: typeof reportData['size'] === 'number' ? reportData['size'] : 0
             };
           

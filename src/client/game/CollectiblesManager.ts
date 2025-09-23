@@ -163,9 +163,8 @@ export class CollectiblesManager {
       meshInstance.setEnabled(true);
 
       // Get the scaled bounding box dimensions after applying instance scaling
-      const boundingBox = meshInstance.getBoundingInfo();
+      // const boundingBox = meshInstance.getBoundingInfo(); // Unused for now
       // const scaledSize = boundingBox.boundingBox.extendSize.scale(2); // Multiply by 2 to get full size - unused for now
-      // const _boundingBox = boundingBox; // Suppress unused variable warning
 
       // Create physics body with dynamic box shape based on scaled dimensions
       const physicsAggregate = new PhysicsAggregate(
