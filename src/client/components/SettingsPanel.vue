@@ -451,7 +451,11 @@ const onSectionChange = (section: Record<string, unknown>, value: boolean | stri
   
   // Call the section's onChange callback if it exists
   if (section.onChange !== null && section.onChange !== undefined && typeof section.onChange === 'function') {
-    section.onChange(value);
+    try {
+      section.onChange(value);
+    } catch {
+      // Callback error - handled silently
+    }
   }
 };
 

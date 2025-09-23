@@ -6,13 +6,13 @@ import type { Scene } from '@babylonjs/core';
 import { type Character } from '../config/gameConfig';
 
 // Character state enum - IDENTICAL TO PLAYGROUND.TS
-export enum CHARACTER_STATES {
-  ON_GROUND = 'ON_GROUND',
-  IN_AIR = 'IN_AIR',
-  JUMPING = 'JUMPING',
-  FALLING = 'FALLING',
-  START_JUMP = 'START_JUMP'
-}
+// export enum CHARACTER_STATES { // Unused for now
+//   ON_GROUND = 'ON_GROUND',
+//   IN_AIR = 'IN_AIR',
+//   JUMPING = 'JUMPING',
+//   FALLING = 'FALLING',
+//   START_JUMP = 'START_JUMP'
+// }
 
 // Character interface is now imported from gameConfig - THE WORD OF GOD
 
@@ -40,7 +40,7 @@ export class AnimationController {
    */
   public setCharacter(character: Character): void {
     this.currentCharacter = character;
-    this.blendDuration = character.animationBlend || 400;
+    this.blendDuration = character.animationBlend ?? 400;
 
     // Reset animation state when character changes
     this.currentAnimation = null;
