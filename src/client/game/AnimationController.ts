@@ -112,7 +112,7 @@ export class AnimationController {
 
     // If not found, try to find it by partial name match
     if (animation === null) {
-      animation ??= this.scene.animationGroups.find(anim =>
+      animation = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
         animationName.toLowerCase().includes(anim.name.toLowerCase())
       ) ?? null;
@@ -169,7 +169,7 @@ export class AnimationController {
 
     // If target animation not found, try partial match
     if (targetAnim === null) {
-      targetAnim = this.scene.animationGroups.find(anim =>
+      targetAnim ??= this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
       ) ?? null;
@@ -178,12 +178,12 @@ export class AnimationController {
     // If still not found, try common fallbacks
     if (targetAnim === null) {
       if (targetAnimation.toLowerCase().includes('idle')) {
-        targetAnim = this.scene.animationGroups.find(anim =>
+        targetAnim ??= this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
         ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('walk')) {
-        targetAnim = this.scene.animationGroups.find(anim =>
+        targetAnim ??= this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
@@ -217,7 +217,7 @@ export class AnimationController {
 
     // If target animation not found, try partial match
     if (targetAnim === null) {
-      targetAnim = this.scene.animationGroups.find(anim =>
+      targetAnim ??= this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
       ) ?? null;
@@ -226,18 +226,18 @@ export class AnimationController {
     // If still not found, try common fallbacks
     if (targetAnim === null) {
       if (targetAnimation.toLowerCase().includes('idle')) {
-        targetAnim = this.scene.animationGroups.find(anim =>
+        targetAnim ??= this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
         ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('walk')) {
-        targetAnim = this.scene.animationGroups.find(anim =>
+        targetAnim ??= this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
         ) ?? null;
       } else if (targetAnimation.toLowerCase().includes('jump')) {
-        targetAnim = this.scene.animationGroups.find(anim =>
+        targetAnim ??= this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('jump') ||
           anim.name.toLowerCase().includes('leap') ||
           anim.name.toLowerCase().includes('hop')
@@ -280,7 +280,7 @@ export class AnimationController {
     const currentWeight = this.easeInOutCubic(blendProgress);
 
     // Update animation weights
-    if (this.previousAnimation !== null && this.previousAnimation !== undefined && this.currentAnimation !== null && this.currentAnimation !== undefined) {
+    if (this.previousAnimation !== null && this.currentAnimation !== null) {
       const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
       const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
 
@@ -301,10 +301,10 @@ export class AnimationController {
    * Completes the animation blend
    */
   private completeBlend(): void {
-    if (this.currentAnimation === null || this.currentAnimation === undefined) return;
+    if (this.currentAnimation === null) return;
 
     // Stop the previous animation
-    if (this.previousAnimation !== null && this.previousAnimation !== undefined) {
+    if (this.previousAnimation !== null) {
       const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
       if (previousAnim) {
         previousAnim.stop();
@@ -348,7 +348,7 @@ export class AnimationController {
    * Handles jump delay logic to avoid awkward jump transitions
    */
   private handleJumpDelay(characterState?: string): void {
-    if (this.currentCharacter === null || this.currentCharacter === undefined || characterState === null || characterState === undefined) return;
+    if (this.currentCharacter === null || characterState === null || characterState === undefined) return;
 
     const jumpDelay = this.currentCharacter.jumpDelay ?? 100; // Default to 100ms
 
