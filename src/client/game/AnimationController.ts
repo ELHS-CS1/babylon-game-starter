@@ -119,7 +119,7 @@ export class AnimationController {
     }
 
     // If still not found, try common fallbacks
-    if (animation === null || animation === undefined) {
+    if (animation === null) {
       if (animationName.toLowerCase().includes('idle')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -140,7 +140,7 @@ export class AnimationController {
       }
     }
 
-    if (animation === null || animation === undefined) {
+    if (animation === null) {
       // Animation not found - handled silently
       return;
     }
@@ -168,7 +168,7 @@ export class AnimationController {
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (targetAnim === null || targetAnim === undefined) {
+    if (targetAnim === null) {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
@@ -176,7 +176,7 @@ export class AnimationController {
     }
 
     // If still not found, try common fallbacks
-    if (targetAnim === null || targetAnim === undefined) {
+    if (targetAnim === null) {
       if (targetAnimation.toLowerCase().includes('idle')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -212,11 +212,11 @@ export class AnimationController {
    * Starts weighted blending between two animations
    */
   private startWeightedBlend(targetAnimation: string): void {
-    const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation!);
+    const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation ?? '');
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (targetAnim === null || targetAnim === undefined) {
+    if (targetAnim === null) {
       targetAnim = this.scene.animationGroups.find(anim =>
         anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
         targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
@@ -224,7 +224,7 @@ export class AnimationController {
     }
 
     // If still not found, try common fallbacks
-    if (targetAnim === null || targetAnim === undefined) {
+    if (targetAnim === null) {
       if (targetAnimation.toLowerCase().includes('idle')) {
         targetAnim = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('idle') ||
@@ -280,7 +280,7 @@ export class AnimationController {
     const currentWeight = this.easeInOutCubic(blendProgress);
 
     // Update animation weights
-    if (this.previousAnimation && this.currentAnimation) {
+    if (this.previousAnimation !== null && this.previousAnimation !== undefined && this.currentAnimation !== null && this.currentAnimation !== undefined) {
       const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
       const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
 
@@ -301,10 +301,10 @@ export class AnimationController {
    * Completes the animation blend
    */
   private completeBlend(): void {
-    if (!this.currentAnimation) return;
+    if (this.currentAnimation === null || this.currentAnimation === undefined) return;
 
     // Stop the previous animation
-    if (this.previousAnimation) {
+    if (this.previousAnimation !== null && this.previousAnimation !== undefined) {
       const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
       if (previousAnim) {
         previousAnim.stop();
@@ -348,9 +348,9 @@ export class AnimationController {
    * Handles jump delay logic to avoid awkward jump transitions
    */
   private handleJumpDelay(characterState?: string): void {
-    if (!this.currentCharacter || !characterState) return;
+    if (this.currentCharacter === null || this.currentCharacter === undefined || characterState === null || characterState === undefined) return;
 
-    const jumpDelay = this.currentCharacter.jumpDelay || 100; // Default to 100ms
+    const jumpDelay = this.currentCharacter.jumpDelay ?? 100; // Default to 100ms
 
     // Check if we just entered IN_AIR state
     if (characterState === 'IN_AIR' && this.lastCharacterState !== 'IN_AIR') {
