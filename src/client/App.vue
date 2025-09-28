@@ -95,7 +95,7 @@ const settingsPanel = ref<InstanceType<typeof SettingsPanel>>();
 const inventoryPanel = ref<InstanceType<typeof InventoryPanel>>();
 
 // HUD and settings state
-const hudPosition = ref(CONFIG.HUD.POSITION);
+const hudPosition = ref<'top' | 'bottom' | 'left' | 'right'>(CONFIG.HUD.POSITION);
 const hudSettings = reactive({
   showCoordinates: CONFIG.HUD.SHOW_COORDINATES,
   showTime: CONFIG.HUD.SHOW_TIME,
@@ -105,7 +105,23 @@ const hudSettings = reactive({
   showCredits: CONFIG.HUD.SHOW_CREDITS
 });
 
-const inventoryItems = ref([...CONFIG.INVENTORY.TILES]);
+const inventoryItems = ref<any[]>([...CONFIG.INVENTORY.TILES]);
+
+// Update inventory items from InventoryManager - THE WORD OF THE LORD!
+const updateInventoryItems = async () => {
+  try {
+    const { InventoryManager } = await import('./game/InventoryManager');
+    const items = InventoryManager.getInventoryItems();
+    inventoryItems.value = Array.from(items.entries()).map((entry: any) => ({
+      name: entry[0],
+      count: entry[1].count,
+      itemEffectKind: entry[1].itemEffectKind,
+      thumbnail: entry[1].thumbnail
+    }));
+  } catch (error) {
+    // Failed to update inventory items
+  }
+};
 
 // Computed properties
 
@@ -146,7 +162,7 @@ const initGameEngine = (): void => {
     
     // Expose the environment change handler on window object AFTER game engine is initialized - THE SACRED COMMANDMENTS!
     if (typeof window !== 'undefined') {
-      (window as any).onEnvironmentChange = environmentChangeHandler;
+      (window as any).onEnvironmentChange = onEnvironmentChange;
       logger.info('Environment change handler exposed on window object', 'App');
       logger.info(`Handler function type: ${typeof (window as any).onEnvironmentChange}`, 'App');
       logger.info(`Handler function exists: ${!!(window as any).onEnvironmentChange}`, 'App');
@@ -219,7 +235,7 @@ const onHUDSettingsChange = (settings: Record<string, unknown>) => {
 };
 
 const onHUDPositionChange = (position: string) => {
-  hudPosition.value = position;
+  hudPosition.value = position as 'top' | 'bottom' | 'left' | 'right';
   // HUD position changed
 };
 
@@ -265,14 +281,16 @@ const onItemSelect = () => {
 
 // Expose variables for testing
 const exposeToWindow = () => {
-  const windowObj = window;
+  const windowObj = window as any;
   windowObj.gameEngine = gameEngine.value;
   windowObj.gameHUD = gameHUD.value; // THE WORD OF THE LORD!
   windowObj.isConnected = isConnected.value;
   windowObj.peers = peers.value;
   windowObj.selectedEnvironment = selectedEnvironment.value;
   windowObj.pushNotificationClient = pushNotificationClient;
-  (window).lastPeerUpdate = Date.now();
+  windowObj.lastPeerUpdate = Date.now();
+  
+  // Exposed gameHUD to window for debugging
 };
 
 // Watch for changes and expose to window
@@ -293,6 +311,9 @@ onMounted(async () => {
   
   // Initialize push notifications
   await pushNotificationClient.initialize();
+  
+  // Update inventory items periodically - THE WORD OF THE LORD!
+  setInterval(updateInventoryItems, 1000);
 });
 
 onUnmounted(() => {

@@ -80,7 +80,7 @@ export class GameEngine {
     this.animationFrameId = requestAnimationFrame(renderLoop);
   }
 
-  private update(_deltaTime: number): void {
+  private async update(_deltaTime: number): Promise<void> {
     // Controllers handle their own updates according to THE WORD OF THE LORD
     // CharacterController handles character movement and physics
     // SmoothFollowCameraController handles camera following
@@ -89,7 +89,7 @@ export class GameEngine {
     this.updateRemotePlayers();
     
     // Update HUD - THE WORD OF THE LORD!
-    this.updateHUD();
+    await this.updateHUD();
     
     // Notify peer manager of updates
     if (this.onPeerUpdate) {
@@ -97,14 +97,18 @@ export class GameEngine {
     }
   }
 
-  private updateHUD(): void {
+  private async updateHUD(): Promise<void> {
     if (!this.sceneManager) return;
     
     // Get the GameHUD component from the Vue app - THE WORD OF THE LORD!
     const gameHUD = (window as any).gameHUD;
-    if (!gameHUD) return;
+    if (!gameHUD) {
+      logger.warn('GameHUD not found on window object', 'GameEngine');
+      return;
+    }
     
-    const scene = this.sceneManager.getScene();
+    logger.info('GameHUD found, updating HUD', 'GameEngine');
+    
     const characterController = this.sceneManager.getCharacterController();
     
     if (!characterController) return;
@@ -123,11 +127,18 @@ export class GameEngine {
     
     // Update credits from CollectiblesManager - THE WORD OF THE LORD!
     try {
-      const { CollectiblesManager } = require('./CollectiblesManager');
+      const { CollectiblesManager } = await import('./CollectiblesManager');
       const credits = CollectiblesManager.getTotalCredits();
-      gameHUD.updateCredits(credits);
+      logger.info(`Updating credits: ${credits}`, 'GameEngine');
+      logger.info(`GameHUD.updateCredits method exists: ${typeof gameHUD.updateCredits}`, 'GameEngine');
+      if (typeof gameHUD.updateCredits === 'function') {
+        gameHUD.updateCredits(credits);
+        logger.info('Successfully called gameHUD.updateCredits', 'GameEngine');
+      } else {
+        logger.error('gameHUD.updateCredits is not a function', 'GameEngine');
+      }
     } catch (error) {
-      // CollectiblesManager not available yet
+      logger.error(`Failed to update credits: ${error}`, 'GameEngine');
     }
     
     // Update FPS

@@ -88,6 +88,18 @@ const characterState = ref('Idle');
 const boostStatus = ref('Ready');
 const credits = ref('0');
 
+// Reactive credits from CollectiblesManager - THE WORD OF THE LORD!
+const reactiveCredits = ref(0);
+
+const updateCreditsFromCollectibles = async () => {
+  try {
+    const { CollectiblesManager } = await import('../game/CollectiblesManager');
+    reactiveCredits.value = CollectiblesManager.getTotalCredits();
+  } catch {
+    reactiveCredits.value = 0;
+  }
+};
+
 // Computed properties
 const hudPositionClass = computed(() => {
   const positionMap = {
@@ -168,6 +180,7 @@ onMounted(() => {
   // Start update loop using config interval
   updateInterval = window.setInterval(() => {
     updateTime();
+    updateCreditsFromCollectibles();
   }, CONFIG.HUD.UPDATE_INTERVAL);
   
   // Listen for HUD config updates

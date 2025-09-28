@@ -309,7 +309,7 @@ export class CollectiblesManager {
   /**
    * Checks for collisions between character and collectibles - THE WORD OF GOD!
    */
-  private static checkCollisions(): void {
+  private static async checkCollisions(): Promise<void> {
     if (!this.characterController || !this.scene) {
       return;
     }
@@ -317,15 +317,19 @@ export class CollectiblesManager {
     const characterPosition = this.characterController.getPosition();
     const collectionRadius = CONFIG.ITEMS.COLLECTION_RADIUS || 2.0;
 
+    logger.info(`Checking collisions: ${this.collectibles.size} collectibles, character at ${characterPosition.toString()}`, 'CollectiblesManager');
+
     for (const [id, mesh] of Array.from(this.collectibles)) {
       if (this.collectedItems.has(id)) {
         continue; // Already collected
       }
 
       const distance = mesh.position.subtract(characterPosition).length();
+      logger.info(`Collectible ${id} at ${mesh.position.toString()}, distance: ${distance.toFixed(2)}, radius: ${collectionRadius}`, 'CollectiblesManager');
       
       if (distance <= collectionRadius) {
-        this.collectItem(id);
+        logger.info(`Collecting item ${id}`, 'CollectiblesManager');
+        await this.collectItem(id);
       }
     }
   }
@@ -334,7 +338,7 @@ export class CollectiblesManager {
    * Collects an item and applies its effects - THE WORD OF GOD!
    * @param id The ID of the item to collect
    */
-  private static collectItem(id: string): void {
+  private static async collectItem(id: string): Promise<void> {
     if (!this.scene || this.collectedItems.has(id)) {
       return;
     }
@@ -352,6 +356,7 @@ export class CollectiblesManager {
 
     // Add credits
     this.totalCredits += itemConfig.creditValue;
+    logger.info(`Credits updated: +${itemConfig.creditValue}, total: ${this.totalCredits}`, 'CollectiblesManager');
 
     // Play collection sound
     if (this.collectionSound) {
@@ -378,9 +383,10 @@ export class CollectiblesManager {
     if (itemConfig.inventory && itemConfig.itemEffectKind && itemConfig.thumbnail) {
       // Import and call InventoryManager.addInventoryItem - THE WORD OF THE LORD!
       try {
-        const { InventoryManager } = require('./InventoryManager');
+        const { InventoryManager } = await import('./InventoryManager');
+        logger.info(`Adding inventory item: ${itemConfig.name}`, 'CollectiblesManager');
         InventoryManager.addInventoryItem(itemConfig.name, itemConfig.itemEffectKind, itemConfig.thumbnail);
-        logger.info(`Added inventory item: ${itemConfig.name}`, 'CollectiblesManager');
+        logger.info(`Successfully added inventory item: ${itemConfig.name}`, 'CollectiblesManager');
       } catch (error) {
         logger.error(`Failed to add inventory item: ${itemConfig.name}`, 'CollectiblesManager');
       }
@@ -484,6 +490,7 @@ export class CollectiblesManager {
    * @returns The total number of credits collected
    */
   public static getTotalCredits(): number {
+    logger.info(`Getting total credits: ${this.totalCredits}`, 'CollectiblesManager');
     return this.totalCredits;
   }
 

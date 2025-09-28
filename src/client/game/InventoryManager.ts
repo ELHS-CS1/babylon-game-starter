@@ -162,6 +162,7 @@ export class InventoryManager {
     // Update inventory UI if it's open
     // Note: InventoryUI integration will be handled by the Vue component
     logger.info(`Added inventory item: ${itemName}, count: ${existingItem ? existingItem.count : 1}`, 'InventoryManager');
+    logger.info(`Total inventory items: ${this.inventoryItems.size}`, 'InventoryManager');
   }
 
   /**

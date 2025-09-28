@@ -54,7 +54,7 @@
       <!-- Inventory Content -->
       <v-card-text class="pa-4 inventory-content">
         <!-- Empty State -->
-        <div v-if="inventoryItems.length === 0" class="empty-state text-center py-8">
+        <div v-if="reactiveInventoryItems.length === 0" class="empty-state text-center py-8">
           <v-icon size="64" color="grey-darken-1" class="mb-4">mdi-package-variant-closed</v-icon>
           <h3 class="text-h6 text-grey-lighten-1 mb-2">Inventory Empty</h3>
           <p class="text-body-2 text-grey">Collect items in the game to see them here</p>
@@ -63,7 +63,7 @@
         <!-- Inventory Grid -->
         <div v-else class="inventory-grid">
           <v-card
-            v-for="item in inventoryItems"
+            v-for="item in reactiveInventoryItems"
             :key="item.id"
             class="inventory-item"
             :class="{ 'item-selected': selectedItem?.id === item.id }"
@@ -161,7 +161,7 @@
         <v-btn
           color="red-lighten-2"
           variant="outlined"
-          :disabled="inventoryItems.length === 0"
+          :disabled="reactiveInventoryItems.length === 0"
           @click="clearInventory"
         >
           <v-icon left>mdi-delete-sweep</v-icon>
@@ -173,10 +173,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { InventoryData } from '../game/InventoryData';
 // import { ThemeUtils } from '../config/themeConfig'; // Unused for now
 import CONFIG from '../config/gameConfig';
+import { logger } from '../utils/logger';
 
 // Types
 interface InventoryItem {
@@ -196,7 +197,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  items: () => InventoryData.getInventoryItemsArray()
+  items: () => []
 });
 
 // Emits
@@ -213,6 +214,31 @@ const isOpen = ref(false);
 const inventoryItems = ref<InventoryItem[]>([...props.items]);
 const selectedItem = ref<InventoryItem | null>(null);
 
+// Reactive inventory items from InventoryManager - THE WORD OF THE LORD!
+const reactiveInventoryItems = ref<InventoryItem[]>([]);
+
+// Update inventory items from InventoryManager - THE WORD OF THE LORD!
+const updateInventoryItems = async () => {
+  try {
+    const { InventoryManager } = await import('../game/InventoryManager');
+    const items = InventoryManager.getInventoryItems();
+    logger.info(`InventoryPanel: Updating inventory items ${items.size}`, 'InventoryPanel');
+    reactiveInventoryItems.value = Array.from(items.entries()).map((entry: any) => ({
+      id: entry[0],
+      name: entry[0],
+      description: `${entry[1].itemEffectKind} item`,
+      type: 'collectible' as const,
+      rarity: 'common' as const,
+      quantity: entry[1].count,
+      effect: entry[1].itemEffectKind,
+      value: 1
+    }));
+    logger.info(`InventoryPanel: Updated inventory items ${reactiveInventoryItems.value.length}`, 'InventoryPanel');
+  } catch (error) {
+    logger.error('InventoryPanel: Failed to update inventory items', 'InventoryPanel');
+  }
+};
+
 // Computed values based on config settings - THE WORD OF THE LORD
 const panelWidth = computed(() => InventoryData.getPanelWidth());
 const headingText = computed(() => InventoryData.getHeadingText());
@@ -224,7 +250,7 @@ const headingText = computed(() => InventoryData.getHeadingText());
 
 // Computed properties
 const totalItems = computed(() => {
-  return inventoryItems.value.reduce((total, item) => total + item.quantity, 0);
+  return reactiveInventoryItems.value.reduce((total, item) => total + item.quantity, 0);
 });
 
 // Methods
@@ -298,6 +324,23 @@ const clearInventory = () => {
   selectedItem.value = null;
   emit('inventoryClear');
 };
+
+// Lifecycle hooks - THE WORD OF THE LORD!
+let updateInterval: number | null = null;
+
+onMounted(() => {
+  logger.info('InventoryPanel: Component mounted, starting update interval', 'InventoryPanel');
+  // Update inventory items periodically - THE WORD OF THE LORD!
+  updateInterval = window.setInterval(updateInventoryItems, 1000);
+  // Also call it immediately
+  updateInventoryItems();
+});
+
+onUnmounted(() => {
+  if (updateInterval !== null) {
+    clearInterval(updateInterval);
+  }
+});
 
 // Item helper functions
 const getItemIcon = (type: string): string => {
