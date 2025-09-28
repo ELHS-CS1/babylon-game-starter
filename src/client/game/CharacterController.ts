@@ -365,79 +365,25 @@ export class CharacterController {
   }
 
   private updateParticleSystem(): void {
-    logger.debug(`updateParticleSystem called - boostActive: ${this.boostActive}, particleSystem: ${!!this.playerParticleSystem}, sound: ${!!this.thrusterSound}`, 'CharacterController');
-    
     if (this.playerParticleSystem) {
-      // Update particle system position to follow character
-      if (this.playerMesh) {
-        this.playerParticleSystem.emitter = this.playerMesh.position;
-      }
-      
       if (this.boostActive) {
-        logger.debug("Starting particle system...", 'CharacterController');
-        logger.debug("Particle system state before start:", 'CharacterController');
-        try {
-          this.playerParticleSystem.start();
-          logger.debug("Particle system start() called successfully", 'CharacterController');
-        } catch (error) {
-          logger.error("Error starting particle system:", 'CharacterController');
-        }
-        
-        logger.debug("Particle system state after start:", 'CharacterController');
+        this.playerParticleSystem.start();
       } else {
-        logger.debug("Stopping particle system...", 'CharacterController');
-        logger.debug("Particle system state before stop:", 'CharacterController');
         this.playerParticleSystem.stop();
-        logger.debug("Particle system state after stop:", 'CharacterController');
       }
-    } else {
-      logger.debug("No particle system available!", 'CharacterController');
     }
 
     // Update thruster sound
     if (this.thrusterSound) {
       if (this.boostActive) {
         if (!this.thrusterSound.isPlaying) {
-          console.log("Starting thruster sound...");
-          console.log("Sound state before play:", {
-            isPlaying: this.thrusterSound.isPlaying,
-            isPaused: this.thrusterSound.isPaused,
-            volume: this.thrusterSound.getVolume(),
-            loop: this.thrusterSound.loop
-          });
-          
-          // Try to play the sound
-          try {
-            this.thrusterSound.play();
-            console.log("Sound play() called successfully");
-          } catch (error) {
-            console.error("Error playing sound:", error);
-          }
-          
-          // Check state after a short delay
-          setTimeout(() => {
-            console.log("Sound state after play (delayed):", {
-              isPlaying: this.thrusterSound?.isPlaying,
-              isPaused: this.thrusterSound?.isPaused
-            });
-          }, 100);
+          this.thrusterSound.play();
         }
       } else {
         if (this.thrusterSound.isPlaying) {
-          console.log("Stopping thruster sound...");
-          console.log("Sound state before stop:", {
-            isPlaying: this.thrusterSound.isPlaying,
-            isPaused: this.thrusterSound.isPaused
-          });
           this.thrusterSound.stop();
-          console.log("Sound state after stop:", {
-            isPlaying: this.thrusterSound.isPlaying,
-            isPaused: this.thrusterSound.isPaused
-          });
         }
       }
-    } else {
-      console.log("No thruster sound available!");
     }
   }
 
@@ -799,19 +745,10 @@ export class CharacterController {
   }
 
   public setPlayerParticleSystem(particleSystem: IParticleSystem | null): void {
-    console.log("setPlayerParticleSystem called with:", particleSystem);
     this.playerParticleSystem = particleSystem;
     // Start with particle system stopped if it exists
     if (particleSystem) {
-      // Attach particle system to player mesh if available
-      if (this.playerMesh) {
-        particleSystem.emitter = this.playerMesh.position;
-        console.log("Particle system attached to player mesh at position:", this.playerMesh.position);
-      }
       particleSystem.stop();
-      console.log("Particle system set and stopped");
-    } else {
-      console.log("No particle system provided");
     }
   }
 
@@ -820,12 +757,11 @@ export class CharacterController {
   }
 
   public setThrusterSound(sound: Sound): void {
-    console.log("setThrusterSound called with:", sound);
     this.thrusterSound = sound;
     // Start with sound stopped
     sound.stop();
-    console.log("Thruster sound set and stopped");
   }
+
 
   public isMoving(): boolean {
     return this.isAnyMovementKeyPressed();

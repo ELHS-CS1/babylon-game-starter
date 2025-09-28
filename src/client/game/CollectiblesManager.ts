@@ -7,6 +7,7 @@ import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3 } from '@babyl
 import { ImportMeshAsync } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
+import { NodeMaterialManager } from './NodeMaterialManager';
 import { logger } from '../utils/logger';
 import CONFIG, { type ItemConfig, type ItemInstance } from '../config/gameConfig';
 
@@ -112,6 +113,9 @@ export class CollectiblesManager {
     try {
       // Import the item model
       const result = await ImportMeshAsync(itemConfig.url, this.scene);
+      
+      // Process node materials for item meshes
+      await NodeMaterialManager.processImportResult(result);
       
       if (result.meshes && result.meshes.length > 0) {
         // Find the root mesh (the one without a parent)
@@ -301,6 +305,21 @@ export class CollectiblesManager {
     // Apply item effects if it's an inventory item
     if (itemConfig.inventory && itemConfig.itemEffectKind && this.characterController) {
       this.applyItemEffect(itemConfig.itemEffectKind);
+      
+      // Log collectible effects with assertions
+      logger.info(`Collectible effects applied for item: ${itemConfig.name}`, 'CollectiblesManager');
+      logger.assert(
+        this.collectedItems.has(id),
+        `Collectible ${id} should be marked as collected`,
+        `Collectible ${id} was not properly marked as collected`,
+        'CollectiblesManager'
+      );
+      logger.assert(
+        this.totalCredits >= itemConfig.creditValue,
+        `Total credits should be at least ${itemConfig.creditValue}`,
+        `Total credits ${this.totalCredits} is less than expected ${itemConfig.creditValue}`,
+        'CollectiblesManager'
+      );
     }
   }
 

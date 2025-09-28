@@ -3,6 +3,7 @@ import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { CollectiblesManager } from './CollectiblesManager';
 import { EffectsManager } from './EffectsManager';
+import { NodeMaterialManager } from './NodeMaterialManager';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -61,7 +62,7 @@ export class SceneManager {
   private async setupEffects(): Promise<void> {
     try {
       EffectsManager.initialize(this.scene);
-      // NodeMaterialManager.initialize(this.scene); // Commented out since NodeMaterialManager doesn't exist
+      NodeMaterialManager.initialize(this.scene);
 
       // Create thruster sound
       await EffectsManager.createSound("Thruster");
@@ -89,7 +90,7 @@ export class SceneManager {
       logger.info(`Environment loaded successfully, meshes: ${result.meshes.length}`, 'SceneManager');
 
       // Process node materials for environment meshes
-      // await NodeMaterialManager.processImportResult(result); // Commented out since NodeMaterialManager doesn't exist
+      await NodeMaterialManager.processImportResult(result);
 
       // Rename the root node to "environment" for better organization
       if (result.meshes && result.meshes.length > 0) {
@@ -251,6 +252,9 @@ export class SceneManager {
     try {
       const result = await ImportMeshAsync(character.model, this.scene);
       
+      // Process node materials for character meshes
+      await NodeMaterialManager.processImportResult(result);
+      
       if (result.meshes && result.meshes.length > 0) {
         // Apply character scale to all meshes
         result.meshes.forEach(mesh => {
@@ -278,6 +282,18 @@ export class SceneManager {
         // Set up animation controller with character
         if (this.characterController.animationController) {
           this.characterController.animationController.setCharacter(character);
+        }
+
+        // Create particle system attached to player mesh
+        const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
+        if (playerParticleSystem && this.characterController) {
+          this.characterController.setPlayerParticleSystem(playerParticleSystem);
+        }
+
+        // Set up thruster sound for character controller
+        const thrusterSound = EffectsManager.getSound("Thruster");
+        if (thrusterSound && this.characterController) {
+          this.characterController.setThrusterSound(thrusterSound);
         }
 
         logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');

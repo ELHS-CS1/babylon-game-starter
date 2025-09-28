@@ -48,6 +48,21 @@ export class InventoryManager {
 
       InventoryManager.activeEffects.add('superJump');
 
+      // Log inventory item effects with assertions
+      logger.info(`Super jump effect activated for character`, 'InventoryManager');
+      logger.assert(
+        InventoryManager.activeEffects.has('superJump'),
+        `Super jump effect should be active`,
+        `Super jump effect was not properly activated`,
+        'InventoryManager'
+      );
+      logger.assert(
+        newJumpHeight > InventoryManager.originalJumpHeight,
+        `New jump height ${newJumpHeight} should be greater than original ${InventoryManager.originalJumpHeight}`,
+        `Jump height was not properly increased`,
+        'InventoryManager'
+      );
+
       // Revert after 20 seconds
       setTimeout(() => {
         const currentCharacter = characterController.getCurrentCharacter();
@@ -57,6 +72,7 @@ export class InventoryManager {
           characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
         }
         InventoryManager.activeEffects.delete('superJump');
+        logger.info(`Super jump effect deactivated for character`, 'InventoryManager');
       }, 20000);
     },
     invisibility: (characterController: CharacterController) => {
@@ -78,6 +94,21 @@ export class InventoryManager {
 
       InventoryManager.activeEffects.add('invisibility');
 
+      // Log inventory item effects with assertions
+      logger.info(`Invisibility effect activated for character`, 'InventoryManager');
+      logger.assert(
+        InventoryManager.activeEffects.has('invisibility'),
+        `Invisibility effect should be active`,
+        `Invisibility effect was not properly activated`,
+        'InventoryManager'
+      );
+      logger.assert(
+        playerMesh !== null && playerMesh !== undefined,
+        `Player mesh should be available for invisibility effect`,
+        `Player mesh was not available for invisibility effect`,
+        'InventoryManager'
+      );
+
       // Revert after 20 seconds
       setTimeout(() => {
         const playerMesh = characterController.getPlayerMesh();
@@ -90,6 +121,7 @@ export class InventoryManager {
             });
         }
         InventoryManager.activeEffects.delete('invisibility');
+        logger.info(`Invisibility effect deactivated for character`, 'InventoryManager');
       }, 20000);
     }
   };
@@ -224,6 +256,21 @@ export class InventoryManager {
       }
       
       logger.info(`Used item: ${itemName}, remaining count: ${item.count}`, 'InventoryManager');
+      
+      // Log inventory item effects with assertions
+      logger.info(`Inventory item effect applied for: ${itemName}`, 'InventoryManager');
+      logger.assert(
+        item.count >= 0,
+        `Item count should be non-negative`,
+        `Item count ${item.count} is negative for ${itemName}`,
+        'InventoryManager'
+      );
+      logger.assert(
+        this.characterController !== null,
+        `Character controller should be available for item effects`,
+        `Character controller was not available for item effects`,
+        'InventoryManager'
+      );
     } else {
       logger.warn(`No effect defined for item: ${itemName}`, 'InventoryManager');
     }
