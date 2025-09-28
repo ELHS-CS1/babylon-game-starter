@@ -23,6 +23,8 @@ import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
 import { InventoryManager } from './InventoryManager';
 import { CollectiblesManager } from './CollectiblesManager';
+import { AssetCacheManager } from './AssetCacheManager';
+import { logger } from '../utils/logger';
 import CONFIG, { ASSETS, type Character } from '../config/gameConfig';
 
 // Import OBJECT_ROLE constants - THE WORD OF GOD!
@@ -109,53 +111,57 @@ export class SceneManager {
   private currentCharacter: Character | null = null; // Track current character
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
-    console.log("SceneManager constructor called");
+    logger.info("SceneManager constructor called", 'SceneManager');
     
     this.scene = new Scene(engine);
-    console.log("Babylon.js scene created");
+    logger.info("Babylon.js scene created", 'SceneManager');
     
     this.camera = new TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
-    console.log("Camera created at position:", CONFIG.CAMERA.START_POSITION);
+    logger.info(`Camera created at position: ${CONFIG.CAMERA.START_POSITION.toString()}`, 'SceneManager');
+    
+    // Initialize Asset Cache Manager for local-first caching
+    AssetCacheManager.getInstance().initialize(this.scene);
+    logger.info("Asset Cache Manager initialized for local-first caching", 'SceneManager');
 
-    this.initializeScene().catch(error => {
-      console.error("Failed to initialize scene:", error);
+    this.initializeScene().catch(() => {
+      logger.error("Failed to initialize scene:", 'SceneManager');
     });
   }
 
   private async initializeScene(): Promise<void> {
-    console.log("Initializing scene...");
+    logger.info("Initializing scene...", 'SceneManager');
     
     this.setupLighting();
-    console.log("Setup lighting");
+    logger.info("Setup lighting", 'SceneManager');
     
     await this.setupPhysics();
-    console.log("Setup physics");
+    logger.info("Setup physics", 'SceneManager');
     
     this.setupSky();
-    console.log("Setup sky");
+    logger.info("Setup sky", 'SceneManager');
     
     await this.setupEffects();
-    console.log("Setup effects");
+    logger.info("Setup effects", 'SceneManager');
     
     await this.loadEnvironment("Level Test");
-    console.log("Loaded environment");
+    logger.info("Loaded environment", 'SceneManager');
     
     this.setupCharacter();
-    console.log("Setup character");
+    logger.info("Setup character", 'SceneManager');
     
     await this.loadCharacterModel();
-    console.log("Loaded character model");
+    logger.info("Loaded character model", 'SceneManager');
 
     // Set up environment items after character is fully loaded
     await this.setupEnvironmentItems();
-    console.log("Setup environment items");
+    logger.info("Setup environment items", 'SceneManager');
 
     // Initialize inventory system
     if (this.characterController) {
       // InventoryManager.initialize(this.scene, this.characterController);
     }
     
-    console.log("Scene initialization complete");
+    logger.info("Scene initialization complete", 'SceneManager');
   }
 
   private setupLighting(): void {
@@ -167,12 +173,17 @@ export class SceneManager {
     // IDENTICAL TO PLAYGROUND.TS - THE WORD OF THE LORD!
     try {
       // Initialize Havok exactly as in playground.ts - use the global HK function
-      const havokInstance = await (window as any).HK();
+      const windowObj = window as unknown as Record<string, unknown>;
+      const hkFunction = windowObj['HK'];
+      if (typeof hkFunction !== 'function') {
+        throw new Error('HK function not found on window object');
+      }
+      const havokInstance = await (hkFunction as () => Promise<unknown>)();
       const hkPlugin = new HavokPlugin(false, havokInstance);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hkPlugin);
-      console.log("Havok physics engine initialized successfully");
-    } catch (error) {
-      console.warn("HavokPlugin failed, physics disabled:", error);
+      logger.info("Havok physics engine initialized successfully", 'SceneManager');
+    } catch {
+      logger.warn("HavokPlugin failed, physics disabled:", 'SceneManager');
       // NO FALLBACK TO CANNON - WE DON'T USE CANNON!
       // Physics will be disabled if Havok fails
     }
@@ -212,8 +223,24 @@ export class SceneManager {
 
     try {
       console.log(`Loading model from: ${environment.model}`);
-      const result = await ImportMeshAsync(environment.model, this.scene);
-      console.log(`Loaded environment meshes:`, result.meshes.length);
+      
+      // Use Asset Cache Manager for local-first caching
+      const cacheManager = AssetCacheManager.getInstance();
+      const cachedModel = await cacheManager.loadModel(environment.model, environmentName);
+      
+      let result: { meshes: unknown[] };
+      
+      if (cachedModel) {
+        console.log(`Using cached environment model: ${environmentName}`);
+        // Use cached meshes
+        result = { meshes: cachedModel.meshes };
+        console.log(`Loaded environment meshes from cache:`, result.meshes.length);
+      } else {
+        // Fallback to direct loading if cache fails
+        console.log(`Loading environment model directly: ${environment.model}`);
+        result = await ImportMeshAsync(environment.model, this.scene);
+        console.log(`Loaded environment meshes:`, result.meshes.length);
+      }
 
       // Process node materials for environment meshes
       // await NodeMaterialManager.processImportResult(result);
@@ -221,14 +248,14 @@ export class SceneManager {
       // Rename the root node to "environment" for better organization
       if (result.meshes && result.meshes.length > 0) {
         // Find the root mesh (the one without a parent)
-        const rootMesh = result.meshes.find(mesh => !mesh.parent);
+        const rootMesh = result.meshes.find((mesh: any) => !mesh.parent);
         if (rootMesh) {
-          rootMesh.name = "environment";
-          console.log(`Set environment mesh name to: ${rootMesh.name}`);
+          (rootMesh as any).name = "environment";
+          console.log(`Set environment mesh name to: ${(rootMesh as any).name}`);
           if (environment.scale !== 1) {
-            rootMesh.scaling.x = -environment.scale; // invert X-axis to fix handedness
-            rootMesh.scaling.y = environment.scale;
-            rootMesh.scaling.z = environment.scale;
+            (rootMesh as any).scaling.x = -environment.scale; // invert X-axis to fix handedness
+            (rootMesh as any).scaling.y = environment.scale;
+            (rootMesh as any).scaling.z = environment.scale;
             console.log(`Applied scale: ${environment.scale}`);
           }
         } else {

@@ -4,6 +4,7 @@
 
 import { Sound, ParticleSystem, Vector3, Color4, Texture, ParticleHelper } from '@babylonjs/core';
 import type { IParticleSystem , Scene} from '@babylonjs/core';
+import { AssetCacheManager } from './AssetCacheManager';
 import CONFIG from '../config/gameConfig';
 
 export class EffectsManager {
@@ -60,7 +61,28 @@ export class EffectsManager {
     try {
       console.log(`Loading particle system from Babylon.js Playground snippet: ${snippet.snippetId}`);
       
-      // Use ParticleHelper.ParseFromSnippetAsync - THE WORD OF THE LORD!
+      // Use Asset Cache Manager for local-first caching
+      const cacheManager = AssetCacheManager.getInstance();
+      const cachedParticle = await cacheManager.loadParticleSnippet(snippet.snippetId, name);
+      
+      if (cachedParticle) {
+        console.log(`Using cached particle system: ${name}`);
+        const particleSystem = cachedParticle.particleSystem as IParticleSystem;
+        
+        if (particleSystem && position) {
+          particleSystem.emitter = position;
+        }
+        
+        if (particleSystem) {
+          console.log(`Successfully created particle system from cache for ${name}`);
+          // Store the particle system
+          instance.particleSystems.set(name, particleSystem);
+          return particleSystem;
+        }
+      }
+      
+      // Fallback to direct loading if cache fails
+      console.log(`Loading particle system directly from snippet: ${snippet.snippetId}`);
       const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, instance.scene!, false);
       
       if (particleSystem && position) {
