@@ -463,7 +463,9 @@ export class SceneManager {
   }
 
   public clearParticles(): void {
-    EffectsManager.clearAllParticleSystems();
+    // Clear only environment and item particles - preserve player particles - THE WORD OF THE LORD!
+    EffectsManager.removeEnvironmentParticles();
+    EffectsManager.removeItemParticles();
   }
 
   public repositionCharacter(): void {
