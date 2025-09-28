@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { Scene, AbstractMesh, PhysicsBody, Observer} from '@babylonjs/core';
-import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3, Animation, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
+import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3, Animation, MeshBuilder, StandardMaterial, Color3, ParticleSystem, Texture, Color4 } from '@babylonjs/core';
 import { ImportMeshAsync } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
@@ -358,6 +358,9 @@ export class CollectiblesManager {
       this.collectionSound.play();
     }
 
+    // Show collection effects - THE WORD OF THE LORD!
+    this.showCollectionEffects(mesh.position);
+
     // Hide the mesh
     mesh.isVisible = false;
     mesh.setEnabled(false);
@@ -390,6 +393,55 @@ export class CollectiblesManager {
         'CollectiblesManager'
       );
     }
+  }
+
+  /**
+   * Shows collection effects at the specified position - THE WORD OF THE LORD!
+   * @param position Position to show effects
+   */
+  private static async showCollectionEffects(position: Vector3): Promise<void> {
+    if (!this.scene) return;
+
+    // Create a particle effect for collection
+    const particleSystem = new ParticleSystem("Magic Sparkles_ITEMS", 50, this.scene);
+
+    particleSystem.particleTexture = new Texture("https://www.babylonjs-playground.com/textures/flare.png", this.scene);
+    particleSystem.emitter = position;
+    // Use direct object creation for better performance
+    particleSystem.minEmitBox = new Vector3(-0.5, -0.5, -0.5);
+    particleSystem.maxEmitBox = new Vector3(0.5, 0.5, 0.5);
+
+    particleSystem.color1 = new Color4(0.5, 0.8, 1, 1); // Baby blue
+    particleSystem.color2 = new Color4(0.2, 0.6, 0.9, 1); // Darker baby blue
+    particleSystem.colorDead = new Color4(0, 0.3, 0.6, 0); // Fade to dark blue
+
+    particleSystem.minSize = 0.1;
+    particleSystem.maxSize = 0.3;
+
+    particleSystem.minLifeTime = 0.3;
+    particleSystem.maxLifeTime = 0.8;
+
+    particleSystem.emitRate = 100;
+    particleSystem.blendMode = ParticleSystem.BLENDMODE_ONEONE;
+
+    particleSystem.gravity = new Vector3(0, -9.81, 0);
+
+    particleSystem.direction1 = new Vector3(-2, -2, -2);
+    particleSystem.direction2 = new Vector3(2, 2, 2);
+
+    particleSystem.minEmitPower = 1;
+    particleSystem.maxEmitPower = 3;
+    particleSystem.updateSpeed = 0.016;
+
+    particleSystem.start();
+
+    // Stop the particle system after a short time
+    setTimeout(() => {
+      particleSystem.stop();
+      particleSystem.dispose();
+    }, 1000);
+
+    logger.info("Collection particle effects created", 'CollectiblesManager');
   }
 
   /**
