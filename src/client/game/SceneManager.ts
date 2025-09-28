@@ -394,12 +394,12 @@ export class SceneManager {
     return this.scene;
   }
 
-  public getCamera(): TargetCamera {
-    return this.camera;
-  }
-
   public getCharacterController(): CharacterController | null {
     return this.characterController;
+  }
+
+  public getCamera(): TargetCamera {
+    return this.camera;
   }
 
   public getSmoothFollowController(): SmoothFollowCameraController | null {

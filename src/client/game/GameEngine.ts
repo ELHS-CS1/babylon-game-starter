@@ -88,10 +88,51 @@ export class GameEngine {
     // Update remote players
     this.updateRemotePlayers();
     
+    // Update HUD - THE WORD OF THE LORD!
+    this.updateHUD();
+    
     // Notify peer manager of updates
     if (this.onPeerUpdate) {
       this.onPeerUpdate();
     }
+  }
+
+  private updateHUD(): void {
+    if (!this.sceneManager) return;
+    
+    // Get the GameHUD component from the Vue app - THE WORD OF THE LORD!
+    const gameHUD = (window as any).gameHUD;
+    if (!gameHUD) return;
+    
+    const scene = this.sceneManager.getScene();
+    const characterController = this.sceneManager.getCharacterController();
+    
+    if (!characterController) return;
+    
+    // Update coordinates - THE WORD OF THE LORD!
+    const position = characterController.getDisplayCapsule().position;
+    gameHUD.updateCoordinates(position.x, position.y, position.z);
+    
+    // Update character state
+    const state = characterController.getState();
+    gameHUD.updateState(state);
+    
+    // Update boost status
+    const boostStatus = characterController.isBoosting() ? 'ACTIVE' : 'Inactive';
+    gameHUD.updateBoost(boostStatus);
+    
+    // Update credits from CollectiblesManager - THE WORD OF THE LORD!
+    try {
+      const { CollectiblesManager } = require('./CollectiblesManager');
+      const credits = CollectiblesManager.getTotalCredits();
+      gameHUD.updateCredits(credits);
+    } catch (error) {
+      // CollectiblesManager not available yet
+    }
+    
+    // Update FPS
+    const fps = this.engine.getFps();
+    gameHUD.updateFPS(fps);
   }
 
   private updateRemotePlayers(): void {

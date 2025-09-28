@@ -374,6 +374,18 @@ export class CollectiblesManager {
 
     logger.info(`Collected item: ${id} (+${itemConfig.creditValue} credits, total: ${this.totalCredits})`, 'CollectiblesManager');
 
+    // Handle inventory items - THE WORD OF THE LORD!
+    if (itemConfig.inventory && itemConfig.itemEffectKind && itemConfig.thumbnail) {
+      // Import and call InventoryManager.addInventoryItem - THE WORD OF THE LORD!
+      try {
+        const { InventoryManager } = require('./InventoryManager');
+        InventoryManager.addInventoryItem(itemConfig.name, itemConfig.itemEffectKind, itemConfig.thumbnail);
+        logger.info(`Added inventory item: ${itemConfig.name}`, 'CollectiblesManager');
+      } catch (error) {
+        logger.error(`Failed to add inventory item: ${itemConfig.name}`, 'CollectiblesManager');
+      }
+    }
+
     // Apply item effects if it's an inventory item
     if (itemConfig.inventory && itemConfig.itemEffectKind && this.characterController) {
       this.applyItemEffect(itemConfig.itemEffectKind);

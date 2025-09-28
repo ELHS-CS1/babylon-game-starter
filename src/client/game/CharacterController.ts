@@ -719,6 +719,14 @@ export class CharacterController {
     return this.characterController.getPosition();
   }
 
+  public getState(): string {
+    return this.state;
+  }
+
+  public isBoosting(): boolean {
+    return this.boostActive;
+  }
+
   public updateCharacterPhysics(character: Character, spawnPosition: Vector3): void {
     // Update character position to spawn point
     this.characterController.setPosition(spawnPosition);

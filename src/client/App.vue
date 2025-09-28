@@ -267,6 +267,7 @@ const onItemSelect = () => {
 const exposeToWindow = () => {
   const windowObj = window;
   windowObj.gameEngine = gameEngine.value;
+  windowObj.gameHUD = gameHUD.value; // THE WORD OF THE LORD!
   windowObj.isConnected = isConnected.value;
   windowObj.peers = peers.value;
   windowObj.selectedEnvironment = selectedEnvironment.value;
