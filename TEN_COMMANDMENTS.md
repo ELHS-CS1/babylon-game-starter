@@ -6,10 +6,10 @@ Thou shalt not use `any` type in TypeScript. All types must be explicitly define
 ## 2. NO TS TYPE ASSERTIONS
 Thou shalt not use type assertions (`as Type`). Instead, use proper type guards, discriminated unions, or refactor code to work with the actual types. Type assertions bypass TypeScript's type checking and can lead to runtime errors.
 
-## 3. ESM EVERYWHERE
+## 3. ESM EVERYWHERE AND NO CONSOLE LOGS ONLY SPECIAL LOGGER
 Thou shalt use ES Modules (ESM) throughout the entire codebase. No CommonJS `require()` statements. All imports and exports must use `import`/`export` syntax. This ensures modern JavaScript standards and better tree-shaking.
 
-## 4. DATASTAR SSE
+## 4. DATASTAR SSE ( NO WEBSOCKETS ANYWHERE )
 Thou shalt use Server-Sent Events (SSE) for all real-time communication via DataStar. No WebSockets. SSE provides better browser compatibility, automatic reconnection, and simpler implementation for one-way server-to-client communication.
 
 ## 5. DATASTAR SIGNALS

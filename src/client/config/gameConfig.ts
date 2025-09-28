@@ -3,7 +3,8 @@
 // ============================================================================
 
 import { Vector3 } from '@babylonjs/core';
-import type { CharacterController } from '../game/CharacterController';
+import { logger } from '../utils/logger';
+import { SettingsUI } from '../game/SettingsUI';
 
 // Configuration Type Definitions
 interface CharacterSpeed {
@@ -138,7 +139,7 @@ interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: readonly string[]; // For dropdown elements
-    readonly onChange?: (value: boolean | string) => void | Promise<void>;
+    readonly onChange?: () => void | Promise<void>;
 }
 
 interface SettingsConfig {
@@ -173,7 +174,7 @@ interface GameConfig {
 type ItemEffectKind = "superJump" | "invisibility";
 
 type ItemEffect = {
-    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
+    readonly [_K in ItemEffectKind]: () => void;
 };
 
 interface Tile {
@@ -355,7 +356,7 @@ const ASSETS = {
             animationBlend: 200,
             jumpDelay: 200
         }
-    ] as readonly Character[],
+    ],
     ENVIRONMENTS: [
         {
             name: "Level Test",
@@ -529,7 +530,7 @@ const ASSETS = {
             },
             spawnPoint: new Vector3(0, 77, -20)
         }
-    ] as readonly Environment[]
+    ] satisfies readonly Environment[]
 } as const;
 
 // Configuration Constants
@@ -626,12 +627,6 @@ const CONFIG = {
                 description: "Dramatic explosion with debris",
                 category: "fire",
                 snippetId: "S0T1U2"
-            },
-            {
-                name: "Thruster",
-                description: "Rocket thruster particle system with blue flames",
-                category: "tech",
-                snippetId: "THRUSTER01"
             }
         ] as const,
         DEFAULT_PARTICLE: "Magic Sparkles",
@@ -689,9 +684,12 @@ const CONFIG = {
                 uiElement: "toggle",
                 visibility: "iPadWithKeyboard",
                 defaultValue: true, // Default to showing controls
-                onChange: async (value: boolean | string) => {
-                    // Control mobile input visibility - placeholder for future implementation
-                    console.log('Screen Controls changed:', value);
+                onChange: (value: boolean | string) => {
+                    // Control mobile input visibility
+                    if (typeof value === 'boolean') {
+                        // MobileInputManager.setVisibility(value); // Will be implemented when MobileInputManager is available
+                        logger.info(`Screen Controls changed to: ${value}`, 'gameConfig');
+                    }
                 }
             },
             {
@@ -701,8 +699,9 @@ const CONFIG = {
                 defaultValue: "Red", // Default to first character (Red)
                 options: ASSETS.CHARACTERS.map((character) => character.name),
                 onChange: async (value: boolean | string) => {
-                    // Character change - placeholder for future implementation
-                    console.log('Character changed:', value);
+                    if (typeof value === 'string') {
+                        await SettingsUI.changeCharacter(value);
+                    }
                 }
             },
             {
@@ -712,8 +711,9 @@ const CONFIG = {
                 defaultValue: "Level Test", // Default to first environment
                 options: ASSETS.ENVIRONMENTS.map((environment) => environment.name),
                 onChange: async (value: boolean | string) => {
-                    // Environment change - placeholder for future implementation
-                    console.log('Environment changed:', value);
+                    if (typeof value === 'string') {
+                        await SettingsUI.changeEnvironment(value);
+                    }
                 }
             }
         ]

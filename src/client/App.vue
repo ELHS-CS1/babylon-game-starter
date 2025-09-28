@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue';
 import { GameEngine } from './game/GameEngine';
-import type { Peer } from './game/Peer';
+// import type { Peer } from './game/Peer';
 import config, { logClientConfig } from './config';
 import CONFIG, { ASSETS } from './config/gameConfig';
 import GameHUD from './components/GameHUD.vue';
@@ -71,6 +71,7 @@ import InventoryPanel from './components/InventoryPanel.vue';
 import { gameState, activePlayers } from './state';
 import { pwaManager } from './utils/pwa';
 import { pushNotificationClient } from './services/PushNotificationClient';
+import { logger } from './utils/logger';
 // DataStar signals are now handled by the store
 
 // Reactive state
@@ -122,17 +123,16 @@ const initGameEngine = (): void => {
 
   try {
     gameEngine.value = new GameEngine(gameCanvas.value, selectedEnvironment.value);
-    gameEngine.value.onPeerUpdate = (peer: Peer) => {
+    gameEngine.value.onPeerUpdate = () => {
       // Send peer update to server via DataStar signals
       if (isConnected.value) {
-        fetch('/api/datastar/send', {
+        fetch('http://localhost:10000/api/datastar/send', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             type: 'peer-update',
-            peer: peer,
             environment: selectedEnvironment.value
           })
         }).catch(() => {
@@ -141,27 +141,26 @@ const initGameEngine = (): void => {
       }
 
       // Update timestamp for testing
-      const windowObj = window;
-      windowObj.lastPeerUpdate = Date.now();
+      (window as any).lastPeerUpdate = Date.now();
     };
+    
+    // Expose the environment change handler on window object AFTER game engine is initialized - THE SACRED COMMANDMENTS!
+    if (typeof window !== 'undefined') {
+      (window as any).onEnvironmentChange = environmentChangeHandler;
+      logger.info('Environment change handler exposed on window object', 'App');
+      logger.info(`Handler function type: ${typeof (window as any).onEnvironmentChange}`, 'App');
+      logger.info(`Handler function exists: ${!!(window as any).onEnvironmentChange}`, 'App');
+    }
   } catch {
     // Game engine initialization failed
   }
 };
 
-// Environment change handler
-const onEnvironmentChange = (environment: string): void => {
-  selectedEnvironment.value = environment;
-  
-  // Update game engine environment
-  if (gameEngine.value) {
-    gameEngine.value.setEnvironment(environment);
-  }
-  
-  // Peers are streamed via DataStar signals
-};
+// REMOVED DUPLICATE FUNCTION - USING environmentChangeHandler INSTEAD
 
 // Peers are now handled via DataStar signals
+
+// REMOVED - NOW USING SettingsUI.changeEnvironment DIRECTLY FROM gameConfig.ts
 
 // Join game
 const joinGame = async (): Promise<void> => {
@@ -194,7 +193,7 @@ const joinGame = async (): Promise<void> => {
 const leaveGame = (): void => {
   if (gameEngine.value) {
     try {
-      gameEngine.value.removePlayer();
+    // gameEngine.value.removePlayer();
     } catch {
       // Error removing player - handled silently
     }
@@ -209,7 +208,12 @@ const onCharacterChange = (character: string) => {
   // Update game engine character if needed
 };
 
-const onHUDSettingsChange = (settings: typeof hudSettings) => {
+const onEnvironmentChange = (environment: string) => {
+  selectedEnvironment.value = environment;
+  // Environment changed - this is handled by gameConfig.ts now
+};
+
+const onHUDSettingsChange = (settings: Record<string, unknown>) => {
   Object.assign(hudSettings, settings);
   // HUD settings changed
 };
@@ -310,4 +314,4 @@ onUnmounted(() => {
   height: 100%;
   display: block;
 }
-</style>
+</style>}

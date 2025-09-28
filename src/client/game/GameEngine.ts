@@ -2,10 +2,13 @@
 // GAME ENGINE - FOLLOWING THE WORD OF THE LORD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Engine, Mesh, Vector3, MeshBuilder, StandardMaterial, Color3, Scene } from '@babylonjs/core';
+import type { Mesh, Scene } from '@babylonjs/core';
+import { Engine, Vector3, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
+import { SettingsUI } from './SettingsUI';
+import { logger } from '../utils/logger';
 
 export class GameEngine {
   private engine: Engine;
@@ -20,7 +23,7 @@ export class GameEngine {
   public onPeerUpdate?: () => void;
 
   constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
-    console.log("GameEngine constructor called with environment:", environment);
+    logger.info(`GameEngine constructor called with environment: ${environment}`, 'GameEngine');
     
     // this.canvas = canvas; // Unused for now
     this.currentEnvironment = environment;
@@ -28,19 +31,23 @@ export class GameEngine {
     
     // Initialize Babylon.js engine
     this.engine = new Engine(canvas, true);
-    console.log("Babylon.js engine created");
+    logger.info("Babylon.js engine created", 'GameEngine');
     
     // Create SceneManager according to THE WORD OF THE LORD
     try {
       this.sceneManager = new SceneManager(this.engine, canvas);
-      console.log("SceneManager created successfully");
+      logger.info("SceneManager created successfully", 'GameEngine');
+      
+      // Initialize SettingsUI with SceneManager - THE SACRED COMMANDMENTS!
+      SettingsUI.initialize(this.sceneManager);
+      logger.info("SettingsUI initialized with SceneManager", 'GameEngine');
     } catch (error) {
-      console.error("Failed to create SceneManager:", error);
+      logger.error("Failed to create SceneManager:", 'GameEngine');
     }
     
     this.setupEventListeners();
     this.startRenderLoop();
-    console.log("GameEngine initialization complete");
+    logger.info("GameEngine initialization complete", 'GameEngine');
   }
 
   private setupEventListeners(): void {
@@ -145,23 +152,40 @@ export class GameEngine {
       const peer = this.peerManager.createLocalPeer(playerName, this.currentEnvironment);
       return peer;
     } catch (error) {
-      console.error('Failed to create player:', error);
+      logger.error('Failed to create player:', 'GameEngine');
       return null;
     }
   }
 
   public setEnvironment(environment: string): void {
     if (this.currentEnvironment !== environment && this.sceneManager) {
+      // THE WORD OF THE LORD - PROPER ENVIRONMENT CLEANUP!
+      // 1. DISABLE CURRENT ENVIRONMENT AND DISPOSE ITEMS
+      this.disableCurrentEnvironment();
+      
+      // 2. SET NEW ENVIRONMENT
       this.currentEnvironment = environment;
       
-      // Load new environment using SceneManager
-      this.sceneManager.loadEnvironment(environment);
+      // 3. LOAD NEW ENVIRONMENT USING SCENEMANAGER
+      this.sceneManager.changeEnvironment(environment);
       
-      // Update peer environment
+      // 4. UPDATE PEER ENVIRONMENT
       const localPeer = this.peerManager.getLocalPeer();
       if (localPeer) {
         localPeer.environment = environment;
       }
+    }
+  }
+
+  /**
+   * Disables current environment and disposes all items - THE WORD OF THE LORD!
+   */
+  private disableCurrentEnvironment(): void {
+    if (this.sceneManager) {
+      // Clear existing environment, items, and particles
+      this.sceneManager.clearEnvironment();
+      this.sceneManager.clearItems();
+      this.sceneManager.clearParticles();
     }
   }
 
@@ -187,6 +211,67 @@ export class GameEngine {
 
   public getSmoothFollowController() {
     return this.sceneManager ? this.sceneManager.getSmoothFollowController() : null;
+  }
+
+  // THE LORD'S SACRED ENVIRONMENT CHANGE METHODS - THE WORD OF THE LORD!
+  public getCurrentEnvironment(): string {
+    return this.currentEnvironment;
+  }
+
+  public pausePhysics(): void {
+    if (this.sceneManager) {
+      this.sceneManager.pausePhysics();
+    }
+  }
+
+  public resumePhysics(): void {
+    if (this.sceneManager) {
+      this.sceneManager.resumePhysics();
+    }
+  }
+
+  public clearEnvironment(): void {
+    if (this.sceneManager) {
+      this.sceneManager.clearEnvironment();
+    }
+  }
+
+  public clearItems(): void {
+    if (this.sceneManager) {
+      this.sceneManager.clearItems();
+    }
+  }
+
+  public clearParticles(): void {
+    if (this.sceneManager) {
+      this.sceneManager.clearParticles();
+    }
+  }
+
+
+  public async loadEnvironment(environmentName: string): Promise<void> {
+    if (this.sceneManager) {
+      await this.sceneManager.loadEnvironment(environmentName);
+      this.currentEnvironment = environmentName;
+    }
+  }
+
+  public async setupEnvironmentItems(): Promise<void> {
+    if (this.sceneManager) {
+      await this.sceneManager.setupEnvironmentItems();
+    }
+  }
+
+  public repositionCharacter(): void {
+    if (this.sceneManager) {
+      this.sceneManager.repositionCharacter();
+    }
+  }
+
+  public forceActivateSmoothFollow(): void {
+    if (this.sceneManager) {
+      this.sceneManager.forceActivateSmoothFollow();
+    }
   }
 
   public dispose(): void {

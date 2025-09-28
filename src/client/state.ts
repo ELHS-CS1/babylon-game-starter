@@ -40,7 +40,7 @@ export const gameState = reactive<GameState>({
 });
 
 // Connect to DataStar SSE - simple and clean
-const eventSource = new EventSource('/api/datastar/sse');
+const eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
 
     eventSource.onmessage = (event) => {
       try {

@@ -248,7 +248,7 @@ export class AssetCacheManager {
     if (this.isOnline) {
       try {
         logger.info(`Loading sound from remote: ${url}`, 'AssetCacheManager');
-        const sound = new Sound(name, url, this.scene!, null, { volume: 0.7 });
+        const sound = new Sound(name, url, this.scene, null, { volume: 0.7 });
         
         const cachedSound = {
           sound,

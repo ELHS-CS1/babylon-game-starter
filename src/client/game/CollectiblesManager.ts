@@ -3,10 +3,11 @@
 // ============================================================================
 
 import type { Scene, AbstractMesh, PhysicsBody, Observer} from '@babylonjs/core';
-import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType } from '@babylonjs/core';
+import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3 } from '@babylonjs/core';
 import { ImportMeshAsync } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
+import { logger } from '../utils/logger';
 import CONFIG, { type ItemConfig, type ItemInstance } from '../config/gameConfig';
 
 export class CollectiblesManager {
@@ -55,7 +56,7 @@ export class CollectiblesManager {
     this.collectedItems.clear();
     this.itemConfigs.clear();
 
-    console.log("CollectiblesManager initialized");
+    logger.info("CollectiblesManager initialized", 'CollectiblesManager');
     return Promise.resolve();
   }
 
@@ -64,7 +65,7 @@ export class CollectiblesManager {
    */
   public static async setupEnvironmentItems(environment: any): Promise<void> {
     if (!this.scene || !environment.items) {
-      console.warn("Scene or items not available in setupEnvironmentItems");
+      logger.warn("Scene or items not available in setupEnvironmentItems", 'CollectiblesManager');
       return;
     }
 
@@ -104,7 +105,7 @@ export class CollectiblesManager {
    */
   private static async loadItemModel(itemConfig: ItemConfig): Promise<void> {
     if (!this.scene) {
-      console.error("No scene available for loading item model");
+      logger.error("No scene available for loading item model", 'CollectiblesManager');
       return;
     }
 
@@ -121,15 +122,18 @@ export class CollectiblesManager {
           rootMesh.name = itemConfig.name;
           rootMesh.setEnabled(false); // Hide the basis mesh
           rootMesh.isVisible = false;
-          console.log(`Loaded item model basis: ${itemConfig.name}`);
+          
+          // Ensure the basis mesh is completely hidden - THE WORD OF THE LORD!
+          rootMesh.visibility = 0.0;
+          logger.info(`Loaded item model basis: ${itemConfig.name}`, 'CollectiblesManager');
         } else {
-          console.error(`No valid root mesh found for item: ${itemConfig.name}`);
+          logger.error(`No valid root mesh found for item: ${itemConfig.name}`, 'CollectiblesManager');
         }
       } else {
-        console.error(`No meshes loaded for item: ${itemConfig.name}`);
+        logger.error(`No meshes loaded for item: ${itemConfig.name}`, 'CollectiblesManager');
       }
     } catch (error) {
-      console.error(`Failed to load item model: ${itemConfig.name}`, error);
+      logger.error(`Failed to load item model: ${itemConfig.name}`, 'CollectiblesManager');
     }
   }
 
@@ -140,12 +144,18 @@ export class CollectiblesManager {
    */
   private static async createCollectibleInstance(id: string, instance: ItemInstance, itemConfig: ItemConfig): Promise<void> {
     if (!this.scene || !this.instanceBasis) {
-      console.error("No scene or instance basis available for creating collectible instance");
+      logger.error("No scene or instance basis available for creating collectible instance", 'CollectiblesManager');
+      return;
+    }
+
+    // Check if the basis mesh has geometry - THE WORD OF THE LORD!
+    if (!this.instanceBasis.geometry || this.instanceBasis.getTotalVertices() === 0) {
+      logger.error("Instance basis mesh has no geometry, cannot create instances", 'CollectiblesManager');
       return;
     }
 
     try {
-      // Create an instance from the loaded model
+      // Create an instance from the loaded model - THE WORD OF THE LORD!
       const meshInstance = this.instanceBasis.createInstance(id);
 
       // Remove the instance from its parent to make it independent
@@ -153,14 +163,32 @@ export class CollectiblesManager {
         meshInstance.setParent(null);
       }
 
-      // Apply instance properties
-      meshInstance.position = instance.position;
+      // Apply instance properties - THE WORD OF THE LORD!
+      meshInstance.position = new Vector3(instance.position.x, instance.position.y, instance.position.z);
       meshInstance.scaling.setAll(instance.scale);
-      meshInstance.rotation = instance.rotation;
+      meshInstance.rotation = new Vector3(instance.rotation.x, instance.rotation.y, instance.rotation.z);
 
-      // Make it visible and enabled
+      // Force visibility and enablement - THE SACRED COMMANDMENTS!
       meshInstance.isVisible = true;
       meshInstance.setEnabled(true);
+      meshInstance.visibility = 1.0;
+      
+      // Ensure all child meshes are also visible - THE WORD OF GOD!
+      meshInstance.getChildMeshes().forEach(child => {
+        child.isVisible = true;
+        child.setEnabled(true);
+        child.visibility = 1.0;
+      });
+
+      // Force the mesh to be added to the scene - THE WORD OF THE LORD!
+      if (!this.scene.meshes.includes(meshInstance)) {
+        this.scene.meshes.push(meshInstance);
+      }
+      
+      // Force the mesh to be rendered - THE SACRED COMMANDMENTS!
+      meshInstance.setEnabled(true);
+      meshInstance.isVisible = true;
+      meshInstance.visibility = 1.0;
 
       // Get the scaled bounding box dimensions after applying instance scaling
       // const boundingBox = meshInstance.getBoundingInfo(); // Unused for now
@@ -181,9 +209,10 @@ export class CollectiblesManager {
       }
       this.itemConfigs.set(id, itemConfig);
 
-      console.log(`Created collectible instance: ${id} at position:`, instance.position);
+      logger.info(`Created collectible instance: ${id} at position: ${instance.position.toString()}`, 'CollectiblesManager');
+      logger.info(`Mesh visibility: ${meshInstance.isVisible}, enabled: ${meshInstance.isEnabled()}, visibility: ${meshInstance.visibility}`, 'CollectiblesManager');
     } catch (error) {
-      console.error(`Failed to create collectible instance: ${id}`, error);
+      logger.error(`Failed to create collectible instance: ${id}`, 'CollectiblesManager');
     }
   }
 
@@ -192,7 +221,7 @@ export class CollectiblesManager {
    */
   private static setupCollisionDetection(): void {
     if (!this.scene || !this.characterController) {
-      console.warn("Scene or character controller not available for collision detection");
+      logger.warn("Scene or character controller not available for collision detection", 'CollectiblesManager');
       return;
     }
 
@@ -201,7 +230,7 @@ export class CollectiblesManager {
       this.checkCollisions();
     });
 
-    console.log("Collectibles collision detection set up");
+    logger.info("Collectibles collision detection set up", 'CollectiblesManager');
   }
 
   /**
@@ -241,7 +270,7 @@ export class CollectiblesManager {
     const itemConfig = this.itemConfigs.get(id);
 
     if (!mesh || !itemConfig) {
-      console.error(`Item not found for collection: ${id}`);
+      logger.error(`Item not found for collection: ${id}`, 'CollectiblesManager');
       return;
     }
 
@@ -267,7 +296,7 @@ export class CollectiblesManager {
       this.collectibleBodies.delete(id);
     }
 
-    console.log(`Collected item: ${id} (+${itemConfig.creditValue} credits, total: ${this.totalCredits})`);
+    logger.info(`Collected item: ${id} (+${itemConfig.creditValue} credits, total: ${this.totalCredits})`, 'CollectiblesManager');
 
     // Apply item effects if it's an inventory item
     if (itemConfig.inventory && itemConfig.itemEffectKind && this.characterController) {
@@ -287,14 +316,14 @@ export class CollectiblesManager {
     switch (effectKind) {
       case "superJump":
         // Apply super jump effect
-        console.log("Applied super jump effect");
+        logger.info("Applied super jump effect", 'CollectiblesManager');
         break;
       case "invisibility":
         // Apply invisibility effect
-        console.log("Applied invisibility effect");
+        logger.info("Applied invisibility effect", 'CollectiblesManager');
         break;
       default:
-        console.warn(`Unknown item effect: ${effectKind}`);
+        logger.warn(`Unknown item effect: ${effectKind}`, 'CollectiblesManager');
     }
   }
 
@@ -348,7 +377,7 @@ export class CollectiblesManager {
       this.collectionSound = null;
     }
 
-    console.log("Collectibles cleared");
+    logger.info("Collectibles cleared", 'CollectiblesManager');
   }
 
   /**
@@ -358,6 +387,6 @@ export class CollectiblesManager {
     this.clearCollectibles();
     this.scene = null;
     this.characterController = null;
-    console.log("CollectiblesManager disposed");
+    logger.info("CollectiblesManager disposed", 'CollectiblesManager');
   }
 }

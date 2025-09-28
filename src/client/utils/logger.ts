@@ -131,6 +131,99 @@ class Logger {
     this.log(LogLevel.FATAL, message, context, data);
   }
 
+  /**
+   * Sacred assertion method following industry assert test patterns - THE WORD OF THE LORD!
+   * @param condition The condition to assert
+   * @param message The assertion message
+   * @param context Optional context for the assertion
+   * @param data Optional data to include with the assertion
+   * @returns True if assertion passes, false if it fails
+   */
+  public assert(condition: boolean, message: string, context?: string, data?: unknown): boolean {
+    const timestamp = new Date().toISOString();
+    const contextStr = context ? ` [${context}]` : '';
+    const dataStr = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    
+    if (condition) {
+      // ASSERTION PASSED - THE SACRED SUCCESS!
+      const passMessage = `✅ ASSERT PASS: ${message}${dataStr}`;
+      const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ${passMessage}`;
+      
+      // Log the assertion pass
+      this.log(LogLevel.INFO, `ASSERT PASS: ${message}`, context, data);
+      
+      // Print pass result to console
+      if (this.config.enableConsole) {
+        console.info(formattedPass);
+      }
+      
+      return true;
+    } else {
+      // ASSERTION FAILED - THE SACRED FAILURE!
+      const failMessage = `❌ ASSERT FAIL: ${message}${dataStr}`;
+      const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ${failMessage}`;
+      
+      // Log the assertion failure
+      this.log(LogLevel.ERROR, `ASSERT FAIL: ${message}`, context, data);
+      
+      // Print fail result to console
+      if (this.config.enableConsole) {
+        console.error(formattedFail);
+      }
+      
+      return false;
+    }
+  }
+
+  /**
+   * Sacred assertion method with custom failure message - THE WORD OF THE LORD!
+   * @param condition The condition to assert
+   * @param passMessage The message to show when assertion passes
+   * @param failMessage The message to show when assertion fails
+   * @param context Optional context for the assertion
+   * @param data Optional data to include with the assertion
+   * @returns True if assertion passes, false if it fails
+   */
+  public assertWithMessages(
+    condition: boolean, 
+    passMessage: string, 
+    failMessage: string, 
+    context?: string, 
+    data?: unknown
+  ): boolean {
+    const timestamp = new Date().toISOString();
+    const contextStr = context ? ` [${context}]` : '';
+    const dataStr = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    
+    if (condition) {
+      // ASSERTION PASSED - THE SACRED SUCCESS!
+      const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ✅ ${passMessage}${dataStr}`;
+      
+      // Log the assertion pass
+      this.log(LogLevel.INFO, `ASSERT PASS: ${passMessage}`, context, data);
+      
+      // Print pass result to console
+      if (this.config.enableConsole) {
+        console.info(formattedPass);
+      }
+      
+      return true;
+    } else {
+      // ASSERTION FAILED - THE SACRED FAILURE!
+      const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ❌ ${failMessage}${dataStr}`;
+      
+      // Log the assertion failure
+      this.log(LogLevel.ERROR, `ASSERT FAIL: ${failMessage}`, context, data);
+      
+      // Print fail result to console
+      if (this.config.enableConsole) {
+        console.error(formattedFail);
+      }
+      
+      return false;
+    }
+  }
+
   public getLogs(): readonly LogEntry[] {
     return [...this.logs];
   }

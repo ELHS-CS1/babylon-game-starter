@@ -74,7 +74,7 @@ export class DataStarConnection {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
-  connect(url: string = '/api/datastar/sse'): void {
+  connect(url: string = 'http://localhost:10000/api/datastar/sse'): void {
     try {
       this.eventSource = new EventSource(url);
       
@@ -204,7 +204,7 @@ export class DataStarConnection {
   }
 
   send(data: Record<string, unknown>): void {
-    fetch('/api/datastar/send', {
+    fetch('http://localhost:10000/api/datastar/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -8,8 +8,19 @@ import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
 import { logger } from '../utils/logger';
+import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
-// Character states are now imported from AnimationController - THE WORD OF GOD
+// Character states - THE WORD OF GOD
+enum CHARACTER_STATES {
+  IDLE = "idle",
+  WALKING = "walking",
+  RUNNING = "running",
+  JUMPING = "jumping",
+  FALLING = "falling",
+  ON_GROUND = "on_ground",
+  IN_AIR = "in_air",
+  START_JUMP = "start_jump"
+}
 
 // Input keys from THE WORD OF GOD
 const INPUT_KEYS = {
@@ -43,7 +54,7 @@ export class CharacterController {
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
   private keysDown = new Set<string>();
-  private cameraController: unknown = null; // Will be typed properly when SmoothFollowCameraController is implemented
+  private cameraController: SmoothFollowCameraController | null = null;
   private boostActive = false;
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
@@ -354,7 +365,7 @@ export class CharacterController {
   }
 
   private updateParticleSystem(): void {
-    console.log(`updateParticleSystem called - boostActive: ${this.boostActive}, particleSystem: ${!!this.playerParticleSystem}, sound: ${!!this.thrusterSound}`);
+    logger.debug(`updateParticleSystem called - boostActive: ${this.boostActive}, particleSystem: ${!!this.playerParticleSystem}, sound: ${!!this.thrusterSound}`, 'CharacterController');
     
     if (this.playerParticleSystem) {
       // Update particle system position to follow character
@@ -363,38 +374,24 @@ export class CharacterController {
       }
       
       if (this.boostActive) {
-        console.log("Starting particle system...");
-        console.log("Particle system state before start:", {
-          isStarted: this.playerParticleSystem.isStarted,
-          emitRate: this.playerParticleSystem.emitRate,
-          emitter: this.playerParticleSystem.emitter,
-          color1: this.playerParticleSystem.color1,
-          color2: this.playerParticleSystem.color2
-        });
+        logger.debug("Starting particle system...", 'CharacterController');
+        logger.debug("Particle system state before start:", 'CharacterController');
         try {
           this.playerParticleSystem.start();
-          console.log("Particle system start() called successfully");
+          logger.debug("Particle system start() called successfully", 'CharacterController');
         } catch (error) {
-          console.error("Error starting particle system:", error);
+          logger.error("Error starting particle system:", 'CharacterController');
         }
         
-        console.log("Particle system state after start:", {
-          isStarted: this.playerParticleSystem.isStarted,
-          emitRate: this.playerParticleSystem.emitRate,
-          emitter: this.playerParticleSystem.emitter
-        });
+        logger.debug("Particle system state after start:", 'CharacterController');
       } else {
-        console.log("Stopping particle system...");
-        console.log("Particle system state before stop:", {
-          isStarted: this.playerParticleSystem.isStarted
-        });
+        logger.debug("Stopping particle system...", 'CharacterController');
+        logger.debug("Particle system state before stop:", 'CharacterController');
         this.playerParticleSystem.stop();
-        console.log("Particle system state after stop:", {
-          isStarted: this.playerParticleSystem.isStarted
-        });
+        logger.debug("Particle system state after stop:", 'CharacterController');
       }
     } else {
-      console.log("No particle system available!");
+      logger.debug("No particle system available!", 'CharacterController');
     }
 
     // Update thruster sound
@@ -777,40 +774,27 @@ export class CharacterController {
     // Store current character for physics calculations
     this.currentCharacter = character;
 
-    // Update character physics properties based on character configuration - THE WORD OF GOD!
-    // Note: PhysicsCharacterController doesn't allow direct property updates after creation,
-    // so we recreate it with the new character's physics properties
-    // The old characterController will be automatically disposed when replaced
-    
-    this.characterController = new PhysicsCharacterController(
-      spawnPosition,
-      {
-        capsuleHeight: character.height,  // Use character's configured height
-        capsuleRadius: character.radius   // Use character's configured radius
-      },
-      this.scene
-    );
+    // Update character-specific physics attributes
+    // Note: PhysicsCharacterController doesn't allow runtime updates of capsule dimensions
+    // The display capsule can be updated for visual feedback
+    this.displayCapsule.scaling.setAll(1); // Reset scaling
+    this.displayCapsule.scaling.y = character.height / 1.8; // Scale height
+    this.displayCapsule.scaling.x = character.radius / 0.6; // Scale radius
+    this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
 
-    // Update display capsule to match character configuration
-    this.displayCapsule.dispose();
-    this.displayCapsule = MeshBuilder.CreateCapsule(
-      "CharacterDisplay",
-      {
-        height: character.height,  // Use character's configured height
-        radius: character.radius   // Use character's configured radius
-      },
-      this.scene
-    );
-    this.displayCapsule.isVisible = CONFIG.DEBUG.CAPSULE_VISIBLE;
-
-    console.log(`Updated character physics for ${character.name}: height=${character.height}, radius=${character.radius}, mass=${character.mass}`);
+    // Reset physics state for new character
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
+    this.inputDirection.setAll(0);
+    this.wantJump = false;
+    this.boostActive = false;
+    this.state = CHARACTER_STATES.IN_AIR;
   }
 
   public getDisplayCapsule(): Mesh {
     return this.displayCapsule;
   }
 
-  public setCameraController(cameraController: any): void {
+  public setCameraController(cameraController: SmoothFollowCameraController): void {
     this.cameraController = cameraController;
   }
 
@@ -893,9 +877,8 @@ export class CharacterController {
 
   public resetToStartPosition(): void {
     // Use environment spawn point instead of character start position
-    // const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
-    // const spawnPoint = environment?.spawnPoint || new Vector3(0, 0, 0);
-    const spawnPoint = new Vector3(0, 0, 0); // Default spawn point
+    const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
+    const spawnPoint = environment?.spawnPoint || new Vector3(0, 0, 0);
     this.characterController.setPosition(spawnPoint);
     this.characterController.setVelocity(new Vector3(0, 0, 0));
     this.inputDirection.setAll(0);

@@ -12,7 +12,8 @@ import 'vuetify/styles';
 import Havok from '@babylonjs/havok';
 
 // Make Havok available globally as HK - exactly like playground environment
-(window as any).HK = Havok;
+const windowObj = window as unknown as Record<string, unknown>;
+windowObj['HK'] = Havok;
 
 const vuetify = createVuetify({
   components,
