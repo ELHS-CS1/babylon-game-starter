@@ -31,14 +31,14 @@
     <div v-if="showBoost" id="hud-boost" class="hud-element">
       <span class="hud-label">Boost:</span>
       <br>
-      <span id="hud-boost-value" class="hud-value" :color="boostColor">{{ boostStatus }}</span>
+      <span id="hud-boost-value" class="hud-value" :class="boostVuetifyClass">{{ boostStatus }}</span>
     </div>
     
     <!-- Credits -->
     <div v-if="showCredits" id="hud-credits" class="hud-element">
       <span class="hud-label">Credits:</span>
       <br>
-      <span id="hud-credits-value" class="hud-value">{{ credits }}</span>
+      <span id="hud-credits-value" class="hud-value text-blue">{{ credits }}</span>
     </div>
     
     <!-- Active Peers -->
@@ -122,12 +122,13 @@ const stateColor = computed(() => {
   }
 });
 
-const boostColor = computed(() => {
-  switch (boostStatus.value.toLowerCase()) {
-    case 'ready': return 'green';
-    case 'active': return 'orange';
-    case 'cooldown': return 'red';
-    default: return 'grey';
+const boostVuetifyClass = computed(() => {
+  switch (boostStatus.value) {
+    case 'ACTIVE': return 'text-green';
+    case 'Inactive': return 'text-red';
+    case 'ready': return 'text-green';
+    case 'cooldown': return 'text-red';
+    default: return 'text-grey';
   }
 });
 
@@ -296,6 +297,7 @@ onUnmounted(() => {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
