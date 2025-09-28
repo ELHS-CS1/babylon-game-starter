@@ -33,6 +33,11 @@ export class SceneManager {
     this.setupCharacter();
     this.loadCharacterModel();
 
+    // Initialize collectibles system - THE WORD OF THE LORD!
+    if (this.characterController) {
+      await CollectiblesManager.initialize(this.scene, this.characterController);
+    }
+
     // Set up environment items after character is fully loaded
     await this.setupEnvironmentItems();
   }

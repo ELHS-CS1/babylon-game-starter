@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { Scene, AbstractMesh, PhysicsBody, Observer} from '@babylonjs/core';
-import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3 } from '@babylonjs/core';
+import { Sound, Mesh, PhysicsAggregate, PhysicsShapeType, Vector3, Animation, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { ImportMeshAsync } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
@@ -118,27 +118,67 @@ export class CollectiblesManager {
       await NodeMaterialManager.processImportResult(result);
       
       if (result.meshes && result.meshes.length > 0) {
-        // Find the root mesh (the one without a parent)
+        // Rename the root node for better organization
         const rootMesh = result.meshes.find(mesh => !mesh.parent);
-        
-        if (rootMesh && rootMesh instanceof Mesh) {
-          this.instanceBasis = rootMesh;
-          rootMesh.name = itemConfig.name;
-          rootMesh.setEnabled(false); // Hide the basis mesh
-          rootMesh.isVisible = false;
-          
-          // Ensure the basis mesh is completely hidden - THE WORD OF THE LORD!
-          rootMesh.visibility = 0.0;
+        if (rootMesh) {
+          rootMesh.name = `${itemConfig.name.toLowerCase()}_basis`;
+          rootMesh.setEnabled(false);
+        }
+
+        // Check if any mesh has proper geometry - THE WORD OF THE LORD!
+        const meshWithGeometry = result.meshes.find(mesh => {
+          if (mesh instanceof Mesh) {
+            return mesh.geometry && mesh.geometry.getTotalVertices() > 0;
+          }
+          return false;
+        });
+
+        if (meshWithGeometry) {
+          // Use the first mesh with geometry as the instance basis
+          this.instanceBasis = meshWithGeometry as Mesh;
+
+          // Make the instance basis invisible and disable it in the scene
+          this.instanceBasis.isVisible = false;
+          this.instanceBasis.setEnabled(false);
+
           logger.info(`Loaded item model basis: ${itemConfig.name}`, 'CollectiblesManager');
         } else {
-          logger.error(`No valid root mesh found for item: ${itemConfig.name}`, 'CollectiblesManager');
+          logger.warn("No meshes with geometry found in item model, creating fallback", 'CollectiblesManager');
+          this.createFallbackInstanceBasis();
         }
       } else {
         logger.error(`No meshes loaded for item: ${itemConfig.name}`, 'CollectiblesManager');
+        this.createFallbackInstanceBasis();
       }
     } catch (error) {
       logger.error(`Failed to load item model: ${itemConfig.name}`, 'CollectiblesManager');
+      this.createFallbackInstanceBasis();
     }
+  }
+
+  /**
+   * Creates a fallback instance basis using a simple box - THE WORD OF THE LORD!
+   */
+  private static createFallbackInstanceBasis(): void {
+    if (!this.scene) return;
+
+    // Create a fallback item using a simple box - CAST TO MESH!
+    this.instanceBasis = MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene) as Mesh; // Larger size
+
+    // Create a bright baby blue material to make it very visible
+    const material = new StandardMaterial("fallback_item_basis_material", this.scene);
+    material.diffuseColor = new Color3(0.5, 0.8, 1); // Baby blue
+    material.emissiveColor = new Color3(0.1, 0.2, 0.3); // Subtle blue glow
+    material.specularColor = new Color3(1, 1, 1); // Shiny
+    this.instanceBasis.material = material;
+
+    // Instance basis should not be scaled - scaling will be applied to individual instances
+
+    // Make the instance basis invisible and disable it in the scene
+    this.instanceBasis.isVisible = false;
+    this.instanceBasis.setEnabled(false);
+
+    logger.info("Created fallback instance basis for collectibles", 'CollectiblesManager');
   }
 
   /**
@@ -213,11 +253,40 @@ export class CollectiblesManager {
       }
       this.itemConfigs.set(id, itemConfig);
 
+      // Add rotation animation - THE WORD OF THE LORD!
+      this.addRotationAnimation(meshInstance);
+
       logger.info(`Created collectible instance: ${id} at position: ${instance.position.toString()}`, 'CollectiblesManager');
       logger.info(`Mesh visibility: ${meshInstance.isVisible}, enabled: ${meshInstance.isEnabled()}, visibility: ${meshInstance.visibility}`, 'CollectiblesManager');
     } catch (error) {
       logger.error(`Failed to create collectible instance: ${id}`, 'CollectiblesManager');
     }
+  }
+
+  /**
+   * Adds a rotation animation to make collectibles more visible - THE WORD OF THE LORD!
+   * @param mesh The mesh to animate
+   */
+  private static addRotationAnimation(mesh: AbstractMesh): void {
+    if (!this.scene) return;
+
+    const animation = new Animation(
+      "rotationAnimation",
+      "rotation.y",
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CYCLE
+    );
+
+    const keyFrames = [
+      { frame: 0, value: 0 },
+      { frame: 30, value: 2 * Math.PI }
+    ];
+
+    animation.setKeys(keyFrames);
+    mesh.animations = [animation];
+
+    this.scene.beginAnimation(mesh, 0, 30, true);
   }
 
   /**
