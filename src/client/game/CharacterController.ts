@@ -377,12 +377,18 @@ export class CharacterController {
     if (this.thrusterSound) {
       if (this.boostActive) {
         if (!this.thrusterSound.isPlaying) {
+          logger.info("Playing thruster sound", 'CharacterController');
           this.thrusterSound.play();
         }
       } else {
         if (this.thrusterSound.isPlaying) {
+          logger.info("Stopping thruster sound", 'CharacterController');
           this.thrusterSound.stop();
         }
+      }
+    } else {
+      if (this.boostActive) {
+        logger.warn("No thruster sound available!", 'CharacterController');
       }
     }
   }

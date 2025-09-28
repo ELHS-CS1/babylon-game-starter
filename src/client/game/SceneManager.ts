@@ -1,4 +1,4 @@
-import { Scene, Engine, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, AbstractMesh, ImportMeshAsync, HingeConstraint } from '@babylonjs/core';
+import { Scene, Engine, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, AbstractMesh, ImportMeshAsync, HingeConstraint, Mesh, Texture, StandardMaterial, PBRMaterial } from '@babylonjs/core';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { CollectiblesManager } from './CollectiblesManager';
@@ -110,9 +110,26 @@ export class SceneManager {
         this.createSky(environment.sky);
       }
 
-      this.setupEnvironmentPhysics(environment);
-      this.currentEnvironment = environmentName;
-      logger.info(`Environment ${environmentName} setup complete`, 'SceneManager');
+            this.setupEnvironmentPhysics(environment);
+
+            // Set up environment-specific particles if configured
+            if (environment.particles) {
+              try {
+                for (const particle of environment.particles) {
+                  const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
+
+                  // Apply environment-specific settings if provided
+                  if (particleSystem && particle.updateSpeed !== undefined) {
+                    particleSystem.updateSpeed = particle.updateSpeed;
+                  }
+                }
+              } catch (error) {
+                logger.warn("Failed to create environment particles:", 'SceneManager');
+              }
+            }
+
+            this.currentEnvironment = environmentName;
+            logger.info(`Environment ${environmentName} setup complete`, 'SceneManager');
     } catch (error) {
       logger.error(`Failed to load environment: ${error}`, 'SceneManager');
       throw error; // Re-throw to be caught by initializeScene
@@ -126,27 +143,57 @@ export class SceneManager {
   }
 
   private setupEnvironmentPhysics(environment: any): void {
+    this.setupLightmappedMeshes(environment);
     this.setupPhysicsObjects(environment);
     this.setupJoints(environment);
-    this.setupFallbackPhysics(environment);
+
+    // Fallback: If no physics objects or lightmapped meshes are configured,
+    // create physics bodies for all environment meshes to prevent falling through
+    if (environment.physicsObjects?.length === 0 && environment.lightmappedMeshes?.length === 0) {
+      this.setupFallbackPhysics(environment);
+    }
+  }
+
+  private setupLightmappedMeshes(environment: any): void {
+    const lightmap = new Texture(environment.lightmap);
+
+    environment.lightmappedMeshes?.forEach((lightmappedMesh: any) => {
+      const mesh = this.scene.getMeshByName(lightmappedMesh.name);
+      if (!mesh) return;
+
+      new PhysicsAggregate(mesh, PhysicsShapeType.MESH);
+      mesh.isPickable = false;
+
+      if (mesh.material instanceof StandardMaterial || mesh.material instanceof PBRMaterial) {
+        mesh.material.lightmapTexture = lightmap;
+        mesh.material.useLightmapAsShadowmap = true;
+        (mesh.material.lightmapTexture as Texture).uAng = Math.PI;
+        (mesh.material.lightmapTexture as Texture).level = lightmappedMesh.level;
+        (mesh.material.lightmapTexture as Texture).coordinatesIndex = 1;
+      }
+
+      mesh.freezeWorldMatrix();
+      mesh.doNotSyncBoundingInfo = true;
+    });
   }
 
   private setupPhysicsObjects(environment: any): void {
-    // Set up physics for environment objects
+    logger.info(`Setting up physics objects for environment: ${environment.name}`, 'SceneManager');
+    logger.info(`Physics objects count: ${environment.physicsObjects?.length || 0}`, 'SceneManager');
+    
     environment.physicsObjects?.forEach((physicsObject: any) => {
       const mesh = this.scene.getMeshByName(physicsObject.name);
       if (mesh) {
+        logger.info(`Found physics object mesh: ${physicsObject.name}`, 'SceneManager');
+        // Apply scaling if specified
         if (physicsObject.scale !== 1) {
           mesh.scaling.setAll(physicsObject.scale);
         }
-        mesh.isVisible = true;
-        mesh.setEnabled(true);
 
-        if (physicsObject.role === 'DYNAMIC_BOX') {
-          new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
-        } else if (physicsObject.role === 'PIVOT_BEAM') {
-          new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
-        }
+        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: physicsObject.mass });
+        logger.info(`Created physics aggregate for ${physicsObject.name} with mass ${physicsObject.mass}`, 'SceneManager');
+      } else {
+        logger.warn(`Physics object mesh not found: ${physicsObject.name}`, 'SceneManager');
       }
     });
   }
@@ -186,31 +233,27 @@ export class SceneManager {
   }
 
   private setupFallbackPhysics(_environment: any): void {
-    const environmentMesh = this.scene.getMeshByName("environment");
-    if (environmentMesh) {
-      if (environmentMesh.getTotalVertices() > 0) {
-        new PhysicsAggregate(environmentMesh, PhysicsShapeType.MESH, { mass: 0 });
-        logger.info("Created physics for main environment mesh (floor/ground)", 'SceneManager');
-      } else {
-        logger.info("Main environment mesh has no geometry, searching for child meshes...", 'SceneManager');
-        const childMeshes = environmentMesh.getChildMeshes();
-        let physicsCreated = false;
-        
-        childMeshes.forEach((childMesh, index) => {
-          if (childMesh.getTotalVertices() > 0) {
-            new PhysicsAggregate(childMesh, PhysicsShapeType.MESH, { mass: 0 });
-            logger.info(`Created physics for child mesh ${index}: ${childMesh.name}`, 'SceneManager');
-            physicsCreated = true;
-          }
-        });
-        
-        if (!physicsCreated) {
-          logger.warn("No valid geometry found in environment meshes - character may fall through floor!", 'SceneManager');
-        }
+    // Find the root environment mesh
+    const rootEnvironmentMesh = this.scene.getMeshByName("environment");
+    if (!rootEnvironmentMesh) return;
+
+    // Collect all meshes in the environment
+    const allEnvironmentMeshes: AbstractMesh[] = [];
+    const collectMeshes = (mesh: AbstractMesh) => {
+      allEnvironmentMeshes.push(mesh);
+      mesh.getChildMeshes().forEach(collectMeshes);
+    };
+    collectMeshes(rootEnvironmentMesh);
+
+    // Create physics bodies for all meshes with geometry
+    allEnvironmentMeshes.forEach(mesh => {
+      if (mesh instanceof Mesh && mesh.geometry && mesh.geometry.getTotalVertices() > 0) {
+        // Create a static physics body (mass = 0) for environment geometry
+        // The physics shape will automatically account for the mesh's current scaling
+        new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 });
+        mesh.isPickable = false;
       }
-    } else {
-      logger.warn("Main environment mesh not found - character may fall through floor!", 'SceneManager');
-    }
+    });
   }
 
   private setupCharacter(): void {
@@ -228,79 +271,107 @@ export class SceneManager {
     }
   }
 
-  private async loadCharacterModel(): Promise<void> {
-    if (!this.characterController) {
-      logger.error("CharacterController not initialized", 'SceneManager');
-      return;
-    }
-
+  private loadCharacterModel(): void {
+    // Load the first character from the CHARACTERS array
     const character = ASSETS.CHARACTERS[0];
     if (!character) {
       logger.error("No character found in ASSETS.CHARACTERS", 'SceneManager');
       return;
     }
 
-    await this.loadCharacter(character);
+    this.loadCharacter(character);
   }
 
-  private async loadCharacter(character: any, preservedPosition?: Vector3 | null): Promise<void> {
-    if (!this.characterController) {
-      logger.error("CharacterController not initialized", 'SceneManager');
-      return;
-    }
+  private loadCharacter(character: any, preservedPosition?: Vector3 | null): void {
+    // Remove all animation groups from the scene before loading a new character
+    this.scene.animationGroups.slice().forEach(group => group.dispose());
 
-    try {
-      const result = await ImportMeshAsync(character.model, this.scene);
-      
-      // Process node materials for character meshes
-      await NodeMaterialManager.processImportResult(result);
-      
-      if (result.meshes && result.meshes.length > 0) {
-        // Apply character scale to all meshes
-        result.meshes.forEach(mesh => {
-          mesh.scaling.setAll(character.scale);
-        });
+    ImportMeshAsync(character.model, this.scene)
+      .then(async result => {
+        // Process node materials for character meshes
+        await NodeMaterialManager.processImportResult(result);
 
-        if (result.meshes[0]) {
+        // Rename the root node to "player" for better organization
+        if (result.meshes && result.meshes.length > 0) {
+          // Find the root mesh (the one without a parent)
+          const rootMesh = result.meshes.find((mesh: any) => !mesh.parent);
+          if (rootMesh) {
+            rootMesh.name = "player";
+          }
+        }
+
+        if (this.characterController && result.meshes[0]) {
+          // Apply character scale to all meshes
+          result.meshes.forEach(mesh => {
+            mesh.scaling.setAll(character.scale);
+          });
+
           this.characterController.setPlayerMesh(result.meshes[0]);
+
+          // Determine position for new character
+          let characterPosition: Vector3;
+          if (preservedPosition) {
+            // Use preserved position when switching characters
+            characterPosition = preservedPosition;
+          } else {
+            // Use spawn point when loading character for the first time or after environment change
+            const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+            characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
+          }
+
+          // Update character physics with determined position
+          this.characterController.updateCharacterPhysics(character, characterPosition);
+
+          // Setup animations using character's animation mapping with fallbacks - THE WORD OF THE LORD
+          const playerAnimations: Record<string, any> = {};
+          playerAnimations['walk'] = result.animationGroups.find(a => a.name === character.animations.walk) ||
+            result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
+            result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
+            result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
+
+          playerAnimations['idle'] = result.animationGroups.find(a => a.name === character.animations.idle) ||
+            result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
+            result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
+
+          // Debug: Log animation setup results
+          if (!playerAnimations['walk'] || !playerAnimations['idle']) {
+            logger.warn(`Animation setup for ${character.name}:`, 'SceneManager');
+            logger.warn(`Available animations: ${result.animationGroups.map(a => a.name).join(', ')}`, 'SceneManager');
+            logger.warn(`Found walk: ${playerAnimations['walk']?.name || 'NOT FOUND'}`, 'SceneManager');
+            logger.warn(`Found idle: ${playerAnimations['idle']?.name || 'NOT FOUND'}`, 'SceneManager');
+          }
+
+          // Stop animations initially
+          playerAnimations['walk']?.stop();
+          playerAnimations['idle']?.stop();
+
+          // Set character in animation controller - THE WORD OF THE LORD
+          if (this.characterController && this.characterController.animationController) {
+            this.characterController.animationController.setCharacter(character);
+          }
+
+          // Create particle system attached to player mesh
+          const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
+          if (playerParticleSystem && this.characterController) {
+            this.characterController.setPlayerParticleSystem(playerParticleSystem);
+          }
+
+          // Set up thruster sound for character controller
+          const thrusterSound = EffectsManager.getSound("Thruster");
+          logger.info(`Retrieved thruster sound: ${thrusterSound ? 'SUCCESS' : 'FAILED'}`, 'SceneManager');
+          if (thrusterSound && this.characterController) {
+            logger.info("Setting thruster sound on character controller", 'SceneManager');
+            this.characterController.setThrusterSound(thrusterSound);
+          } else {
+            logger.warn("Failed to set thruster sound - sound or character controller missing", 'SceneManager');
+          }
+
+          logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
         }
-
-        // Determine position for new character
-        let characterPosition: Vector3;
-        if (preservedPosition) {
-          // Use preserved position when switching characters
-          characterPosition = preservedPosition;
-        } else {
-          // Use spawn point when loading character for the first time or after environment change
-          const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-          characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
-        }
-
-        // Update character physics with determined position
-        this.characterController.updateCharacterPhysics(character, characterPosition);
-
-        // Set up animation controller with character
-        if (this.characterController.animationController) {
-          this.characterController.animationController.setCharacter(character);
-        }
-
-        // Create particle system attached to player mesh
-        const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
-        if (playerParticleSystem && this.characterController) {
-          this.characterController.setPlayerParticleSystem(playerParticleSystem);
-        }
-
-        // Set up thruster sound for character controller
-        const thrusterSound = EffectsManager.getSound("Thruster");
-        if (thrusterSound && this.characterController) {
-          this.characterController.setThrusterSound(thrusterSound);
-        }
-
-        logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
-      }
-    } catch (error) {
-      logger.error("Failed to load character:", 'SceneManager');
-    }
+      })
+      .catch(() => {
+        logger.error("Failed to load character:", 'SceneManager');
+      });
   }
 
   public async setupEnvironmentItems(): Promise<void> {
