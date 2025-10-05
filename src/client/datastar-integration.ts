@@ -111,6 +111,12 @@ export class DataStarIntegration {
         logger.info(`📊 Message data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
         logger.info(`📊 Message type: ${event.type}`, { context: 'DataStar', tag: 'sse' });
       };
+
+      // Add a test listener for all events
+      this.eventSource.addEventListener('message', (event: MessageEvent) => {
+        logger.info('📨 EventSource message event received', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Event data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+      });
       
     } catch (error) {
       logger.error('❌ Failed to create DataStar SSE connection', { context: 'DataStar', tag: 'connection' });
