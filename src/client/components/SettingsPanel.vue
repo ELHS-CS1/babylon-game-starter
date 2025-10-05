@@ -271,6 +271,7 @@ interface Props {
   initialCharacter?: string;
   initialEnvironment?: string;
   isConnected?: boolean;
+  gameEngine?: any;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -278,7 +279,8 @@ const props = withDefaults(defineProps<Props>(), {
   environments: () => SettingsData.getEnvironments(),
   initialCharacter: () => SettingsData.getDefaultCharacter(),
   initialEnvironment: () => SettingsData.getDefaultEnvironment(),
-  isConnected: () => false
+  isConnected: () => false,
+  gameEngine: () => null
 });
 
 // Emits
@@ -486,10 +488,17 @@ const onAudioSettingsChange = () => {
 };
 
 const joinGame = () => {
+  console.log('🎮 JOIN GAME BUTTON CLICKED IN SETTINGS PANEL!');
+  console.log('📊 Current connection status:', isConnected.value);
+  console.log('📊 GameEngine status:', !!props.gameEngine);
+  console.log('📊 Props received:', { isConnected: props.isConnected, gameEngine: !!props.gameEngine });
+  console.log('📊 All props:', props);
   emit('joinGame');
 };
 
 const leaveGame = () => {
+  console.log('🚪 LEAVE GAME BUTTON CLICKED IN SETTINGS PANEL!');
+  console.log('📊 Current connection status:', isConnected.value);
   emit('leaveGame');
 };
 

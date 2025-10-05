@@ -37,6 +37,7 @@
       :initial-character="selectedCharacter"
       :initial-environment="selectedEnvironment"
       :is-connected="isConnected"
+      :game-engine="gameEngine"
       @character-change="onCharacterChange"
       @environment-change="onEnvironmentChange"
       @hud-settings-change="onHUDSettingsChange"
@@ -77,6 +78,10 @@ import { logger } from './utils/logger';
 // DataStar signals are now handled by the store
 // import { dataStarIntegration } from './datastar-integration';
 
+// Log that DataStar integration is available in Vue app
+logger.info('🎯 Vue app starting with DataStar integration available', { context: 'App', tag: 'connection' });
+logger.info('📊 DataStar provides: SSE connection, DOM patching, reactive state updates', { context: 'App', tag: 'connection' });
+
 // Reactive state
 const gameCanvas = ref<HTMLCanvasElement>();
 // Fallback values in case getEnvironments/getCharacters return empty arrays
@@ -89,7 +94,10 @@ const gameEngine = ref<GameEngine | null>(null);
 
 // DataStar signals (reactive state from store)
 const peers = computed(() => gameState.players);
-const isConnected = computed(() => gameState.isConnected);
+const isConnected = computed(() => {
+  console.log('🔍 isConnected computed - gameState.isConnected:', gameState.isConnected);
+  return gameState.isConnected;
+});
 const activePeersCount = computed(() => gameState.players.length);
 
 // Component refs

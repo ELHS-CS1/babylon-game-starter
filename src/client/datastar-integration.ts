@@ -1,5 +1,5 @@
-// DataStar Integration - USING THE REAL TYPESCRIPT SDK!
-// Based on: https://github.com/starfederation/datastar-typescript
+// DataStar Integration - USING EVENTSOURCE FOR CLIENT-SIDE SSE!
+// The DataStar SDK is for server-side SSE generation, not client-side consumption
 
 import { gameState } from './state';
 import { logger } from './utils/logger';
@@ -17,39 +17,87 @@ export class DataStarIntegration {
     logger.info('🚀 Initializing DataStar with TypeScript SDK', { context: 'DataStar', tag: 'connection' });
     
     // Connect to DataStar SSE endpoint
-    this.connectToDataStar();
+    this.connectToDataStar().catch(error => {
+      logger.error('❌ DataStar connection failed', { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
+    });
     
     // Set up DOM watcher
     this.setupDOMWatcher();
+    
+    // DataStar setup complete - ready for Vue app
+    logger.info('✅ DataStar integration fully initialized and ready for Vue app', { context: 'DataStar', tag: 'connection' });
+    logger.info('📊 DataStar integration provides: SSE connection, DOM patching, state management', { context: 'DataStar', tag: 'connection' });
   }
 
-  private connectToDataStar(): void {
+  private async connectToDataStar(): Promise<void> {
     logger.info('🔗 Connecting to DataStar SSE endpoint', { context: 'DataStar', tag: 'connection' });
     
-    this.eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
-    
-    this.eventSource.onopen = () => {
-      logger.info('🔗 DataStar SSE connection opened', { context: 'DataStar', tag: 'connection' });
-      this.isConnected = true;
-      gameState.isConnected = true;
-      logger.info('✅ DataStar connection established', { context: 'DataStar', tag: 'connection' });
-    };
-
-    this.eventSource.onerror = () => {
-      logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
+    // Test server health first
+    try {
+      const response = await fetch('http://localhost:10000/api/health');
+      const data = await response.json();
+      logger.info(`📊 Server health check: ${JSON.stringify(data)}`, { context: 'DataStar', tag: 'connection' });
+    } catch (error) {
+      logger.error('❌ Server health check failed', { context: 'DataStar', tag: 'connection' });
       this.isConnected = false;
       gameState.isConnected = false;
-    };
+      return;
+    }
+    
+    // USE EVENTSOURCE FOR CLIENT-SIDE DATASTAR SSE CONSUMPTION!
+    logger.info('🔗 Using EventSource for DataStar SSE consumption...', { context: 'DataStar', tag: 'connection' });
+    
+    try {
+      logger.info('🔗 Creating EventSource for DataStar SSE...', { context: 'DataStar', tag: 'connection' });
+      this.eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
+      logger.info('✅ EventSource created successfully', { context: 'DataStar', tag: 'connection' });
+      
+      // Add timeout to detect if connection never opens
+      const connectionTimeout = setTimeout(() => {
+        if (!this.isConnected) {
+          logger.error('❌ DataStar SSE connection timeout - connection never opened', { context: 'DataStar', tag: 'connection' });
+          logger.error(`📊 EventSource readyState: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
+          this.isConnected = false;
+          gameState.isConnected = false;
+        }
+      }, 5000);
+      
+      // Check EventSource state immediately
+      logger.info(`📊 EventSource readyState immediately after creation: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
+      
+      this.eventSource.onopen = () => {
+        clearTimeout(connectionTimeout);
+        logger.info('🔗 DataStar SSE connection opened', { context: 'DataStar', tag: 'connection' });
+        this.isConnected = true;
+        gameState.isConnected = true;
+        logger.info('✅ DataStar connection established', { context: 'DataStar', tag: 'connection' });
+      };
 
-    // Handle DataStar patch-elements events
-    this.eventSource.addEventListener('datastar-patch-elements', (event) => {
-      this.handleDataStarPatchElements(event);
-    });
+      this.eventSource.onerror = (error: Event) => {
+        logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 EventSource readyState: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
+        this.isConnected = false;
+        gameState.isConnected = false;
+      };
+      
+      // Handle DataStar patch-elements events
+      this.eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
+        this.handleDataStarPatchElements(event);
+      });
 
-    // Handle DataStar patch-signals events
-    this.eventSource.addEventListener('datastar-patch-signals', (event) => {
-      this.handleDataStarPatchSignals(event);
-    });
+      // Handle DataStar patch-signals events
+      this.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
+        this.handleDataStarPatchSignals(event);
+      });
+      
+    } catch (error) {
+      logger.error('❌ Failed to create EventSource', { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
+      this.isConnected = false;
+      gameState.isConnected = false;
+    }
   }
 
   private handleDataStarPatchElements(_event: MessageEvent): void {
@@ -173,3 +221,7 @@ export class DataStarIntegration {
 
 // Export singleton instance
 export const dataStarIntegration = new DataStarIntegration();
+
+// Log that DataStar integration is available for Vue app
+logger.info('🎯 DataStar integration singleton created and exported for Vue app', { context: 'DataStar', tag: 'connection' });
+logger.info('📊 DataStar integration instance ready for use in components', { context: 'DataStar', tag: 'connection' });
