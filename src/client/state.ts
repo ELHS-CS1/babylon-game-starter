@@ -46,11 +46,13 @@ const eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
 eventSource.onopen = () => {
   console.log('SSE connection opened');
   gameState.isConnected = true;
+  console.log('Connection state updated to:', gameState.isConnected);
 };
 
 eventSource.onerror = (error) => {
   console.error('SSE connection error:', error);
   gameState.isConnected = false;
+  console.log('Connection state updated to:', gameState.isConnected);
 };
 
     eventSource.onmessage = (event) => {
@@ -118,7 +120,7 @@ eventSource.onerror = () => {
 
 // Send data to server
 export const sendToServer = (data: Record<string, unknown>): void => {
-  fetch('/api/datastar/send', {
+  fetch('http://localhost:10000/api/datastar/send', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -10,6 +10,7 @@ import { SceneManager } from './SceneManager';
 import { SettingsUI } from './SettingsUI';
 import { logger } from '../utils/logger';
 import { HUDEvents } from '../utils/hudEventSystem';
+import { gameState } from '../state';
 
 export class GameEngine {
   private engine: Engine;
@@ -26,6 +27,13 @@ export class GameEngine {
   private peerUpdateInterval: number = 3; // Update peers every 3 frames (60fps / 3 = 20fps)
    
   public onPeerUpdate?: () => void;
+
+  // Update current environment and notify peer manager
+  public setEnvironment(environment: string): void {
+    this.currentEnvironment = environment;
+    this.peerManager.setCurrentEnvironment(environment);
+    logger.info(`Environment changed to: ${environment}`, { context: 'GameEngine', tag: 'environment' });
+  }
 
   constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
     logger.info(`GameEngine constructor called with environment: ${environment}`, 'GameEngine');
@@ -149,17 +157,20 @@ export class GameEngine {
     const fps = this.engine.getFps();
     HUDEvents.fps(fps);
     
-    // Update peers count
-    const peerCount = this.peerManager.getPeerCount();
+    // Update peers count from global state (only current environment)
+    const peerCount = gameState.players.filter(peer => 
+      peer.environment === this.currentEnvironment
+    ).length;
     HUDEvents.peers(peerCount);
   }
 
   private updateRemotePlayers(): void {
     if (!this.sceneManager) return;
     
-    // Update remote player positions based on peer data
-    const remotePeers = this.peerManager.getAllPeers().filter(peer => 
-      !this.peerManager.isLocalPeer(peer.id) && peer.environment === this.currentEnvironment
+    // Update remote player positions based on peer data from global state
+    // Only render peers in the current environment
+    const remotePeers = gameState.players.filter(peer => 
+      peer.environment === this.currentEnvironment
     );
 
     remotePeers.forEach(peer => {

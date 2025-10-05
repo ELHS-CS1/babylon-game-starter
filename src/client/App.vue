@@ -191,12 +191,15 @@ const joinGame = async (): Promise<void> => {
       throw new Error('Failed to create player');
     }
     
-    const response = await fetch(`${config.apiBaseUrl}/api/peers`, {
+    const response = await fetch('http://localhost:10000/api/datastar/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(playerPeer)
+      body: JSON.stringify({
+        type: 'peer-update',
+        peer: playerPeer
+      })
     });
     
     if (response.ok) {

@@ -24,6 +24,7 @@ export class PeerManager {
   private cleanupFrameCount: number = 0;
   private cleanupInterval: number = 300; // Check every 300 frames (5 seconds at 60fps)
   private defaultTimeoutMs: number = 60000; // 60 seconds default timeout
+  private currentEnvironment: string = 'levelTest';
 
   constructor() {
     // Initialize with empty peer list
@@ -204,6 +205,67 @@ export class PeerManager {
   // Check if peer is local
   isLocalPeer(peerId: string): boolean {
     return this.localPeer?.id === peerId;
+  }
+
+  // Set current environment for filtering
+  setCurrentEnvironment(environment: string): void {
+    this.currentEnvironment = environment;
+    logger.info(`Current environment set to: ${environment}`, { context: 'PeerManager', tag: 'peer' });
+  }
+
+  // Get current environment
+  getCurrentEnvironment(): string {
+    return this.currentEnvironment;
+  }
+
+  // Get all peers (regardless of environment)
+  getAllPeers(): Peer[] {
+    return Array.from(this.peers.values());
+  }
+
+  // Get peers only in current environment (for rendering)
+  getPeersInCurrentEnvironment(): Peer[] {
+    return Array.from(this.peers.values())
+      .filter(peer => peer.environment === this.currentEnvironment);
+  }
+
+  // Get peers in specific environment
+  getPeersInEnvironment(environment: string): Peer[] {
+    return Array.from(this.peers.values())
+      .filter(peer => peer.environment === environment);
+  }
+
+  // Get peer count for current environment only
+  getPeerCountInCurrentEnvironment(): number {
+    return this.getPeersInCurrentEnvironment().length;
+  }
+
+  // Get total peer count across all environments
+  getTotalPeerCount(): number {
+    return this.peers.size;
+  }
+
+  // Get environment statistics
+  getEnvironmentStats(): Record<string, number> {
+    const stats: Record<string, number> = {};
+    this.peers.forEach(peer => {
+      const env = peer.environment;
+      stats[env] = (stats[env] || 0) + 1;
+    });
+    return stats;
+  }
+
+  // Get peers by environment (useful for debugging)
+  getPeersByEnvironment(): Record<string, Peer[]> {
+    const peersByEnv: Record<string, Peer[]> = {};
+    this.peers.forEach(peer => {
+      const env = peer.environment;
+      if (!peersByEnv[env]) {
+        peersByEnv[env] = [];
+      }
+      peersByEnv[env].push(peer);
+    });
+    return peersByEnv;
   }
 
   // Get peers that need cleanup (inactive for too long)
