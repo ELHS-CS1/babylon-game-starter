@@ -42,6 +42,17 @@ export const gameState = reactive<GameState>({
 // Connect to DataStar SSE - simple and clean
 const eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
 
+// Add connection event handlers for debugging
+eventSource.onopen = () => {
+  console.log('SSE connection opened');
+  gameState.isConnected = true;
+};
+
+eventSource.onerror = (error) => {
+  console.error('SSE connection error:', error);
+  gameState.isConnected = false;
+};
+
     eventSource.onmessage = (event) => {
       try {
         const dataString = typeof event.data === 'string' ? event.data : String(event.data);

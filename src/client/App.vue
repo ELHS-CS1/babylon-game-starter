@@ -18,6 +18,8 @@
                 :show-state="hudSettings.showState"
                 :show-boost="hudSettings.showBoost"
                 :show-credits="hudSettings.showCredits"
+                :show-players="hudSettings.showPlayers"
+                :show-connection="hudSettings.showConnection"
                 :peers="peers"
                 :active-peers="activePeersCount"
               />

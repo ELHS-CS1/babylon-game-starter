@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message { background-color: #d1ecf1; color: #0c5460; margin: 5px 0; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>SSE Connection Test</h1>
+    <div id="status" class="status disconnected">Disconnected</div>
+    <div id="messages"></div>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="sendMessage()">Send Test Message</button>
+
+    <script>
+        let eventSource = null;
+        let connectionStatus = document.getElementById('status');
+        let messagesDiv = document.getElementById('messages');
+
+        function updateStatus(connected) {
+            connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+            connectionStatus.className = 'status ' + (connected ? 'connected' : 'disconnected');
+        }
+
+        function addMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            messagesDiv.appendChild(messageDiv);
+        }
+
+        function testConnection() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            addMessage('Attempting to connect to SSE server...');
+            eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
+
+            eventSource.onopen = () => {
+                addMessage('SSE connection opened successfully!');
+                updateStatus(true);
+            };
+
+            eventSource.onerror = (error) => {
+                addMessage('SSE connection error: ' + error);
+                updateStatus(false);
+            };
+
+            eventSource.onmessage = (event) => {
+                addMessage('Received: ' + event.data);
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'connected') {
+                        addMessage('Server confirmed connection!');
+                    }
+                } catch (e) {
+                    addMessage('Could not parse message: ' + event.data);
+                }
+            };
+        }
+
+        function sendMessage() {
+            fetch('http://localhost:10000/api/datastar/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'peer-update',
+                    peer: {
+                        id: 'test-client-' + Date.now(),
+                        name: 'Test Client',
+                        position: { x: Math.random() * 10, y: 0, z: Math.random() * 10 },
+                        environment: 'levelTest'
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addMessage('Message sent successfully: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                addMessage('Error sending message: ' + error);
+            });
+        }
+
+        // Auto-connect on page load
+        window.onload = () => {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

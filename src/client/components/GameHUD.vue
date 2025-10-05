@@ -42,7 +42,7 @@
     </div>
     
     <!-- Active Peers -->
-    <div v-if="activePeers >= 0" id="hud-peers" class="hud-element">
+    <div v-if="showPlayers && activePeers >= 0" id="hud-peers" class="hud-element">
       <span class="hud-label">Players:</span>
       <br>
       <span id="hud-peers-value" class="hud-value" :class="{ 'text-green': activePeers > 0, 'text-orange': activePeers === 0 }">{{ activePeers }}</span>
@@ -71,6 +71,7 @@ interface Props {
   showState?: boolean;
   showBoost?: boolean;
   showCredits?: boolean;
+  showPlayers?: boolean;
   showConnection?: boolean;
   peers?: Array<{ id: string; name: string; position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; environment: string; lastUpdate: number }>;
   activePeers?: number;
@@ -84,6 +85,7 @@ const props = withDefaults(defineProps<Props>(), {
   showState: () => CONFIG.HUD.SHOW_STATE,
   showBoost: () => CONFIG.HUD.SHOW_BOOST_STATUS,
   showCredits: () => CONFIG.HUD.SHOW_CREDITS,
+  showPlayers: () => true,
   showConnection: () => true,
   peers: () => [],
   activePeers: () => 0

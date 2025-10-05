@@ -87,25 +87,13 @@
             
             <div class="d-flex flex-column gap-3">
               <v-btn
-                color="primary"
+                :color="isConnected ? 'error' : 'primary'"
                 variant="elevated"
-                :disabled="isConnected"
                 block
-                @click="joinGame"
+                @click="isConnected ? leaveGame() : joinGame()"
               >
-                <v-icon left>mdi-login</v-icon>
-                Join Game
-              </v-btn>
-              
-              <v-btn
-                color="error"
-                variant="elevated"
-                :disabled="!isConnected"
-                block
-                @click="leaveGame"
-              >
-                <v-icon left>mdi-logout</v-icon>
-                Leave Game
+                <v-icon left>{{ isConnected ? 'mdi-logout' : 'mdi-login' }}</v-icon>
+                {{ isConnected ? 'Leave Game' : 'Join Game' }}
               </v-btn>
             </div>
           </div>
@@ -161,6 +149,22 @@
               v-model="hudSettings.showCredits"
               label="Show Credits"
               color="blue-lighten-2"
+              density="comfortable"
+              @update:model-value="onHUDSettingsChange"
+            />
+            
+            <v-switch
+              v-model="hudSettings.showPlayers"
+              label="Show Players Count"
+              color="green-lighten-2"
+              density="comfortable"
+              @update:model-value="onHUDSettingsChange"
+            />
+            
+            <v-switch
+              v-model="hudSettings.showConnection"
+              label="Show Connection Status"
+              color="red-lighten-2"
               density="comfortable"
               @update:model-value="onHUDSettingsChange"
             />
@@ -395,7 +399,9 @@ const hudSettings = reactive({
   showFPS: CONFIG.HUD.SHOW_FPS,
   showState: CONFIG.HUD.SHOW_STATE,
   showBoost: CONFIG.HUD.SHOW_BOOST_STATUS,
-  showCredits: CONFIG.HUD.SHOW_CREDITS
+  showCredits: CONFIG.HUD.SHOW_CREDITS,
+  showPlayers: true,
+  showConnection: true
 });
 
 const audioSettings = reactive({
@@ -513,7 +519,9 @@ const resetToDefaults = () => {
     showFPS: CONFIG.HUD.SHOW_FPS,
     showState: CONFIG.HUD.SHOW_STATE,
     showBoost: CONFIG.HUD.SHOW_BOOST_STATUS,
-    showCredits: CONFIG.HUD.SHOW_CREDITS
+    showCredits: CONFIG.HUD.SHOW_CREDITS,
+    showPlayers: true,
+    showConnection: true
   });
   
   Object.assign(audioSettings, {

@@ -22,6 +22,8 @@ export class GameEngine {
   private lastUpdateTime: number = 0;
   private hudUpdateFrameCount: number = 0;
   private hudUpdateInterval: number = 6; // Update HUD every 6 frames (60fps / 6 = 10fps)
+  private peerUpdateFrameCount: number = 0;
+  private peerUpdateInterval: number = 3; // Update peers every 3 frames (60fps / 3 = 20fps)
    
   public onPeerUpdate?: () => void;
 
@@ -88,8 +90,12 @@ export class GameEngine {
     // CharacterController handles character movement and physics
     // SmoothFollowCameraController handles camera following
     
-    // Update remote players
-    this.updateRemotePlayers();
+    // Update remote players (throttled for performance)
+    this.peerUpdateFrameCount++;
+    if (this.peerUpdateFrameCount >= this.peerUpdateInterval) {
+      this.updateRemotePlayers();
+      this.peerUpdateFrameCount = 0;
+    }
     
     // Update HUD - THE WORD OF THE LORD!
     await this.updateHUD();
@@ -157,23 +163,32 @@ export class GameEngine {
     );
 
     remotePeers.forEach(peer => {
+      // Validate peer data is recent (within last 5 seconds)
+      const now = Date.now();
+      if (now - peer.lastUpdate > 5000) {
+        logger.warn(`Peer ${peer.id} data is stale (${now - peer.lastUpdate}ms old)`, { context: 'GameEngine', tag: 'peer' });
+        return;
+      }
+
       let remotePlayer = this.remotePlayers.get(peer.id);
       
       if (!remotePlayer) {
         // Create remote player mesh
+        logger.info(`Creating remote player mesh for peer ${peer.id}`, { context: 'GameEngine', tag: 'peer' });
         remotePlayer = this.createPlayerMesh(`remote_${peer.id}`);
         this.remotePlayers.set(peer.id, remotePlayer);
       }
       
-            // Update position
-            remotePlayer.position = new Vector3(peer.position.x, peer.position.y, peer.position.z);
-            remotePlayer.rotation = new Vector3(peer.rotation.x, peer.rotation.y, peer.rotation.z);
+      // Update position and rotation
+      remotePlayer.position = new Vector3(peer.position.x, peer.position.y, peer.position.z);
+      remotePlayer.rotation = new Vector3(peer.rotation.x, peer.rotation.y, peer.rotation.z);
     });
 
     // Remove players that are no longer in the environment
     const currentPeerIds = new Set(remotePeers.map(peer => peer.id));
     for (const [peerId, mesh] of this.remotePlayers) {
       if (!currentPeerIds.has(peerId)) {
+        logger.info(`Disposing remote player mesh for peer ${peerId}`, { context: 'GameEngine', tag: 'peer' });
         mesh.dispose();
         this.remotePlayers.delete(peerId);
       }
