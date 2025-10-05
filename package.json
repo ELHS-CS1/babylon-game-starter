@@ -119,6 +119,7 @@
     "@babylonjs/loaders": "^8.28.1",
     "@babylonjs/materials": "^8.28.1",
     "@mdi/font": "^7.4.47",
+    "@starfederation/datastar-sdk": "^1.0.0-RC.1",
     "date-fns": "^4.1.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
