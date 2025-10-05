@@ -34,19 +34,26 @@ function getMkcertCert() {
 
 // DataStar SSE connection handler using ServerSentEventGenerator
 function handleSSEConnection(req, res) {
+  console.log('🔗 New SSE connection received!');
+  console.log(`📊 Total connections: ${sseConnections.size + 1}`);
+  
   // Use DataStar's ServerSentEventGenerator for proper SSE
   ServerSentEventGenerator.stream(req, res, (stream) => {
     // Add new connection to the set
     sseConnections.add(stream);
+    console.log(`✅ SSE connection added! Total: ${sseConnections.size}`);
     
     // Send initial connection status via DataStar signals (as string)
-    stream.patchSignals(JSON.stringify({ 
+    const signals = { 
       isConnected: true,
       serverTime: new Date().toISOString(),
       connections: sseConnections.size
-    }));
+    };
+    console.log(`📡 Sending initial signals: ${JSON.stringify(signals)}`);
+    stream.patchSignals(JSON.stringify(signals));
 
     // Send DataStar patch-elements for DOM updates
+    console.log('📡 Sending initial elements...');
     stream.patchElements('<div id="connection-status">Connected</div>');
     stream.patchElements(`<div id="server-time">${new Date().toISOString()}</div>`);
 
@@ -78,9 +85,11 @@ function handleSSEConnection(req, res) {
 
 // Broadcast DataStar SSE using ServerSentEventGenerator methods
 function broadcastToSSE(data) {
+  console.log(`📡 Broadcasting to ${sseConnections.size} SSE connections:`, data);
   sseConnections.forEach(stream => {
     try {
       if (data.type === 'peerUpdate' && data.peer) {
+        console.log(`📡 Sending peer update for: ${data.peer.name}`);
         // Send peer update via DataStar signals
         stream.patchSignals(JSON.stringify({ 
           peerUpdate: data.peer,
@@ -89,13 +98,16 @@ function broadcastToSSE(data) {
         // Send peer element via DataStar patch-elements
         stream.patchElements(`<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`);
       } else if (data.type === 'connected') {
+        console.log('📡 Sending connection status update');
         stream.patchSignals(JSON.stringify({ isConnected: true }));
         stream.patchElements('<div id="connection-status">Connected</div>');
       } else {
+        console.log(`📡 Sending general broadcast: ${JSON.stringify(data)}`);
         stream.patchSignals(JSON.stringify({ broadcast: data }));
         stream.patchElements(`<div id="broadcast">${JSON.stringify(data)}</div>`);
       }
-    } catch {
+    } catch (error) {
+      console.log(`❌ Error broadcasting to stream: ${error}`);
       sseConnections.delete(stream);
     }
   });

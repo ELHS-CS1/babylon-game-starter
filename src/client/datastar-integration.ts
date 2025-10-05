@@ -114,6 +114,32 @@ export class DataStarIntegration {
         logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
       };
 
+      // Add general message listener to see ALL events
+      eventSource.onmessage = (event: MessageEvent) => {
+        logger.info('📨 Server SSE message received!', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Message data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Message type: ${event.type}`, { context: 'DataStar', tag: 'sse' });
+      };
+
+      // Add error listener to see if there are connection issues
+      eventSource.addEventListener('error', (error) => {
+        logger.error('📨 Server SSE error event!', { context: 'DataStar', tag: 'sse' });
+        logger.error(`📊 Error: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'sse' });
+        logger.error(`📊 EventSource readyState: ${eventSource.readyState}`, { context: 'DataStar', tag: 'sse' });
+      });
+
+      // Test if EventSource is working by checking readyState
+      setTimeout(() => {
+        logger.info(`📊 EventSource readyState after 1 second: ${eventSource.readyState}`, { context: 'DataStar', tag: 'sse' });
+        if (eventSource.readyState === EventSource.CONNECTING) {
+          logger.error('❌ EventSource stuck in CONNECTING state!', { context: 'DataStar', tag: 'sse' });
+        } else if (eventSource.readyState === EventSource.OPEN) {
+          logger.info('✅ EventSource is OPEN and ready', { context: 'DataStar', tag: 'sse' });
+        } else if (eventSource.readyState === EventSource.CLOSED) {
+          logger.error('❌ EventSource is CLOSED!', { context: 'DataStar', tag: 'sse' });
+        }
+      }, 1000);
+
       // Listen for DataStar events from server
       eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
         logger.info('📨 Server DataStar signals received!', { context: 'DataStar', tag: 'sse' });
