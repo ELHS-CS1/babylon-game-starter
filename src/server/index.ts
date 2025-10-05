@@ -89,7 +89,8 @@ function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': config.corsOrigin,
-    'Access-Control-Allow-Headers': 'Cache-Control'
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
   });
 
   // Send initial connection event

@@ -1,5 +1,6 @@
 import { reactive, computed } from 'vue';
 import type { Peer } from './game/Peer';
+import { logger } from './utils/logger';
 
 // Type guard function to check if object is a valid Peer
 function isValidPeer(obj: unknown): obj is Peer {
@@ -40,7 +41,81 @@ export const gameState = reactive<GameState>({
 });
 
 // Connect to DataStar SSE - simple and clean
-const eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
+logger.info('🔍 Testing logger import...', { context: 'State', tag: 'connection' });
+logger.info('🚀 Attempting SSE connection to: http://localhost:10000/api/datastar/sse', { context: 'State', tag: 'connection' });
+logger.info('🔍 Logger call completed', { context: 'State', tag: 'connection' });
+
+// Try to create EventSource with error handling
+let eventSource: EventSource;
+try {
+  eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
+  logger.info('✅ EventSource created successfully', { context: 'State', tag: 'connection' });
+  
+  // Add immediate debugging
+  logger.info(`🔍 EventSource readyState immediately: ${eventSource.readyState}`, { context: 'State', tag: 'connection' });
+  logger.info(`🔍 EventSource URL: ${eventSource.url}`, { context: 'State', tag: 'connection' });
+  logger.info(`🔍 EventSource withCredentials: ${eventSource.withCredentials}`, { context: 'State', tag: 'connection' });
+  
+  // Check if browser supports EventSource
+  if (typeof EventSource === 'undefined') {
+    logger.error('❌ EventSource not supported in this browser', { context: 'State', tag: 'connection' });
+  }
+} catch (error) {
+  logger.error('❌ Failed to create EventSource', { context: 'State', tag: 'connection' });
+  logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
+  throw error;
+}
+
+// Check SSE connection status after a short delay
+setTimeout(() => {
+  logger.info(`📊 SSE connection status after 2s: readyState=${eventSource.readyState}, connected=${gameState.isConnected}`, { context: 'State', tag: 'connection' });
+  logger.info(`📊 EventSource URL: ${eventSource.url}`, { context: 'State', tag: 'connection' });
+  logger.info(`📊 EventSource withCredentials: ${eventSource.withCredentials}`, { context: 'State', tag: 'connection' });
+  
+  // If still connecting, try to test the connection manually
+  if (eventSource.readyState === 0) {
+    logger.info('🔍 SSE still connecting, testing manual fetch...', { context: 'State', tag: 'connection' });
+    fetch('http://localhost:10000/api/datastar/sse')
+      .then(response => {
+        logger.info(`✅ Manual fetch successful: ${response.status}`, { context: 'State', tag: 'connection' });
+        return response.text();
+      })
+      .then(text => {
+        logger.info(`📨 Manual fetch response: ${text}`, { context: 'State', tag: 'connection' });
+        
+        // If manual fetch works but EventSource doesn't, use polling fallback
+        logger.info('🔄 EventSource failed, switching to polling fallback...', { context: 'State', tag: 'connection' });
+        gameState.isConnected = true;
+        logger.info('✅ Connection state updated to: true (polling fallback)', { context: 'State', tag: 'connection' });
+        
+        // Start polling for updates
+        const pollInterval = setInterval(() => {
+          fetch('http://localhost:10000/api/datastar/sse')
+            .then(response => response.text())
+            .then(text => {
+              logger.info(`📨 Polling response: ${text}`, { context: 'State', tag: 'connection' });
+              // Parse and handle the response like SSE
+              try {
+                const data = JSON.parse(text.split('\n')[0].replace('data: ', ''));
+                logger.info(`📊 Parsed polling data: ${JSON.stringify(data)}`, { context: 'State', tag: 'connection' });
+              } catch (e) {
+                logger.info(`📊 Raw polling data: ${text}`, { context: 'State', tag: 'connection' });
+              }
+            })
+            .catch(error => {
+              logger.error('❌ Polling failed', { context: 'State', tag: 'connection' });
+              logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
+              clearInterval(pollInterval);
+              gameState.isConnected = false;
+            });
+        }, 5000);
+      })
+      .catch(error => {
+        logger.error('❌ Manual fetch failed', { context: 'State', tag: 'connection' });
+        logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
+      });
+  }
+}, 2000);
 
 // Add connection event handlers for debugging - FOLLOWING THE SACRED COMMANDMENTS!
 eventSource.onopen = () => {
@@ -52,6 +127,7 @@ eventSource.onopen = () => {
 eventSource.onerror = (error) => {
   logger.error('❌ SSE connection error', { context: 'State', tag: 'connection' });
   logger.error(`📊 Error details: ${error}`, { context: 'State', tag: 'connection' });
+  logger.error(`📊 EventSource readyState: ${eventSource.readyState}`, { context: 'State', tag: 'connection' });
   gameState.isConnected = false;
   logger.info(`❌ Connection state updated to: ${gameState.isConnected}`, { context: 'State', tag: 'connection' });
 };

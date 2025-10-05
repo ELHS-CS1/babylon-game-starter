@@ -21,7 +21,8 @@ function handleSSEConnection(req, res) {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control'
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
   });
 
   // Send initial connection event

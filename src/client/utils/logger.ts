@@ -290,6 +290,16 @@ const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.loc
 const loggingScope = urlParams.get('scope') || 'none'; // all, none, or tag
 const targetTag = urlParams.get('tag') || ''; // specific tag to target
 
+// Debug localhost detection
+if (typeof window !== 'undefined') {
+  console.log('🔍 Logger Debug:', {
+    href: window.location.href,
+    isLocalhost,
+    loggingScope,
+    targetTag
+  });
+}
+
 
 // Create empty stub logger for non-localhost environments
 const createStubLogger = () => ({
