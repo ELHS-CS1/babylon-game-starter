@@ -69,6 +69,7 @@ export class DataStarIntegration {
           
           this.datastar.eventSource.onerror = (error: any) => {
             logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
+            logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
             this.isConnected = false;
             gameState.isConnected = false;
             logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
