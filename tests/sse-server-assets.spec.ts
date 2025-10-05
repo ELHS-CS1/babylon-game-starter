@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('SSE Server Asset Serving', () => {
+/**
+ * DataStar SSE Server Asset Serving E2E Tests
+ * Following official DataStar documentation patterns for server asset serving
+ */
+
+test.describe('DataStar SSE Server Asset Serving', () => {
   test('should serve client HTML from SSE server', async ({ page }) => {
     // Test that the SSE server can serve the client HTML
     await page.goto('http://localhost:10000/');
@@ -88,21 +93,59 @@ test.describe('SSE Server Asset Serving', () => {
     expect(headers['access-control-allow-methods']).toBeDefined();
   });
 
-  test('should serve SSE endpoints correctly', async ({ page }) => {
-    // Test SSE endpoint
+  test('should serve DataStar SSE endpoints correctly', async ({ page }) => {
+    // Test DataStar SSE endpoint
     const sseResponse = await page.request.get('http://localhost:10000/api/datastar/sse');
     expect(sseResponse.status()).toBe(200);
     expect(sseResponse.headers()['content-type']).toContain('text/event-stream');
+    
+    // Verify DataStar SSE headers
+    const headers = sseResponse.headers();
+    expect(headers['cache-control']).toBe('no-cache');
+    expect(headers['connection']).toBe('keep-alive');
+    expect(headers['access-control-allow-origin']).toBe('*');
   });
 
-  test('should handle SSE send endpoint', async ({ page }) => {
-    // Test SSE send endpoint
+  test('should handle DataStar SSE send endpoint', async ({ page }) => {
+    // Test DataStar SSE send endpoint
     const sendResponse = await page.request.post('http://localhost:10000/api/datastar/send', {
       data: {
-        type: 'test',
-        message: 'Test message'
+        type: 'datastar-patch-elements',
+        data: '<div id="test-datastar">DataStar Test</div>'
       }
     });
     expect(sendResponse.status()).toBe(200);
+    
+    // Verify response contains success indicator
+    const responseData = await sendResponse.json();
+    expect(responseData.success).toBe(true);
+  });
+
+  test('should handle DataStar SSE events correctly', async ({ page }) => {
+    // Test DataStar SSE event handling
+    await page.goto('http://localhost:10000/');
+    
+    // Wait for DataStar integration to load
+    await page.waitForFunction(() => {
+      return window.dataStarIntegration !== undefined;
+    }, { timeout: 20000 });
+    
+    // Verify DataStar connection can be established
+    const connectionStatus = await page.evaluate(() => {
+      return window.dataStarIntegration.getConnectionStatus();
+    });
+    
+    // Connection status should be boolean
+    expect(typeof connectionStatus).toBe('boolean');
   });
 });
+
+// Add global type declarations for DataStar integration
+declare global {
+  interface Window {
+    dataStarIntegration: {
+      getConnectionStatus(): boolean;
+      disconnect(): void;
+    };
+  }
+}

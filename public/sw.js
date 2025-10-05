@@ -6,11 +6,12 @@ const DYNAMIC_CACHE = 'babylon-dynamic-v1';
 // Files to cache for offline functionality
 const STATIC_FILES = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/icons/sigma-logo-64.png',
   '/icons/sigma-logo-192.png',
-  '/icons/favicon.png'
+  '/icons/favicon.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 // Install event - cache static files
@@ -29,6 +30,8 @@ self.addEventListener('install', (event) => {
       })
       .catch((error) => {
         console.error('Service Worker: Installation failed', error);
+        // Continue with installation even if some files fail to cache
+        return self.skipWaiting();
       })
   );
 });
@@ -106,7 +109,15 @@ async function networkFirst(request) {
     
     // Return offline page for navigation requests
     if (request.mode === 'navigate') {
-      return caches.match('/index.html');
+      return caches.match('/');
+    }
+    
+    // For API requests, return a basic response instead of throwing
+    if (request.url.includes('/api/')) {
+      return new Response(JSON.stringify({ error: 'Offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     throw error;

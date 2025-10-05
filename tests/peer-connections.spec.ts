@@ -1,6 +1,11 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
-interface PeerState {
+/**
+ * DataStar Multiplayer Peer Connections E2E Tests
+ * Following official DataStar documentation patterns for peer management
+ */
+
+interface DataStarPeerState {
   id: string;
   name: string;
   position: { x: number; y: number; z: number };
@@ -9,12 +14,14 @@ interface PeerState {
   lastUpdate: number;
 }
 
-interface GameState {
-  peers: PeerState[];
+interface DataStarGameState {
+  peers: DataStarPeerState[];
   environment: string;
+  isConnected: boolean;
+  connectionStatus: string;
 }
 
-class GameTestHelper {
+class DataStarGameTestHelper {
   constructor(private page: Page) {}
 
   async waitForGameEngine(): Promise<void> {
@@ -27,14 +34,34 @@ class GameTestHelper {
     }, { timeout: 20000 });
   }
 
+  async waitForDataStarConnection(): Promise<void> {
+    // Wait for DataStar SSE connection to be established
+    await this.page.waitForFunction(() => {
+      return window.dataStarIntegration && 
+             window.dataStarIntegration.getConnectionStatus() === true;
+    }, { timeout: 20000 });
+  }
+
+  async waitForDataStarPatchElements(selector: string): Promise<void> {
+    await this.page.waitForSelector(selector, { timeout: 10000 });
+  }
+
   async joinGame(): Promise<void> {
     const joinButton = this.page.locator('button:has-text("Join Game")');
     await joinButton.click({ timeout: 20000 });
     
-    // Wait for connection to be established
-    await this.page.waitForFunction(() => {
-      return window.isConnected === true;
-    }, { timeout: 20000 });
+    // Wait for DataStar connection to be established
+    await this.waitForDataStarConnection();
+    
+    // Wait for connection status to be patched into DOM
+    await this.waitForDataStarPatchElements('#connection-status');
+    
+    // Verify connection status
+    const isConnected = await this.page.evaluate(() => {
+      const statusElement = document.getElementById('connection-status');
+      return statusElement?.textContent === 'Connected';
+    });
+    expect(isConnected).toBe(true);
   }
 
   async leaveGame(): Promise<void> {
@@ -54,9 +81,31 @@ class GameTestHelper {
     await this.page.waitForTimeout(1000);
   }
 
-  async getPeerCount(): Promise<number> {
+  async getDataStarPeerCount(): Promise<number> {
     return await this.page.evaluate(() => {
-      return window.peers ? window.peers.length : 0;
+      // Get peers from DataStar patched DOM elements
+      const peerElements = document.querySelectorAll('[id^="peer-"]');
+      return peerElements.length;
+    });
+  }
+
+  async getDataStarPeers(): Promise<DataStarPeerState[]> {
+    return await this.page.evaluate(() => {
+      const peerElements = document.querySelectorAll('[id^="peer-"]');
+      return Array.from(peerElements).map(element => {
+        const id = element.id.replace('peer-', '');
+        const text = element.textContent || '';
+        const [name, environment] = text.split(' - ');
+        
+        return {
+          id,
+          name: name || `Peer_${id}`,
+          environment: environment || 'Level Test',
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          lastUpdate: Date.now()
+        };
+      });
     });
   }
 
@@ -66,11 +115,16 @@ class GameTestHelper {
     });
   }
 
-  async getGameState(): Promise<GameState> {
+  async getDataStarGameState(): Promise<DataStarGameState> {
     return await this.page.evaluate(() => {
+      const connectionStatus = document.getElementById('connection-status')?.textContent || 'Disconnected';
+      const isConnected = connectionStatus === 'Connected';
+      
       return {
-        peers: window.peers || [],
-        environment: window.selectedEnvironment || 'levelTest'
+        peers: window.gameState?.players || [],
+        environment: window.selectedEnvironment || 'levelTest',
+        isConnected,
+        connectionStatus
       };
     });
   }
@@ -87,20 +141,22 @@ class GameTestHelper {
     await this.page.waitForTimeout(100);
   }
 
-  async waitForPeerUpdate(timeout: number = 5000): Promise<void> {
+  async waitForDataStarStateUpdate(timeout: number = 5000): Promise<void> {
     await this.page.waitForFunction(() => {
-      return window.lastPeerUpdate && (Date.now() - window.lastPeerUpdate) < 1000;
+      return window.gameState && 
+             window.gameState.lastUpdate && 
+             (Date.now() - window.gameState.lastUpdate) < 1000;
     }, { timeout });
   }
 }
 
-test.describe('Multiplayer Peer Connections', () => {
+test.describe('DataStar Multiplayer Peer Connections', () => {
   let context1: BrowserContext;
   let context2: BrowserContext;
   let page1: Page;
   let page2: Page;
-  let helper1: GameTestHelper;
-  let helper2: GameTestHelper;
+  let helper1: DataStarGameTestHelper;
+  let helper2: DataStarGameTestHelper;
 
   test.beforeAll(async ({ browser }) => {
     // Create two separate browser contexts to simulate different users
@@ -110,8 +166,8 @@ test.describe('Multiplayer Peer Connections', () => {
     page1 = await context1.newPage();
     page2 = await context2.newPage();
     
-    helper1 = new GameTestHelper(page1);
-    helper2 = new GameTestHelper(page2);
+    helper1 = new DataStarGameTestHelper(page1);
+    helper2 = new DataStarGameTestHelper(page2);
   });
 
   test.afterAll(async () => {
@@ -119,7 +175,7 @@ test.describe('Multiplayer Peer Connections', () => {
     await context2.close();
   });
 
-  test('should establish peer connections and handle peer instantiation', async () => {
+  test('should establish DataStar peer connections and handle peer instantiation', async () => {
     // Navigate both pages to the game
     await page1.goto('/');
     await page2.goto('/');
@@ -128,19 +184,23 @@ test.describe('Multiplayer Peer Connections', () => {
     await helper1.waitForGameEngine();
     await helper2.waitForGameEngine();
 
-    // Both players join the game
+    // Wait for DataStar connections to be established
+    await helper1.waitForDataStarConnection();
+    await helper2.waitForDataStarConnection();
+
+    // Both players join the game using DataStar patterns
     await helper1.joinGame();
     await helper2.joinGame();
 
-    // Wait for both connections to be established
-    await page1.waitForFunction(() => window.isConnected === true);
-    await page2.waitForFunction(() => window.isConnected === true);
+    // Wait for DataStar state updates
+    await helper1.waitForDataStarStateUpdate();
+    await helper2.waitForDataStarStateUpdate();
 
     // Verify both players can see each other in the same environment
-    await page1.waitForTimeout(2000); // Allow time for peer synchronization
+    await page1.waitForTimeout(2000); // Allow time for DataStar peer synchronization
     
-    const peerCount1 = await helper1.getPeerCount();
-    const peerCount2 = await helper2.getPeerCount();
+    const peerCount1 = await helper1.getDataStarPeerCount();
+    const peerCount2 = await helper2.getDataStarPeerCount();
     
     // Each player should see at least 1 peer (themselves), ideally 2 (including the other player)
     expect(peerCount1).toBeGreaterThanOrEqual(1);
@@ -150,28 +210,34 @@ test.describe('Multiplayer Peer Connections', () => {
     const environment1 = await helper1.getCurrentEnvironment();
     const environment2 = await helper2.getCurrentEnvironment();
     expect(environment1).toBe(environment2);
+
+    // Verify DataStar connection status
+    const gameState1 = await helper1.getDataStarGameState();
+    const gameState2 = await helper2.getDataStarGameState();
+    expect(gameState1.isConnected).toBe(true);
+    expect(gameState2.isConnected).toBe(true);
   });
 
-  test('should handle peer state updates correctly', async () => {
-    // Ensure both players are connected
-    await page1.waitForFunction(() => window.isConnected === true);
-    await page2.waitForFunction(() => window.isConnected === true);
+  test('should handle DataStar peer state updates correctly', async () => {
+    // Ensure both players are connected via DataStar
+    await helper1.waitForDataStarConnection();
+    await helper2.waitForDataStarConnection();
 
-    // Get initial game states
-    // const initialState1 = await helper1.getGameState(); // Unused for now
-    // const initialState2 = await helper2.getGameState(); // Unused for now
+    // Get initial DataStar game states
+    const initialState1 = await helper1.getDataStarGameState();
+    const initialState2 = await helper2.getDataStarGameState();
 
     // Player 1 moves around
     await helper1.simulatePlayerMovement();
-    await page1.waitForTimeout(1000);
+    await helper1.waitForDataStarStateUpdate();
 
     // Player 2 moves around
     await helper2.simulatePlayerMovement();
-    await page2.waitForTimeout(1000);
+    await helper2.waitForDataStarStateUpdate();
 
-    // Get updated game states
-    const updatedState1 = await helper1.getGameState();
-    const updatedState2 = await helper2.getGameState();
+    // Get updated DataStar game states
+    const updatedState1 = await helper1.getDataStarGameState();
+    const updatedState2 = await helper2.getDataStarGameState();
 
     // Verify that peer states have been updated
     expect(updatedState1.peers.length).toBeGreaterThanOrEqual(1);
@@ -193,6 +259,10 @@ test.describe('Multiplayer Peer Connections', () => {
       expect(typeof peer.position.z).toBe('number');
       expect(peer.environment).toBe(updatedState2.environment);
     });
+
+    // Verify DataStar connection status is maintained
+    expect(updatedState1.isConnected).toBe(true);
+    expect(updatedState2.isConnected).toBe(true);
   });
 
   test('should isolate peers by environment - same environment', async () => {
@@ -343,12 +413,19 @@ test.describe('Multiplayer Peer Connections', () => {
   });
 });
 
-// Add global type declarations for the test
+// Add global type declarations for DataStar integration
 declare global {
   interface Window {
     gameEngine: any;
-    isConnected: boolean;
-    peers: PeerState[];
+    dataStarIntegration: {
+      getConnectionStatus(): boolean;
+      disconnect(): void;
+    };
+    gameState: {
+      isConnected: boolean;
+      players: DataStarPeerState[];
+      lastUpdate: number;
+    };
     selectedEnvironment: string;
     lastPeerUpdate: number;
   }

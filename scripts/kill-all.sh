@@ -13,11 +13,11 @@ pkill -f "tsc.*watch" 2>/dev/null || true
 pkill -f "vite.*build" 2>/dev/null || true
 pkill -f "concurrently" 2>/dev/null || true
 
-# Kill processes on specific ports
-echo "🔌 Killing processes on ports 3000, 3001, 10000..."
+# Kill processes on specific ports (but NOT the DataStar server on 10000)
+echo "🔌 Killing processes on ports 3000, 3001..."
 lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 lsof -ti:3001 | xargs kill -9 2>/dev/null || true
-lsof -ti:10000 | xargs kill -9 2>/dev/null || true
+# NOTE: NOT killing port 10000 to preserve DataStar server
 
 # Kill any remaining npm processes for this project (but not the current one)
 echo "📋 Killing npm processes..."
