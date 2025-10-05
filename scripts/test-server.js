@@ -25,8 +25,10 @@ function handleSSEConnection(req, res) {
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
   });
 
-  // Send initial connection event
-  res.write('data: {"type":"connected","timestamp":' + Date.now() + '}\n\n');
+  // Send initial connection event after a small delay to ensure EventSource is ready
+  setTimeout(() => {
+    res.write('data: {"type":"connected","timestamp":' + Date.now() + '}\n\n');
+  }, 100);
 
   // Store connection
   sseConnections.add(res);
