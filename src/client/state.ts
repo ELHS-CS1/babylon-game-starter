@@ -1,207 +1,100 @@
-import { reactive, computed } from 'vue';
-import type { Peer } from './game/Peer';
+// DataStar SSE State Management - Following the 10 Commandments as God's word!
+// Based on: https://data-star.dev/guide/getting_started
+
 import { logger } from './utils/logger';
+import { dataStarIntegration } from './datastar-integration';
 
-// Type guard function to check if object is a valid Peer
-function isValidPeer(obj: unknown): obj is Peer {
-  return obj !== null && obj !== undefined && typeof obj === 'object' &&
-    'id' in obj && typeof obj.id === 'string' &&
-    'name' in obj && typeof obj.name === 'string' &&
-    'position' in obj && typeof obj.position === 'object' &&
-    'rotation' in obj && typeof obj.rotation === 'object' &&
-    'environment' in obj && typeof obj.environment === 'string' &&
-    'lastUpdate' in obj && typeof obj.lastUpdate === 'number';
-}
-
-// Define proper interfaces following TEN_COMMANDMENTS
-interface GameObject {
-  id: string;
-  type: string;
-  position: { x: number; y: number; z: number };
-}
-
-interface GameState {
-  players: Peer[];
-  objects: GameObject[];
-  status: string;
-  environment: string;
+// Game state interface - NO TS ANY!
+export interface GameState {
   isConnected: boolean;
+  players: Player[];
+  environment: string;
   lastUpdate: number;
 }
 
+// Player interface - NO TS ANY!
+export interface Player {
+  id: string;
+  name: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+  environment: string;
+  lastUpdate: number;
+}
 
-// Simple reactive game state - following your buddy's pattern
-export const gameState = reactive<GameState>({
-  players: [],
-  objects: [],
-  status: 'waiting',
-  environment: 'levelTest',
+// Initialize game state - FOLLOWING THE SACRED COMMANDMENTS!
+export const gameState: GameState = {
   isConnected: false,
+  players: [],
+  environment: 'Level Test',
   lastUpdate: Date.now()
-});
+};
 
-// Connect to DataStar SSE - simple and clean
+// DataStar SSE connection - Backend-driven state management
+logger.info('🚀 Initializing DataStar SSE connection', { context: 'State', tag: 'connection' });
 logger.info('🔍 Testing logger import...', { context: 'State', tag: 'connection' });
 logger.info('🚀 Attempting SSE connection to: http://localhost:10000/api/datastar/sse', { context: 'State', tag: 'connection' });
 logger.info('🔍 Logger call completed', { context: 'State', tag: 'connection' });
 
-// Try to create EventSource with error handling
-let eventSource: EventSource;
-try {
-  eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
-  logger.info('✅ EventSource created successfully', { context: 'State', tag: 'connection' });
-  
-  // Add immediate debugging
-  logger.info(`🔍 EventSource readyState immediately: ${eventSource.readyState}`, { context: 'State', tag: 'connection' });
-  logger.info(`🔍 EventSource URL: ${eventSource.url}`, { context: 'State', tag: 'connection' });
-  logger.info(`🔍 EventSource withCredentials: ${eventSource.withCredentials}`, { context: 'State', tag: 'connection' });
-  
-  // Check if browser supports EventSource
-  if (typeof EventSource === 'undefined') {
-    logger.error('❌ EventSource not supported in this browser', { context: 'State', tag: 'connection' });
+// Initialize DataStar integration for real-time updates
+logger.info('✅ DataStar integration initialized', { context: 'State', tag: 'connection' });
+
+// DataStar integration handles all SSE communication
+// The DataStarIntegration class manages the EventSource connection
+// and updates gameState based on patched DOM elements
+
+// DataStar SSE message handling - Backend-driven state management
+// The DataStarIntegration class handles all SSE events and updates gameState
+// based on patched DOM elements from the backend
+
+// Peer validation function - NO TS ANY!
+export function isValidPeer(peer: unknown): peer is Player {
+  if (peer === null || peer === undefined || typeof peer !== 'object') {
+    return false;
   }
-} catch (error) {
-  logger.error('❌ Failed to create EventSource', { context: 'State', tag: 'connection' });
-  logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
-  throw error;
+  
+  const p = peer as Record<string, unknown>;
+  
+  return (
+    typeof p.id === 'string' &&
+    typeof p.name === 'string' &&
+    typeof p.environment === 'string' &&
+    typeof p.lastUpdate === 'number' &&
+    typeof p.position === 'object' &&
+    p.position !== null &&
+    typeof (p.position as Record<string, unknown>).x === 'number' &&
+    typeof (p.position as Record<string, unknown>).y === 'number' &&
+    typeof (p.position as Record<string, unknown>).z === 'number' &&
+    typeof p.rotation === 'object' &&
+    p.rotation !== null &&
+    typeof (p.rotation as Record<string, unknown>).x === 'number' &&
+    typeof (p.rotation as Record<string, unknown>).y === 'number' &&
+    typeof (p.rotation as Record<string, unknown>).z === 'number'
+  );
 }
 
-// Check SSE connection status after a short delay
-setTimeout(() => {
-  logger.info(`📊 SSE connection status after 2s: readyState=${eventSource.readyState}, connected=${gameState.isConnected}`, { context: 'State', tag: 'connection' });
-  logger.info(`📊 EventSource URL: ${eventSource.url}`, { context: 'State', tag: 'connection' });
-  logger.info(`📊 EventSource withCredentials: ${eventSource.withCredentials}`, { context: 'State', tag: 'connection' });
-  
-  // If still connecting, try to test the connection manually
-  if (eventSource.readyState === 0) {
-    logger.info('🔍 SSE still connecting, testing manual fetch...', { context: 'State', tag: 'connection' });
-    fetch('http://localhost:10000/api/datastar/sse')
-      .then(response => {
-        logger.info(`✅ Manual fetch successful: ${response.status}`, { context: 'State', tag: 'connection' });
-        return response.text();
-      })
-      .then(text => {
-        logger.info(`📨 Manual fetch response: ${text}`, { context: 'State', tag: 'connection' });
-        
-        // If manual fetch works but EventSource doesn't, this is a browser EventSource issue
-        logger.info('🔍 Manual fetch works but EventSource stuck - this is a browser EventSource issue', { context: 'State', tag: 'connection' });
-        logger.info('🔍 DataStar uses SSE, not polling - EventSource should work', { context: 'State', tag: 'connection' });
-        
-        // Force connection state to true since server is reachable
-        gameState.isConnected = true;
-        logger.info('✅ Connection state updated to: true (server reachable)', { context: 'State', tag: 'connection' });
-      })
-      .catch(error => {
-        logger.error('❌ Manual fetch failed', { context: 'State', tag: 'connection' });
-        logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
-      });
-  }
-}, 2000);
+// DataStar SSE send function - Backend communication
+export async function sendToServer(data: unknown): Promise<void> {
+  try {
+    const response = await fetch('http://localhost:10000/api/datastar/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
 
-// Add connection event handlers for debugging - FOLLOWING THE SACRED COMMANDMENTS!
-eventSource.onopen = () => {
-  logger.info('🔗 SSE connection opened successfully', { context: 'State', tag: 'connection' });
-  gameState.isConnected = true;
-  logger.info(`✅ Connection state updated to: ${gameState.isConnected}`, { context: 'State', tag: 'connection' });
-};
-
-eventSource.onerror = (error) => {
-  logger.error('❌ SSE connection error', { context: 'State', tag: 'connection' });
-  logger.error(`📊 Error details: ${error}`, { context: 'State', tag: 'connection' });
-  logger.error(`📊 EventSource readyState: ${eventSource.readyState}`, { context: 'State', tag: 'connection' });
-  gameState.isConnected = false;
-  logger.info(`❌ Connection state updated to: ${gameState.isConnected}`, { context: 'State', tag: 'connection' });
-};
-
-    eventSource.onmessage = (event) => {
-      try {
-        const dataString = typeof event.data === 'string' ? event.data : String(event.data);
-        logger.info(`📨 Received SSE message: ${dataString}`, { context: 'State', tag: 'sse' });
-        
-        const update: unknown = JSON.parse(dataString);
-        if (update === null || update === undefined || typeof update !== 'object' || !('type' in update) || typeof update.type !== 'string') {
-          logger.warn('⚠️ Invalid SSE message format - ignoring', { context: 'State', tag: 'sse' });
-          return;
-        }
-    
-    // Handle different message types with proper type checking
-    switch (update.type) {
-      case 'connected':
-        logger.info('🔗 Received connected message from server', { context: 'State', tag: 'sse' });
-        gameState.isConnected = true;
-        gameState.lastUpdate = Date.now();
-        break;
-        
-      case 'heartbeat':
-        gameState.lastUpdate = Date.now();
-        break;
-        
-      case 'peerUpdate':
-        logger.info('👥 Received peer update from server', { context: 'State', tag: 'sse' });
-        if ('peer' in update && isValidPeer(update.peer)) {
-          const peer = update.peer;
-          logger.info(`📊 Peer data: ${JSON.stringify(peer)}`, { context: 'State', tag: 'sse' });
-          
-          // Add or update player
-          const existingIndex = gameState.players.findIndex(p => p.id === peer.id);
-          if (existingIndex >= 0) {
-            logger.info(`🔄 Updating existing peer: ${peer.id}`, { context: 'State', tag: 'sse' });
-            gameState.players[existingIndex] = peer;
-          } else {
-            logger.info(`➕ Adding new peer: ${peer.id}`, { context: 'State', tag: 'sse' });
-            gameState.players.push(peer);
-          }
-          logger.info(`📊 Total peers now: ${gameState.players.length}`, { context: 'State', tag: 'sse' });
-        } else {
-          logger.warn('⚠️ Invalid peer data in peerUpdate message', { context: 'State', tag: 'sse' });
-        }
-        if ('gameState' in update && update.gameState !== null && update.gameState !== undefined && typeof update.gameState === 'object' && 'environment' in update.gameState && typeof update.gameState.environment === 'string') {
-          gameState.environment = update.gameState.environment;
-        }
-        gameState.lastUpdate = Date.now();
-        break;
-        
-      case 'peerLeave':
-        if ('peerId' in update && typeof update.peerId === 'string') {
-          gameState.players = gameState.players.filter(p => p.id !== update.peerId);
-        }
-        gameState.lastUpdate = Date.now();
-        break;
-        
-      case 'environmentChange':
-        if ('environment' in update && typeof update.environment === 'string') {
-          gameState.environment = update.environment;
-        }
-        gameState.lastUpdate = Date.now();
-        break;
-        
-      default:
-        // Ignore unknown message types
-        break;
+    if (!response.ok) {
+      logger.error(`❌ DataStar send failed: ${response.status}`, { context: 'State', tag: 'connection' });
+      return;
     }
-  } catch {
-    // Error parsing SSE message - ignore
+
+    logger.info('✅ DataStar send successful', { context: 'State', tag: 'connection' });
+  } catch (error) {
+    logger.error('❌ DataStar send error', { context: 'State', tag: 'connection' });
+    logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'State', tag: 'connection' });
   }
-};
+}
 
-eventSource.onerror = () => {
-  gameState.isConnected = false;
-};
-
-// Send data to server
-export const sendToServer = (data: Record<string, unknown>): void => {
-  fetch('http://localhost:10000/api/datastar/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data)
-  }).catch(() => {
-    // Error sending - ignore
-  });
-};
-
-// Computed properties for UI
-export const activePlayers = computed(() => gameState.players.length);
-export const playersInCurrentEnvironment = computed(() => 
-  gameState.players.filter(player => player.environment === gameState.environment));
+// Export DataStar integration for use in other components
+export { dataStarIntegration };

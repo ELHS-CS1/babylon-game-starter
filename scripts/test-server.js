@@ -25,18 +25,21 @@ function handleSSEConnection(req, res) {
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
   });
 
-  // Send initial connection event after a small delay to ensure EventSource is ready
+  // Send DataStar SSE patch-elements event for connection status
   setTimeout(() => {
-    res.write('data: {"type":"connected","timestamp":' + Date.now() + '}\n\n');
+    res.write('event: datastar-patch-elements\n');
+    res.write('data: elements <div id="connection-status">Connected</div>\n');
+    res.write('data: elements <div id="server-time">' + new Date().toISOString() + '</div>\n\n');
   }, 100);
 
   // Store connection
   sseConnections.add(res);
 
-  // Send periodic heartbeat
+  // Send periodic DataStar SSE heartbeat
   const heartbeat = setInterval(() => {
     if (sseConnections.has(res)) {
-      res.write('data: {"type":"heartbeat","timestamp":' + Date.now() + '}\n\n');
+      res.write('event: datastar-patch-elements\n');
+      res.write('data: elements <div id="heartbeat">' + new Date().toISOString() + '</div>\n\n');
     } else {
       clearInterval(heartbeat);
     }
@@ -54,9 +57,22 @@ function handleSSEConnection(req, res) {
   });
 }
 
-// Broadcast to all SSE connections
+// Broadcast DataStar SSE patch-elements to all connections
 function broadcastToSSE(data) {
-  const message = 'data: ' + JSON.stringify(data) + '\n\n';
+  // Convert data to DataStar SSE patch-elements format
+  let htmlElements = '';
+  
+  if (data.type === 'peerUpdate' && data.peer) {
+    htmlElements = `<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`;
+  } else if (data.type === 'connected') {
+    htmlElements = `<div id="connection-status">Connected</div>`;
+  } else {
+    htmlElements = `<div id="broadcast">${JSON.stringify(data)}</div>`;
+  }
+  
+  const message = 'event: datastar-patch-elements\n' +
+                 'data: elements ' + htmlElements + '\n\n';
+                 
   sseConnections.forEach(res => {
     try {
       res.write(message);
