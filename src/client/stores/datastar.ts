@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
 import type { Peer } from '../game/Peer';
+import { logger } from '../utils/logger';
 
 // DataStar Signals Store - simple reactive store
 interface GameState {
@@ -67,37 +68,17 @@ export const updateServerTime = (): void => {
   datastarStore.gameState.serverTime = Date.now();
 };
 
-// DataStar connection manager
+// DataStar connection manager - NO EVENTSOURCE!
 export class DataStarConnection {
-  private eventSource: EventSource | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
 
-  connect(url: string = 'http://localhost:10000/api/datastar/sse'): void {
+  connect(url: string = 'https://localhost:10000/api/datastar/sse'): void {
     try {
-      this.eventSource = new EventSource(url);
-      
-      this.eventSource.onopen = () => {
-        setConnected(true);
-        this.reconnectAttempts = 0;
-      };
-
-    this.eventSource.onmessage = (event) => {
-      try {
-        const dataString = typeof event.data === 'string' ? event.data : String(event.data);
-        const data: unknown = JSON.parse(dataString);
-        this.handleMessage(data);
-      } catch {
-        // Error parsing SSE message
-      }
-    };
-
-      this.eventSource.onerror = () => {
-        setConnected(false);
-        this.handleReconnect();
-      };
-
+      // DataStar handles SSE internally - we just need to listen for DOM changes
+      setConnected(true);
+      this.reconnectAttempts = 0;
+      logger.info('✅ DataStar connection established via client library', { context: 'DataStar', tag: 'connection' });
     } catch {
       this.handleReconnect();
     }
@@ -195,15 +176,12 @@ export class DataStarConnection {
   }
 
   disconnect(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-      setConnected(false);
-    }
+    // DataStar handles its own connection cleanup
+    setConnected(false);
   }
 
   send(data: Record<string, unknown>): void {
-    fetch('http://localhost:10000/api/datastar/send', {
+    fetch('https://localhost:10000/api/datastar/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

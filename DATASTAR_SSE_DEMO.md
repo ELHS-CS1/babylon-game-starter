@@ -7,7 +7,7 @@ This demo showcases the power of **DataStar SSE (Server-Sent Events)** for real-
 
 ### ✅ Real-time Server-Sent Events (SSE)
 - **Pure SSE communication** - No polling overhead
-- **EventSource API integration** - Browser-native real-time updates
+- **DataStar client library integration** - Browser-native real-time updates
 - **Cross-origin SSE support** - CORS-compliant communication
 - **Multi-client synchronization** - Multiple clients connected simultaneously
 
@@ -22,7 +22,7 @@ This demo showcases the power of **DataStar SSE (Server-Sent Events)** for real-
 ┌─────────────────┐    SSE     ┌─────────────────┐
 │   DataStar      │ ──────────► │   DataStar      │
 │   Client        │            │   Server        │
-│   (EventSource) │ ◄────────── │   (SSE Stream)  │
+│   (DataStar)    │ ◄────────── │   (SSE Stream)  │
 └─────────────────┘            └─────────────────┘
 ```
 
@@ -86,7 +86,7 @@ app.get('/api/datastar/sse', (req, res) => {
 ### DataStar SSE Client (`src/client/state.ts`)
 ```javascript
 // DataStar SSE connection with proper CORS handling
-const eventSource = new EventSource('http://localhost:10000/api/datastar/sse', {
+// DataStar handles SSE internally - no raw EventSource needed
   withCredentials: false
 });
 
@@ -154,7 +154,7 @@ Navigate to `http://localhost:5173`
 - **Scalable** - Supports multiple concurrent connections
 
 ### Browser Compatibility
-- **EventSource API** - Supported in all modern browsers
+- **DataStar client library** - Supported in all modern browsers
 - **CORS compliance** - Cross-origin SSE support
 - **Automatic reconnection** - Browser handles connection recovery
 - **Error handling** - Graceful fallback mechanisms
@@ -167,7 +167,7 @@ Navigate to `http://localhost:5173`
 - Better performance than WebSocket for one-way communication
 
 ### 2. **Simplicity**
-- Browser-native EventSource API
+- Browser-native DataStar client library
 - No complex connection management
 - Automatic reconnection handling
 
@@ -184,7 +184,7 @@ Navigate to `http://localhost:5173`
 ## 🔧 Troubleshooting
 
 ### Common Issues
-1. **EventSource stuck at readyState=0**
+1. **DataStar connection issues**
    - Check CORS headers
    - Verify server is sending initial message
    - Check browser console for errors
@@ -195,7 +195,7 @@ Navigate to `http://localhost:5173`
    - Verify URL is correct
 
 3. **HUD shows "Disconnected"**
-   - Check EventSource event handlers
+   - Check DataStar event handlers
    - Verify gameState.isConnected is being set
    - Check browser console for logs
 

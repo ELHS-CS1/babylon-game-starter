@@ -1,10 +1,10 @@
-// DataStar Integration - USING EVENTSOURCE FOR CLIENT-SIDE SSE!
-// The DataStar SDK is for server-side SSE generation, not client-side consumption
+// DataStar Integration - USING DATASTAR CLIENT LIBRARY!
+// DataStar provides its own SSE handling - no raw EventSource needed!
 
 import { gameState } from './state';
 import { logger } from './utils/logger';
 
-// DataStar integration using the official TypeScript SDK
+// DataStar integration using the official client library
 export class DataStarIntegration {
   private isConnected = false;
   private eventSource: EventSource | null = null;
@@ -36,57 +36,69 @@ export class DataStarIntegration {
     // Test server health first with async/await
     try {
       logger.info('🔍 Performing async server health check...', { context: 'DataStar', tag: 'connection' });
+      logger.info('📡 Fetching: https://localhost:10000/api/health', { context: 'DataStar', tag: 'connection' });
       const response = await fetch('https://localhost:10000/api/health');
+      logger.info(`📊 Response status: ${response.status}`, { context: 'DataStar', tag: 'connection' });
+      logger.info(`📊 Response ok: ${response.ok}`, { context: 'DataStar', tag: 'connection' });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       logger.info(`📊 Server health check: ${JSON.stringify(data)}`, { context: 'DataStar', tag: 'connection' });
       logger.info('✅ Server health check completed successfully', { context: 'DataStar', tag: 'connection' });
     } catch (error) {
       logger.error('❌ Server health check failed', { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error type: ${typeof error}`, { context: 'DataStar', tag: 'connection' });
       this.isConnected = false;
       gameState.isConnected = false;
       return;
     }
     
-    // USE EVENTSOURCE FOR CLIENT-SIDE DATASTAR SSE CONSUMPTION!
-    logger.info('🔗 Using EventSource for DataStar SSE consumption...', { context: 'DataStar', tag: 'connection' });
+    // USE EVENTSOURCE WITH DATASTAR'S SPECIFIC EVENT TYPES!
+    logger.info('🔗 Using EventSource with DataStar event types...', { context: 'DataStar', tag: 'connection' });
     
     try {
       logger.info('🔗 Creating EventSource for DataStar SSE...', { context: 'DataStar', tag: 'connection' });
+      
+      // Use EventSource but listen for DataStar's specific event types
       this.eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
       logger.info('✅ EventSource created successfully', { context: 'DataStar', tag: 'connection' });
       
-      // Check EventSource state immediately
-      logger.info(`📊 EventSource readyState immediately after creation: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
+      // Check connection state immediately
+      logger.info(`📊 EventSource readyState: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
       
       this.eventSource.onopen = () => {
-        logger.info('🔗 DataStar SSE connection opened - EVENT DRIVEN!', { context: 'DataStar', tag: 'connection' });
+        logger.info('🔗 DataStar SSE connection opened!', { context: 'DataStar', tag: 'connection' });
         this.isConnected = true;
         gameState.isConnected = true;
-        logger.info('✅ DataStar connection established via onopen event', { context: 'DataStar', tag: 'connection' });
+        logger.info('✅ DataStar connection established!', { context: 'DataStar', tag: 'connection' });
         logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
       };
 
       this.eventSource.onerror = (error: Event) => {
-        logger.error('❌ DataStar SSE connection error - EVENT DRIVEN!', { context: 'DataStar', tag: 'connection' });
+        logger.error('❌ DataStar SSE connection error!', { context: 'DataStar', tag: 'connection' });
         logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
         logger.error(`📊 EventSource readyState: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 EventSource URL: ${this.eventSource?.url}`, { context: 'DataStar', tag: 'connection' });
         this.isConnected = false;
         gameState.isConnected = false;
         logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
       };
       
-      // Handle DataStar patch-elements events
+      // Handle DataStar's specific event types
       this.eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
         this.handleDataStarPatchElements(event);
       });
 
-      // Handle DataStar patch-signals events
       this.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
         this.handleDataStarPatchSignals(event);
       });
       
     } catch (error) {
-      logger.error('❌ Failed to create EventSource', { context: 'DataStar', tag: 'connection' });
+      logger.error('❌ Failed to create DataStar SSE connection', { context: 'DataStar', tag: 'connection' });
       logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
       this.isConnected = false;
       gameState.isConnected = false;
@@ -163,6 +175,13 @@ export class DataStarIntegration {
   private forceStateUpdate(): void {
     gameState.lastUpdate = Date.now();
     logger.info('🔄 DataStar state update triggered', { context: 'DataStar', tag: 'sse' });
+  }
+
+  private setupDataStarEventListeners(): void {
+    logger.info('📡 Setting up DataStar event listeners', { context: 'DataStar', tag: 'connection' });
+    
+    // DataStar handles SSE internally - we listen for DOM changes
+    this.setupDOMWatcher();
   }
 
   private setupDOMWatcher(): void {

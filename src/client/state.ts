@@ -33,14 +33,14 @@ export const gameState: GameState = {
 // DataStar SSE connection - Backend-driven state management
 logger.info('🚀 Initializing DataStar SSE connection', { context: 'State', tag: 'connection' });
 logger.info('🔍 Testing logger import...', { context: 'State', tag: 'connection' });
-logger.info('🚀 Attempting SSE connection to: http://localhost:10000/api/datastar/sse', { context: 'State', tag: 'connection' });
+logger.info('🚀 Attempting SSE connection to: https://localhost:10000/api/datastar/sse', { context: 'State', tag: 'connection' });
 logger.info('🔍 Logger call completed', { context: 'State', tag: 'connection' });
 
 // Initialize DataStar integration for real-time updates
 logger.info('✅ DataStar integration initialized', { context: 'State', tag: 'connection' });
 
 // DataStar integration handles all SSE communication
-// The DataStarIntegration class manages the EventSource connection
+// The DataStarIntegration class manages the DataStar client connection
 // and updates gameState based on patched DOM elements
 
 // DataStar SSE message handling - Backend-driven state management

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Minimal SSE Test Server
- * Tests fundamental SSE functionality for multiplayer updates
+ * DataStar SSE Server
+ * Uses DataStar's ServerSentEventGenerator for proper SSE signaling
  * Following the Ten Commandments: ESM, DataStar SSE, No Console Logs
  */
 
@@ -11,6 +11,7 @@ import { createServer as createHttpServer } from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { ServerSentEventGenerator } from '@starfederation/datastar-sdk';
 
 const PORT = 10000;
 const sseConnections = new Set();
@@ -31,71 +32,71 @@ function getMkcertCert() {
   };
 }
 
-// SSE connection handler
+// DataStar SSE connection handler using ServerSentEventGenerator
 function handleSSEConnection(req, res) {
-  // Set SSE headers
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
-  });
+  // Use DataStar's ServerSentEventGenerator for proper SSE
+  ServerSentEventGenerator.stream(req, res, (stream) => {
+    // Add new connection to the set
+    sseConnections.add(stream);
+    
+    // Send initial connection status via DataStar signals
+    stream.patchSignals({ 
+      isConnected: true,
+      serverTime: new Date().toISOString(),
+      connections: sseConnections.size
+    });
 
-  // Send DataStar SSE patch-elements event for connection status
-  setTimeout(() => {
-    res.write('event: datastar-patch-elements\n');
-    res.write('data: elements <div id="connection-status">Connected</div>\n');
-    res.write('data: elements <div id="server-time">' + new Date().toISOString() + '</div>\n\n');
-  }, 100);
+    // Send DataStar patch-elements for DOM updates
+    stream.patchElements('<div id="connection-status">Connected</div>');
+    stream.patchElements(`<div id="server-time">${new Date().toISOString()}</div>`);
 
-  // Store connection
-  sseConnections.add(res);
+    // Send periodic DataStar SSE heartbeat
+    const heartbeat = setInterval(() => {
+      if (sseConnections.has(stream)) {
+        stream.patchSignals({ 
+          heartbeat: new Date().toISOString(),
+          connections: sseConnections.size
+        });
+        stream.patchElements(`<div id="heartbeat">${new Date().toISOString()}</div>`);
+      } else {
+        clearInterval(heartbeat);
+      }
+    }, 30000);
 
-  // Send periodic DataStar SSE heartbeat
-  const heartbeat = setInterval(() => {
-    if (sseConnections.has(res)) {
-      res.write('event: datastar-patch-elements\n');
-      res.write('data: elements <div id="heartbeat">' + new Date().toISOString() + '</div>\n\n');
-    } else {
+    // Handle client disconnect
+    req.on('close', () => {
+      sseConnections.delete(stream);
       clearInterval(heartbeat);
-    }
-  }, 30000);
+    });
 
-  // Handle client disconnect
-  req.on('close', () => {
-    sseConnections.delete(res);
-    clearInterval(heartbeat);
-  });
-
-  req.on('error', () => {
-    sseConnections.delete(res);
-    clearInterval(heartbeat);
+    req.on('error', () => {
+      sseConnections.delete(stream);
+      clearInterval(heartbeat);
+    });
   });
 }
 
-// Broadcast DataStar SSE patch-elements to all connections
+// Broadcast DataStar SSE using ServerSentEventGenerator methods
 function broadcastToSSE(data) {
-  // Convert data to DataStar SSE patch-elements format
-  let htmlElements = '';
-  
-  if (data.type === 'peerUpdate' && data.peer) {
-    htmlElements = `<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`;
-  } else if (data.type === 'connected') {
-    htmlElements = `<div id="connection-status">Connected</div>`;
-  } else {
-    htmlElements = `<div id="broadcast">${JSON.stringify(data)}</div>`;
-  }
-  
-  const message = 'event: datastar-patch-elements\n' +
-                 'data: elements ' + htmlElements + '\n\n';
-                 
-  sseConnections.forEach(res => {
+  sseConnections.forEach(stream => {
     try {
-      res.write(message);
+      if (data.type === 'peerUpdate' && data.peer) {
+        // Send peer update via DataStar signals
+        stream.patchSignals({ 
+          peerUpdate: data.peer,
+          connections: sseConnections.size
+        });
+        // Send peer element via DataStar patch-elements
+        stream.patchElements(`<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`);
+      } else if (data.type === 'connected') {
+        stream.patchSignals({ isConnected: true });
+        stream.patchElements('<div id="connection-status">Connected</div>');
+      } else {
+        stream.patchSignals({ broadcast: data });
+        stream.patchElements(`<div id="broadcast">${JSON.stringify(data)}</div>`);
+      }
     } catch {
-      sseConnections.delete(res);
+      sseConnections.delete(stream);
     }
   });
 }
