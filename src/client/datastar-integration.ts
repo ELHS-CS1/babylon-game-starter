@@ -23,11 +23,15 @@ export class DataStarIntegration {
     this.eventSource.onopen = () => {
       logger.info('🔗 DataStar SSE connection opened', { context: 'DataStar', tag: 'connection' });
       this.isConnected = true;
+      gameState.isConnected = true;
+      logger.info('✅ DataStar connection state updated', { context: 'DataStar', tag: 'connection' });
     };
 
     this.eventSource.onerror = (error) => {
       logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
       this.isConnected = false;
+      gameState.isConnected = false;
+      logger.info('❌ DataStar connection state updated to disconnected', { context: 'DataStar', tag: 'connection' });
     };
 
     // Handle DataStar patch-elements events
@@ -73,8 +77,10 @@ export class DataStarIntegration {
     // Check for patched elements in DOM and update state accordingly
     const connectionStatus = document.getElementById('connection-status');
     if (connectionStatus) {
-      gameState.isConnected = connectionStatus.textContent === 'Connected';
-      logger.info(`✅ DataStar patched connection status: ${gameState.isConnected}`, { context: 'DataStar', tag: 'sse' });
+      const isConnected = connectionStatus.textContent === 'Connected';
+      gameState.isConnected = isConnected;
+      this.isConnected = isConnected;
+      logger.info(`✅ DataStar patched connection status: ${isConnected}`, { context: 'DataStar', tag: 'sse' });
     }
 
     const serverTime = document.getElementById('server-time');
