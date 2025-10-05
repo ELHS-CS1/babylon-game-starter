@@ -133,6 +133,7 @@ export class DataStarIntegration {
 
   private handleDataStarPatchSignals(event: MessageEvent): void {
     logger.info('📨 DataStar patch-signals event received', { context: 'DataStar', tag: 'sse' });
+    logger.info(`📊 Raw event data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
     
     try {
       const signals = JSON.parse(event.data);
@@ -140,12 +141,14 @@ export class DataStarIntegration {
       
       // Update game state based on signals
       if (signals.isConnected !== undefined) {
+        logger.info(`📊 Updating connection status from ${this.isConnected} to ${signals.isConnected}`, { context: 'DataStar', tag: 'sse' });
         this.isConnected = signals.isConnected;
         gameState.isConnected = signals.isConnected;
         logger.info(`✅ DataStar connection status updated: ${signals.isConnected}`, { context: 'DataStar', tag: 'sse' });
       }
     } catch (error) {
       logger.error('❌ Failed to parse DataStar signals', { context: 'DataStar', tag: 'sse' });
+      logger.error(`📊 Raw data that failed to parse: ${event.data}`, { context: 'DataStar', tag: 'sse' });
     }
   }
 
