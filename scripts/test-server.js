@@ -30,86 +30,103 @@ function getMkcertCert() {
   };
 }
 
-// DataStar SSE connection handler using proper DataStar patterns
+// Standard SSE connection handler for raw EventSource compatibility
 function handleSSEConnection(req, res) {
   console.log('🔗 New SSE connection received!');
   console.log(`📊 Total connections: ${sseConnections.size + 1}`);
   
-  // Use DataStar's ServerSentEventGenerator for proper SSE
-  ServerSentEventGenerator.stream(req, res, (stream) => {
-    // Add new connection to the set
-    sseConnections.add(stream);
-    console.log(`✅ SSE connection added! Total: ${sseConnections.size}`);
-    
-    // Send initial connection status via DataStar signals
-    const signals = { 
-      isConnected: true,
-      serverTime: new Date().toISOString(),
-      connections: sseConnections.size
-    };
-    console.log(`📡 Sending initial signals: ${JSON.stringify(signals)}`);
-    stream.patchSignals(JSON.stringify(signals));
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
 
-    // Send DataStar patch-elements for DOM updates
-    console.log('📡 Sending initial elements...');
-    stream.patchElements('<div id="connection-status">Connected</div>');
-    stream.patchElements(`<div id="server-time">${new Date().toISOString()}</div>`);
+  // Add connection to set
+  sseConnections.add(res);
+  console.log(`✅ SSE connection added! Total: ${sseConnections.size}`);
+  
+  // Send initial connection status
+  const signals = { 
+    isConnected: true,
+    serverTime: new Date().toISOString(),
+    connections: sseConnections.size
+  };
+  console.log(`📡 Sending initial signals: ${JSON.stringify(signals)}`);
+  res.write(`event: datastar-patch-signals\n`);
+  res.write(`data: ${JSON.stringify(signals)}\n\n`);
 
-    // Send periodic DataStar SSE heartbeat
-    const heartbeat = setInterval(() => {
-      if (sseConnections.has(stream)) {
-        const heartbeatData = { 
-          heartbeat: new Date().toISOString(),
-          connections: sseConnections.size
-        };
-        stream.patchSignals(JSON.stringify(heartbeatData));
-        stream.patchElements(`<div id="heartbeat">${new Date().toISOString()}</div>`);
-      } else {
-        clearInterval(heartbeat);
-      }
-    }, 30000);
+  // Send initial elements
+  console.log('📡 Sending initial elements...');
+  res.write(`event: datastar-patch-elements\n`);
+  res.write(`data: <div id="connection-status">Connected</div>\n\n`);
+  res.write(`event: datastar-patch-elements\n`);
+  res.write(`data: <div id="server-time">${new Date().toISOString()}</div>\n\n`);
 
-    // Handle client disconnect
-    req.on('close', () => {
-      sseConnections.delete(stream);
+  // Send periodic heartbeat
+  const heartbeat = setInterval(() => {
+    if (sseConnections.has(res)) {
+      const heartbeatData = { 
+        heartbeat: new Date().toISOString(),
+        connections: sseConnections.size
+      };
+      res.write(`event: datastar-patch-signals\n`);
+      res.write(`data: ${JSON.stringify(heartbeatData)}\n\n`);
+      res.write(`event: datastar-patch-elements\n`);
+      res.write(`data: <div id="heartbeat">${new Date().toISOString()}</div>\n\n`);
+    } else {
       clearInterval(heartbeat);
-      console.log(`🔌 SSE connection closed. Total: ${sseConnections.size}`);
-    });
+    }
+  }, 30000);
 
-    req.on('error', () => {
-      sseConnections.delete(stream);
-      clearInterval(heartbeat);
-      console.log(`❌ SSE connection error. Total: ${sseConnections.size}`);
-    });
+  // Handle client disconnect
+  req.on('close', () => {
+    sseConnections.delete(res);
+    clearInterval(heartbeat);
+    console.log(`🔌 SSE connection closed. Total: ${sseConnections.size}`);
+  });
+
+  req.on('error', () => {
+    sseConnections.delete(res);
+    clearInterval(heartbeat);
+    console.log(`❌ SSE connection error. Total: ${sseConnections.size}`);
   });
 }
 
-// Broadcast DataStar SSE using proper DataStar methods
+// Broadcast standard SSE events for raw EventSource compatibility
 function broadcastToSSE(data) {
   console.log(`📡 Broadcasting to ${sseConnections.size} SSE connections:`, data);
-  sseConnections.forEach(stream => {
+  sseConnections.forEach(res => {
     try {
       if (data.type === 'peerUpdate' && data.peer) {
         console.log(`📡 Sending peer update for: ${data.peer.name}`);
-        // Send peer update via DataStar signals
-        stream.patchSignals(JSON.stringify({ 
+        // Send peer update via standard SSE events
+        res.write(`event: datastar-patch-signals\n`);
+        res.write(`data: ${JSON.stringify({ 
           peerUpdate: data.peer,
           connections: sseConnections.size
-        }));
-        // Send peer element via DataStar patch-elements
-        stream.patchElements(`<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`);
+        })}\n\n`);
+        // Send peer element via standard SSE events
+        res.write(`event: datastar-patch-elements\n`);
+        res.write(`data: <div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>\n\n`);
       } else if (data.type === 'connected') {
         console.log('📡 Sending connection status update');
-        stream.patchSignals(JSON.stringify({ isConnected: true }));
-        stream.patchElements('<div id="connection-status">Connected</div>');
+        res.write(`event: datastar-patch-signals\n`);
+        res.write(`data: ${JSON.stringify({ isConnected: true })}\n\n`);
+        res.write(`event: datastar-patch-elements\n`);
+        res.write(`data: <div id="connection-status">Connected</div>\n\n`);
       } else {
         console.log(`📡 Sending general broadcast: ${JSON.stringify(data)}`);
-        stream.patchSignals(JSON.stringify({ broadcast: data }));
-        stream.patchElements(`<div id="broadcast">${JSON.stringify(data)}</div>`);
+        res.write(`event: datastar-patch-signals\n`);
+        res.write(`data: ${JSON.stringify({ broadcast: data })}\n\n`);
+        res.write(`event: datastar-patch-elements\n`);
+        res.write(`data: <div id="broadcast">${JSON.stringify(data)}</div>\n\n`);
       }
     } catch (error) {
-      console.log(`❌ Error broadcasting to stream: ${error}`);
-      sseConnections.delete(stream);
+      console.log(`❌ Error broadcasting to connection: ${error}`);
+      sseConnections.delete(res);
     }
   });
 }
