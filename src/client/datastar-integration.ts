@@ -22,7 +22,7 @@ export class DataStarIntegration {
 
     logger.info('🚀 Initializing DataStar with proper patterns', { context: 'DataStar', tag: 'connection' });
     
-    // Wait for DataStar to be available
+    // Wait for DataStar to be available from CDN
     this.waitForDataStar().then(() => {
       this.setupDataStar();
     }).catch(error => {
