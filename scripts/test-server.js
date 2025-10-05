@@ -121,12 +121,22 @@ function handleDataStarSend(req, res) {
         return;
       }
       
-      // Broadcast the message to all SSE connections
-      broadcastToSSE({
-        type: 'message',
-        data: data,
-        timestamp: Date.now()
-      });
+      // Handle different message types
+      if (data.type === 'peer-update' && data.peer) {
+        // Broadcast peer update to all SSE connections
+        broadcastToSSE({
+          type: 'peerUpdate',
+          peer: data.peer,
+          timestamp: Date.now()
+        });
+      } else {
+        // Broadcast general message to all SSE connections
+        broadcastToSSE({
+          type: 'message',
+          data: data,
+          timestamp: Date.now()
+        });
+      }
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true }));

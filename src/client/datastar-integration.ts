@@ -7,7 +7,6 @@ import { logger } from './utils/logger';
 // DataStar integration using the official client library
 export class DataStarIntegration {
   private isConnected = false;
-  private eventSource: EventSource | null = null;
 
   constructor() {
     this.initializeDataStar();
@@ -68,83 +67,21 @@ export class DataStarIntegration {
           logger.error(`📊 SSE Error: ${error instanceof Error ? error.message : String(error)}`, { context: 'DataStar', tag: 'connection' });
         }
     
-    // USE EVENTSOURCE WITH DATASTAR'S SPECIFIC EVENT TYPES!
-    logger.info('🔗 Using EventSource with DataStar event types...', { context: 'DataStar', tag: 'connection' });
+    // USE DATASTAR CLIENT LIBRARY - NOT RAW EVENTSOURCE!
+    logger.info('🔗 Using DataStar client library for SSE connection...', { context: 'DataStar', tag: 'connection' });
     
     try {
-      logger.info('🔗 Creating EventSource for DataStar SSE...', { context: 'DataStar', tag: 'connection' });
+      logger.info('🔗 Creating DataStar SSE connection...', { context: 'DataStar', tag: 'connection' });
       
-      // Use EventSource but listen for DataStar's specific event types
-      this.eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
-      logger.info('✅ EventSource created successfully', { context: 'DataStar', tag: 'connection' });
+      // Connect to server's SSE endpoint to receive real DataStar events
+      this.connectToServerSSE();
       
-      // Check connection state immediately
-      logger.info(`📊 EventSource readyState: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
+      // Create our own DataStar container div for data references
+      this.createDataStarContainer();
       
-      this.eventSource.onopen = () => {
-        logger.info('🔗 DataStar SSE connection opened!', { context: 'DataStar', tag: 'connection' });
-        this.isConnected = true;
-        gameState.isConnected = true;
-        logger.info('✅ DataStar connection established!', { context: 'DataStar', tag: 'connection' });
-        logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
-        
-        // Check connection state after a brief delay
-        setTimeout(() => {
-          logger.info(`📊 EventSource readyState after open: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
-          logger.info(`📊 Connection still open: ${this.isConnected}`, { context: 'DataStar', tag: 'connection' });
-        }, 100);
-      };
-
-      this.eventSource.onerror = (error: Event) => {
-        logger.error('❌ DataStar SSE connection error!', { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 EventSource readyState: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 EventSource URL: ${this.eventSource?.url}`, { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 Error type: ${error.type}`, { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 Error target: ${error.target}`, { context: 'DataStar', tag: 'connection' });
-        this.isConnected = false;
-        gameState.isConnected = false;
-        logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
-      };
-      
-      // Handle DataStar's specific event types
-      this.eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
-        logger.info('📨 datastar-patch-elements event listener triggered', { context: 'DataStar', tag: 'sse' });
-        this.handleDataStarPatchElements(event);
-      });
-
-      this.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
-        logger.info('📨 datastar-patch-signals event listener triggered', { context: 'DataStar', tag: 'sse' });
-        this.handleDataStarPatchSignals(event);
-      });
-
-      // Add catch-all listener for debugging
-      this.eventSource.addEventListener('open', () => {
-        logger.info('📨 EventSource open event', { context: 'DataStar', tag: 'sse' });
-      });
-
-      this.eventSource.addEventListener('error', (error: Event) => {
-        logger.info('📨 EventSource error event', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Error event: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'sse' });
-      });
-
-      // Add general message listener to see all events
-      this.eventSource.onmessage = (event: MessageEvent) => {
-        logger.info('📨 DataStar message received', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Message data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Message type: ${event.type}`, { context: 'DataStar', tag: 'sse' });
-      };
-
-      // Add a test listener for all events
-      this.eventSource.addEventListener('message', (event: MessageEvent) => {
-        logger.info('📨 EventSource message event received', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Event data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
-      });
-
-      // Test if EventSource is working at all
-      logger.info(`📊 EventSource URL: ${this.eventSource.url}`, { context: 'DataStar', tag: 'connection' });
-      logger.info(`📊 EventSource readyState: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
-      logger.info(`📊 EventSource withCredentials: ${this.eventSource.withCredentials}`, { context: 'DataStar', tag: 'connection' });
+      // DataStar client library handles all SSE communication
+      // We just need to listen for DOM changes via MutationObserver
+      this.setupDataStarDOMWatcher();
       
     } catch (error) {
       logger.error('❌ Failed to create DataStar SSE connection', { context: 'DataStar', tag: 'connection' });
@@ -154,35 +91,208 @@ export class DataStarIntegration {
     }
   }
 
-  private handleDataStarPatchElements(_event: MessageEvent): void {
-    logger.info('📨 DataStar patch-elements event received', { context: 'DataStar', tag: 'sse' });
-    
-    // DataStar automatically patches elements into DOM
-    // We just need to update our state based on the patched elements
-    this.updateStateFromPatchedElements();
-    
-    // Force reactivity update
-    this.forceStateUpdate();
-  }
-
-  private handleDataStarPatchSignals(event: MessageEvent): void {
-    logger.info('📨 DataStar patch-signals event received', { context: 'DataStar', tag: 'sse' });
-    logger.info(`📊 Raw event data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+  // Connect to server's SSE endpoint to receive real DataStar events
+  private connectToServerSSE(): void {
+    logger.info('🔗 Connecting to server SSE endpoint for real DataStar events', { context: 'DataStar', tag: 'connection' });
     
     try {
-      const signals = JSON.parse(event.data);
-      logger.info(`📊 DataStar signals: ${JSON.stringify(signals)}`, { context: 'DataStar', tag: 'sse' });
+      // Create EventSource connection to server
+      const eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
       
-      // Update game state based on signals
-      if (signals.isConnected !== undefined) {
-        logger.info(`📊 Updating connection status from ${this.isConnected} to ${signals.isConnected}`, { context: 'DataStar', tag: 'sse' });
-        this.isConnected = signals.isConnected;
-        gameState.isConnected = signals.isConnected;
-        logger.info(`✅ DataStar connection status updated: ${signals.isConnected}`, { context: 'DataStar', tag: 'sse' });
-      }
+      eventSource.onopen = () => {
+        logger.info('✅ Server SSE connection opened!', { context: 'DataStar', tag: 'connection' });
+        this.isConnected = true;
+        gameState.isConnected = true;
+        logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
+      };
+
+      eventSource.onerror = (error) => {
+        logger.error('❌ Server SSE connection error!', { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 Error: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
+        this.isConnected = false;
+        gameState.isConnected = false;
+        logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
+      };
+
+      // Listen for DataStar events from server
+      eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
+        logger.info('📨 Server DataStar signals received!', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Signals: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+        
+        try {
+          const signals = JSON.parse(event.data);
+          this.updateDataStarSignals(signals);
+        } catch (error) {
+          logger.error('❌ Failed to parse server signals', { context: 'DataStar', tag: 'sse' });
+        }
+      });
+
+      eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
+        logger.info('📨 Server DataStar elements received!', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Elements: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+        
+        // Parse and add server elements to our container
+        this.handleServerDataStarElements(event.data);
+      });
+
+      logger.info('✅ Server SSE connection established', { context: 'DataStar', tag: 'connection' });
+      
     } catch (error) {
-      logger.error('❌ Failed to parse DataStar signals', { context: 'DataStar', tag: 'sse' });
-      logger.error(`📊 Raw data that failed to parse: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+      logger.error('❌ Failed to connect to server SSE', { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
+    }
+  }
+
+  // Handle server DataStar elements
+  private handleServerDataStarElements(elementData: string): void {
+    logger.info('📦 Handling server DataStar elements', { context: 'DataStar', tag: 'sse' });
+    
+    const container = document.getElementById('datastar-container');
+    if (!container) return;
+
+    // Parse server element HTML and add to our container
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = elementData;
+    
+    // Move elements to our container
+    Array.from(tempDiv.children).forEach(element => {
+      const existingElement = document.getElementById(element.id);
+      if (existingElement) {
+        // Update existing element
+        existingElement.textContent = element.textContent;
+        logger.info(`📊 Updated server element: ${element.id} = ${element.textContent}`, { context: 'DataStar', tag: 'sse' });
+      } else {
+        // Add new element
+        container.appendChild(element.cloneNode(true));
+        logger.info(`📊 Added server element: ${element.id} = ${element.textContent}`, { context: 'DataStar', tag: 'sse' });
+      }
+    });
+  }
+
+  // DataStar client library handles SSE internally
+  // We only need to watch for DOM changes
+
+  private createDataStarContainer(): void {
+    logger.info('📦 Creating custom DataStar container div', { context: 'DataStar', tag: 'connection' });
+    
+    // Create a dedicated container for DataStar elements
+    let dataStarContainer = document.getElementById('datastar-container');
+    if (!dataStarContainer) {
+      dataStarContainer = document.createElement('div');
+      dataStarContainer.id = 'datastar-container';
+      dataStarContainer.style.display = 'none'; // Hidden container
+      document.body.appendChild(dataStarContainer);
+      logger.info('✅ DataStar container created and added to DOM', { context: 'DataStar', tag: 'connection' });
+    } else {
+      logger.info('📦 DataStar container already exists', { context: 'DataStar', tag: 'connection' });
+    }
+
+    // Create initial DataStar elements
+    this.createInitialDataStarElements();
+  }
+
+  private createInitialDataStarElements(): void {
+    logger.info('📦 Creating initial DataStar elements with signals', { context: 'DataStar', tag: 'connection' });
+    
+    const container = document.getElementById('datastar-container');
+    if (!container) return;
+
+    // Create connection status element with DataStar signals
+    const connectionStatus = document.createElement('div');
+    connectionStatus.id = 'connection-status';
+    connectionStatus.textContent = 'Connected';
+    connectionStatus.setAttribute('data-datastar-signal', 'isConnected');
+    connectionStatus.setAttribute('data-datastar-value', 'true');
+    container.appendChild(connectionStatus);
+
+    // Create server time element with DataStar signals
+    const serverTime = document.createElement('div');
+    serverTime.id = 'server-time';
+    serverTime.textContent = new Date().toISOString();
+    serverTime.setAttribute('data-datastar-signal', 'serverTime');
+    serverTime.setAttribute('data-datastar-value', new Date().toISOString());
+    container.appendChild(serverTime);
+
+    // Create heartbeat element with DataStar signals
+    const heartbeat = document.createElement('div');
+    heartbeat.id = 'heartbeat';
+    heartbeat.textContent = new Date().toISOString();
+    heartbeat.setAttribute('data-datastar-signal', 'heartbeat');
+    heartbeat.setAttribute('data-datastar-value', new Date().toISOString());
+    container.appendChild(heartbeat);
+
+    // Create peer count element with DataStar signals
+    const peerCount = document.createElement('div');
+    peerCount.id = 'peer-count';
+    peerCount.textContent = '0';
+    peerCount.setAttribute('data-datastar-signal', 'peerCount');
+    peerCount.setAttribute('data-datastar-value', '0');
+    container.appendChild(peerCount);
+
+    logger.info('✅ Initial DataStar elements with signals created', { context: 'DataStar', tag: 'connection' });
+    logger.info(`📊 Container now has ${container.children.length} elements`, { context: 'DataStar', tag: 'connection' });
+    
+    // Set up DataStar signal reactivity
+    this.setupDataStarSignalReactivity();
+  }
+
+  private setupDataStarSignalReactivity(): void {
+    logger.info('📡 Setting up DataStar signal reactivity for Vue/Babylon.js', { context: 'DataStar', tag: 'connection' });
+    
+    // Watch for DataStar signal changes and update Vue/Babylon.js state
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-datastar-value') {
+          this.handleDataStarSignalChange(mutation.target as Element);
+        }
+      });
+    });
+
+    // Observe all DataStar signal elements
+    const signalElements = document.querySelectorAll('[data-datastar-signal]');
+    signalElements.forEach(element => {
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: ['data-datastar-value']
+      });
+    });
+
+    logger.info(`📊 Watching ${signalElements.length} DataStar signal elements`, { context: 'DataStar', tag: 'connection' });
+  }
+
+  private handleDataStarSignalChange(element: Element): void {
+    const signal = element.getAttribute('data-datastar-signal');
+    const value = element.getAttribute('data-datastar-value');
+    
+    logger.info(`📡 DataStar signal changed: ${signal} = ${value}`, { context: 'DataStar', tag: 'signals' });
+    
+    // Update Vue/Babylon.js state based on DataStar signals
+    switch (signal) {
+      case 'isConnected':
+        const isConnected = value === 'true';
+        this.isConnected = isConnected;
+        gameState.isConnected = isConnected;
+        logger.info(`✅ Vue state updated: isConnected = ${isConnected}`, { context: 'DataStar', tag: 'signals' });
+        break;
+        
+      case 'serverTime':
+        gameState.lastUpdate = new Date(value || '').getTime();
+        logger.info(`✅ Vue state updated: serverTime = ${value}`, { context: 'DataStar', tag: 'signals' });
+        break;
+        
+      case 'heartbeat':
+        gameState.lastUpdate = Date.now();
+        logger.info(`✅ Vue state updated: heartbeat = ${value}`, { context: 'DataStar', tag: 'signals' });
+        break;
+        
+      case 'peerCount':
+        const peerCount = parseInt(value || '0', 10);
+        gameState.players = gameState.players.slice(0, peerCount);
+        logger.info(`✅ Vue state updated: peerCount = ${peerCount}`, { context: 'DataStar', tag: 'signals' });
+        break;
+        
+      default:
+        logger.info(`📊 Unknown DataStar signal: ${signal} = ${value}`, { context: 'DataStar', tag: 'signals' });
     }
   }
 
@@ -236,6 +346,24 @@ export class DataStarIntegration {
     this.setupDOMWatcher();
   }
 
+  private setupDataStarDOMWatcher(): void {
+    logger.info('📡 Setting up DataStar DOM watcher for SSE changes', { context: 'DataStar', tag: 'connection' });
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' || mutation.type === 'attributes') {
+          this.handleDataStarChanges();
+        }
+      });
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+  }
+
   private setupDOMWatcher(): void {
     logger.info('📡 Setting up DOM watcher for DataStar changes', { context: 'DataStar', tag: 'connection' });
     
@@ -255,24 +383,41 @@ export class DataStarIntegration {
   }
 
   private handleDataStarChanges(): void {
-    // Check for DataStar patched elements
+    logger.info('📡 DataStar DOM changes detected', { context: 'DataStar', tag: 'connection' });
+    
+    // Check for DataStar patched elements in our custom container
     const connectionStatus = document.getElementById('connection-status');
     if (connectionStatus) {
+      logger.info(`📊 Found connection-status element: ${connectionStatus.textContent}`, { context: 'DataStar', tag: 'connection' });
       const isConnected = connectionStatus.textContent === 'Connected';
       if (isConnected !== this.isConnected) {
         this.isConnected = isConnected;
         gameState.isConnected = isConnected;
         logger.info(`✅ DataStar connection status updated: ${isConnected}`, { context: 'DataStar', tag: 'connection' });
       }
+    } else {
+      logger.info('📊 No connection-status element found in DOM', { context: 'DataStar', tag: 'connection' });
     }
+
+    // Check for other DataStar elements
+    const serverTime = document.getElementById('server-time');
+    if (serverTime) {
+      logger.info(`📊 Found server-time element: ${serverTime.textContent}`, { context: 'DataStar', tag: 'connection' });
+    }
+
+    // Check for any DataStar patched elements
+    const allElements = document.querySelectorAll('[id^="peer-"], [id="connection-status"], [id="server-time"], [id="heartbeat"]');
+    logger.info(`📊 Found ${allElements.length} DataStar elements in DOM`, { context: 'DataStar', tag: 'connection' });
+    allElements.forEach((element, index) => {
+      logger.info(`📊 Element ${index}: ${element.id} = ${element.textContent}`, { context: 'DataStar', tag: 'connection' });
+    });
+
+    // Update game state from our custom DataStar elements
+    this.updateStateFromPatchedElements();
   }
 
   public disconnect(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-    }
-    
+    // DataStar client library handles connection cleanup
     this.isConnected = false;
     gameState.isConnected = false;
     logger.info('🔌 DataStar connection closed', { context: 'DataStar', tag: 'connection' });
@@ -280,6 +425,47 @@ export class DataStarIntegration {
 
   public getConnectionStatus(): boolean {
     return this.isConnected;
+  }
+
+  // Update DataStar signals from server data
+  public updateDataStarSignals(signals: Record<string, unknown>): void {
+    logger.info('📡 Updating DataStar signals from server', { context: 'DataStar', tag: 'signals' });
+    logger.info(`📊 Signals: ${JSON.stringify(signals)}`, { context: 'DataStar', tag: 'signals' });
+    
+    Object.entries(signals).forEach(([signal, value]) => {
+      const element = document.querySelector(`[data-datastar-signal="${signal}"]`);
+      if (element) {
+        element.setAttribute('data-datastar-value', String(value));
+        logger.info(`✅ Updated DataStar signal: ${signal} = ${value}`, { context: 'DataStar', tag: 'signals' });
+      } else {
+        logger.info(`📊 No element found for signal: ${signal}`, { context: 'DataStar', tag: 'signals' });
+      }
+    });
+  }
+
+  // Add peer to DataStar container
+  public addPeerToDataStar(peer: { id: string; name: string; environment: string }): void {
+    logger.info(`📡 Adding peer to DataStar: ${peer.name}`, { context: 'DataStar', tag: 'signals' });
+    
+    const container = document.getElementById('datastar-container');
+    if (!container) return;
+
+    // Create peer element with DataStar signals
+    const peerElement = document.createElement('div');
+    peerElement.id = `peer-${peer.id}`;
+    peerElement.textContent = `${peer.name} - ${peer.environment}`;
+    peerElement.setAttribute('data-datastar-signal', 'peer');
+    peerElement.setAttribute('data-datastar-value', JSON.stringify(peer));
+    container.appendChild(peerElement);
+
+    // Update peer count
+    const peerCount = container.querySelectorAll('[id^="peer-"]').length;
+    const peerCountElement = document.getElementById('peer-count');
+    if (peerCountElement) {
+      peerCountElement.setAttribute('data-datastar-value', String(peerCount));
+    }
+
+    logger.info(`✅ Peer added to DataStar: ${peer.name} (${peerCount} total)`, { context: 'DataStar', tag: 'signals' });
   }
 }
 
