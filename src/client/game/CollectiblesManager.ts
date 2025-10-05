@@ -9,6 +9,7 @@ import '@babylonjs/loaders/glTF';
 import type { CharacterController } from './CharacterController';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { logger } from '../utils/logger';
+import { HUDEvents } from '../utils/hudEventSystem';
 import CONFIG, { type ItemConfig, type ItemInstance } from '../config/gameConfig';
 
 export class CollectiblesManager {
@@ -21,6 +22,8 @@ export class CollectiblesManager {
   private static collectionObserver: Observer<Scene> | null = null;
   private static collectedItems: Set<string> = new Set();
   private static instanceBasis: Mesh | null = null;
+  private static collisionCheckFrameCount: number = 0;
+  private static collisionCheckInterval: number = 3; // Check every 3 frames (60fps / 3 = 20fps)
   // private static physicsShape: PhysicsShape | null = null; // Reusable physics shape - unused for now
   private static itemConfigs: Map<string, ItemConfig> = new Map(); // Store item configs by collectible ID
 
@@ -37,8 +40,7 @@ export class CollectiblesManager {
       throw new Error("Scene not available for physics initialization check");
     }
 
-    // Simple delay to allow physics to initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // No delays allowed
   }
 
   /**
@@ -65,10 +67,12 @@ export class CollectiblesManager {
    * Sets up environment items after character is fully loaded - THE WORD OF GOD!
    */
   public static async setupEnvironmentItems(environment: any): Promise<void> {
+    logger.info("CollectiblesManager.setupEnvironmentItems called", 'CollectiblesManager');
     if (!this.scene || !environment.items) {
       logger.warn("Scene or items not available in setupEnvironmentItems", 'CollectiblesManager');
       return;
     }
+    logger.info(`Environment items count: ${environment.items.length}`, 'CollectiblesManager');
 
     // Wait for physics to be properly initialized
     await this.waitForPhysicsInitialization();
@@ -89,9 +93,11 @@ export class CollectiblesManager {
         await this.loadItemModel(itemConfig);
 
         // Create instances for this item
+        logger.info(`Creating ${itemConfig.instances.length} instances for item: ${itemConfig.name}`, 'CollectiblesManager');
         for (let i = 0; i < itemConfig.instances.length; i++) {
           const instance = itemConfig.instances[i];
           const instanceId = `${itemConfig.name.toLowerCase()}_instance_${i + 1}`;
+          logger.info(`Creating collectible instance: ${instanceId}`, 'CollectiblesManager');
           await this.createCollectibleInstance(instanceId, instance, itemConfig);
         }
       }
@@ -163,7 +169,7 @@ export class CollectiblesManager {
     if (!this.scene) return;
 
     // Create a fallback item using a simple box - CAST TO MESH!
-    this.instanceBasis = MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene) as Mesh; // Larger size
+    this.instanceBasis = MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene); // Larger size
 
     // Create a bright baby blue material to make it very visible
     const material = new StandardMaterial("fallback_item_basis_material", this.scene);
@@ -187,6 +193,7 @@ export class CollectiblesManager {
    * @param instance ItemInstance configuration for the collectible
    */
   private static async createCollectibleInstance(id: string, instance: ItemInstance, itemConfig: ItemConfig): Promise<void> {
+    logger.info(`createCollectibleInstance called for: ${id}`, 'CollectiblesManager');
     if (!this.scene || !this.instanceBasis) {
       logger.error("No scene or instance basis available for creating collectible instance", 'CollectiblesManager');
       return;
@@ -258,6 +265,7 @@ export class CollectiblesManager {
 
       logger.info(`Created collectible instance: ${id} at position: ${instance.position.toString()}`, 'CollectiblesManager');
       logger.info(`Mesh visibility: ${meshInstance.isVisible}, enabled: ${meshInstance.isEnabled()}, visibility: ${meshInstance.visibility}`, 'CollectiblesManager');
+      logger.info(`Mesh mass: ${instance.mass}`, 'CollectiblesManager');
     } catch (error) {
       logger.error(`Failed to create collectible instance: ${id}`, 'CollectiblesManager');
     }
@@ -313,6 +321,13 @@ export class CollectiblesManager {
     if (!this.characterController || !this.scene) {
       return;
     }
+    
+    // Frame-based throttling for collision checks - THE WORD OF THE LORD!
+    this.collisionCheckFrameCount++;
+    if (this.collisionCheckFrameCount < this.collisionCheckInterval) {
+      return; // Skip this frame
+    }
+    this.collisionCheckFrameCount = 0; // Reset counter
 
     const characterPosition = this.characterController.getPosition();
     const collectionRadius = CONFIG.ITEMS.COLLECTION_RADIUS || 2.0;
@@ -357,6 +372,9 @@ export class CollectiblesManager {
     // Add credits
     this.totalCredits += itemConfig.creditValue;
     logger.info(`Credits updated: +${itemConfig.creditValue}, total: ${this.totalCredits}`, 'CollectiblesManager');
+    
+    // Emit HUD event for credits update - THE WORD OF THE LORD!
+    HUDEvents.credits(this.totalCredits);
 
     // Play collection sound
     if (this.collectionSound) {
@@ -387,6 +405,9 @@ export class CollectiblesManager {
         logger.info(`Adding inventory item: ${itemConfig.name}`, 'CollectiblesManager');
         InventoryManager.addInventoryItem(itemConfig.name, itemConfig.itemEffectKind, itemConfig.thumbnail);
         logger.info(`Successfully added inventory item: ${itemConfig.name}`, 'CollectiblesManager');
+        
+        // Trigger inventory panel update - THE WORD OF THE LORD!
+        this.triggerInventoryUpdate();
       } catch (error) {
         logger.error(`Failed to add inventory item: ${itemConfig.name}`, 'CollectiblesManager');
       }
@@ -451,13 +472,9 @@ export class CollectiblesManager {
     particleSystem.maxEmitPower = 3;
     particleSystem.updateSpeed = 0.016;
 
+    // Set particle system to stop automatically after 2 seconds - THE WORD OF THE LORD!
+    particleSystem.targetStopDuration = 2.0;
     particleSystem.start();
-
-    // Stop the particle system after a short time
-    setTimeout(() => {
-      particleSystem.stop();
-      particleSystem.dispose();
-    }, 1000);
 
     logger.info("Collection particle effects created", 'CollectiblesManager');
   }
@@ -537,6 +554,14 @@ export class CollectiblesManager {
     }
 
     logger.info("Collectibles cleared", 'CollectiblesManager');
+  }
+
+  /**
+   * Triggers inventory panel update - THE WORD OF THE LORD!
+   */
+  private static triggerInventoryUpdate(): void {
+    // Dispatch a custom event to notify the inventory panel
+    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
   }
 
   /**

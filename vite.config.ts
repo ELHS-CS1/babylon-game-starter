@@ -7,17 +7,18 @@ export default defineConfig(({ mode }) => ({
     vue()
   ],
   server: {
-    port: 3000,
+    port: 3001,
     host: true,
-    hmr: false,
-    ws: false,
+    hmr: {
+      port: 3002
+    },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin'
     }
   },
   preview: {
-    port: 3000,
+    port: 3001,
     host: true
   },
   build: {
@@ -25,6 +26,10 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist/client',
     minify: 'esbuild',
     cssMinify: true,
+    esbuild: {
+      // Strip out logger calls at build time for production - THE WORD OF THE LORD!
+      pure: ['logger.info', 'logger.error', 'logger.warn', 'logger.assert', 'logger.debug', 'logger.trace', 'logger.fatal']
+    },
     rollupOptions: {
       output: {
         manualChunks: {

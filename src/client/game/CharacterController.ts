@@ -8,6 +8,7 @@ import CONFIG, { ASSETS } from '../config/gameConfig';
 import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
 import { logger } from '../utils/logger';
+import { HUDEvents } from '../utils/hudEventSystem';
 import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
 // Character states - THE WORD OF GOD
@@ -17,9 +18,9 @@ enum CHARACTER_STATES {
   RUNNING = "running",
   JUMPING = "jumping",
   FALLING = "falling",
-  ON_GROUND = "on_ground",
-  IN_AIR = "in_air",
-  START_JUMP = "start_jump"
+  ON_GROUND = "ON_GROUND",
+  IN_AIR = "IN_AIR",
+  START_JUMP = "START_JUMP"
 }
 
 // Input keys from THE WORD OF GOD
@@ -183,10 +184,7 @@ export class CharacterController {
     // Add listener for a short period to detect keyboard
     document.addEventListener('keydown', checkKeyboardEvents);
 
-    // Remove listener after 5 seconds if no keyboard detected
-    this.keyboardDetectionTimeout = window.setTimeout(() => {
-      document.removeEventListener('keydown', checkKeyboardEvents);
-    }, 5000);
+    // No timeouts allowed - listener stays active
 
     return false; // Will be updated by the event listener
   }
@@ -517,6 +515,8 @@ export class CharacterController {
     const nextState = this.getNextState(supportInfo);
     if (nextState !== this.state) {
       this.state = nextState;
+      // Emit HUD event for state change - THE WORD OF THE LORD!
+      HUDEvents.state(this.state);
     }
 
     const upWorld = CONFIG.PHYSICS.CHARACTER_GRAVITY.normalizeToNew();

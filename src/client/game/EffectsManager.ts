@@ -2,8 +2,8 @@
 // EFFECTS MANAGER - BASIC IMPLEMENTATION FOLLOWING THE TEN COMMANDMENTS
 // ============================================================================
 
-import { Sound, Vector3, ParticleHelper } from '@babylonjs/core';
-import type { IParticleSystem , Scene} from '@babylonjs/core';
+import { Sound, ParticleHelper } from '@babylonjs/core';
+import type { IParticleSystem , Scene, Vector3} from '@babylonjs/core';
 import { AbstractMesh } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 import { logger } from '../utils/logger';

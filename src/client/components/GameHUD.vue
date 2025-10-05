@@ -2,8 +2,8 @@
   <div v-if="showHUD" class="hud-container" :class="hudPositionClass">
     <!-- Coordinates -->
     <div v-if="showCoordinates" id="hud-coordinates" class="hud-element">
-      <span class="hud-label">Position:</span>
-      <span id="hud-coordinates-value" class="hud-value">{{ coordinates }}</span>
+      <div class="hud-label">Position</div>
+      <div id="hud-coordinates-value" class="hud-value">{{ coordinates }}</div>
     </div>
     
     <!-- Game Time -->
@@ -38,14 +38,21 @@
     <div v-if="showCredits" id="hud-credits" class="hud-element">
       <span class="hud-label">Credits:</span>
       <br>
-      <span id="hud-credits-value" class="hud-value text-blue">{{ credits }}</span>
+      <span id="hud-credits-value" class="hud-value text-blue">{{ reactiveCredits }}</span>
     </div>
     
     <!-- Active Peers -->
-    <div v-if="activePeers > 0" id="hud-peers" class="hud-element">
+    <div v-if="activePeers >= 0" id="hud-peers" class="hud-element">
       <span class="hud-label">Players:</span>
       <br>
-      <span id="hud-peers-value" class="hud-value">{{ activePeers }}</span>
+      <span id="hud-peers-value" class="hud-value" :class="{ 'text-green': activePeers > 0, 'text-orange': activePeers === 0 }">{{ activePeers }}</span>
+    </div>
+    
+    <!-- Connection Status -->
+    <div v-if="showConnection" id="hud-connection" class="hud-element">
+      <span class="hud-label">Connection:</span>
+      <br>
+      <span id="hud-connection-value" class="hud-value" :class="{ 'text-green': isConnected, 'text-red': !isConnected }">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
     </div>
   </div>
 </template>
@@ -53,6 +60,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import CONFIG from '../config/gameConfig';
+import { HUDEventSystem, HUDEvents, type HUDEvent } from '../utils/hudEventSystem';
 
 // Props
 interface Props {
@@ -63,6 +71,7 @@ interface Props {
   showState?: boolean;
   showBoost?: boolean;
   showCredits?: boolean;
+  showConnection?: boolean;
   peers?: Array<{ id: string; name: string; position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; environment: string; lastUpdate: number }>;
   activePeers?: number;
 }
@@ -75,6 +84,7 @@ const props = withDefaults(defineProps<Props>(), {
   showState: () => CONFIG.HUD.SHOW_STATE,
   showBoost: () => CONFIG.HUD.SHOW_BOOST_STATUS,
   showCredits: () => CONFIG.HUD.SHOW_CREDITS,
+  showConnection: () => true,
   peers: () => [],
   activePeers: () => 0
 });
@@ -86,19 +96,13 @@ const gameTime = ref('00:00:00');
 const fps = ref(60);
 const characterState = ref('Idle');
 const boostStatus = ref('Ready');
-const credits = ref('0');
 
 // Reactive credits from CollectiblesManager - THE WORD OF THE LORD!
 const reactiveCredits = ref(0);
 
-const updateCreditsFromCollectibles = async () => {
-  try {
-    const { CollectiblesManager } = await import('../game/CollectiblesManager');
-    reactiveCredits.value = CollectiblesManager.getTotalCredits();
-  } catch {
-    reactiveCredits.value = 0;
-  }
-};
+// Import game state for connection status
+import { gameState } from '../state';
+const isConnected = computed(() => gameState.isConnected);
 
 // Computed properties
 const hudPositionClass = computed(() => {
@@ -132,30 +136,74 @@ const boostVuetifyClass = computed(() => {
   }
 });
 
-// Update functions
+// Event handlers for HUD updates - THE WORD OF THE LORD!
+const handleCoordinatesEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:coordinates') {
+    coordinates.value = `${event.data.x.toFixed(1)}, ${event.data.y.toFixed(1)}, ${event.data.z.toFixed(1)}`;
+  }
+};
+
+const handleTimeEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:time') {
+    gameTime.value = event.data.time;
+  }
+};
+
+const handleFPSEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:fps') {
+    fps.value = Math.round(event.data.fps);
+  }
+};
+
+const handleStateEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:state') {
+    characterState.value = event.data.state;
+  }
+};
+
+const handleBoostEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:boost') {
+    boostStatus.value = event.data.status;
+  }
+};
+
+const handleCreditsEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:credits') {
+    reactiveCredits.value = event.data.credits;
+  }
+};
+
+const handlePeersEvent = (event: HUDEvent) => {
+  if (event.type === 'hud:peers') {
+    // Update activePeers through props or emit to parent
+    // For now, we'll handle this through the existing props system
+  }
+};
+
+// Legacy update functions for backward compatibility
 const updateCoordinates = (x: number, y: number, z: number) => {
-  coordinates.value = `${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}`;
+  HUDEvents.coordinates(x, y, z);
 };
 
 const updateTime = () => {
   const now = new Date();
-  gameTime.value = now.toLocaleTimeString();
+  HUDEvents.time(now.toLocaleTimeString());
 };
 
 const updateFPS = (currentFPS: number) => {
-  fps.value = Math.round(currentFPS);
+  HUDEvents.fps(currentFPS);
 };
 
 const updateState = (state: string) => {
-  characterState.value = state;
+  HUDEvents.state(state);
 };
 
 const updateBoost = (status: string) => {
-  boostStatus.value = status;
+  HUDEvents.boost(status);
 };
 
 const updateCredits = (amount: number) => {
-  credits.value = amount.toString();
+  HUDEvents.credits(amount);
 };
 
 // Expose methods for parent component
@@ -169,21 +217,26 @@ defineExpose({
   toggleHUD: () => { showHUD.value = !showHUD.value; }
 });
 
-// Update loop
-let updateInterval: number | null = null;
-
 // Listen for config updates
 watch(() => CONFIG.HUD, () => {
   // Update HUD when config changes
 }, { deep: true });
 
+// Event subscription cleanup functions
+let unsubscribeFunctions: (() => void)[] = [];
+
 onMounted(() => {
-  // Start update loop using config interval
-  updateInterval = window.setInterval(() => {
-    updateTime();
-    updateCreditsFromCollectibles();
-  }, CONFIG.HUD.UPDATE_INTERVAL);
-  
+  // Subscribe to HUD events - THE WORD OF THE LORD!
+  unsubscribeFunctions.push(
+    HUDEventSystem.subscribe('hud:coordinates', handleCoordinatesEvent),
+    HUDEventSystem.subscribe('hud:time', handleTimeEvent),
+    HUDEventSystem.subscribe('hud:fps', handleFPSEvent),
+    HUDEventSystem.subscribe('hud:state', handleStateEvent),
+    HUDEventSystem.subscribe('hud:boost', handleBoostEvent),
+    HUDEventSystem.subscribe('hud:credits', handleCreditsEvent),
+    HUDEventSystem.subscribe('hud:peers', handlePeersEvent)
+  );
+
   // Listen for HUD config updates
   window.addEventListener('hud-config-updated', () => {
     // HUD config updated via event
@@ -191,10 +244,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (updateInterval !== null) {
-    clearInterval(updateInterval);
-  }
-  
+  // Unsubscribe from all HUD events
+  unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+  unsubscribeFunctions = [];
+
   // Remove event listeners
   window.removeEventListener('hud-config-updated', () => {});
 });

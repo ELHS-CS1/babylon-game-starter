@@ -33,7 +33,6 @@ export default defineConfig({
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--remote-debugging-port=0',
-        '--user-data-dir=/tmp/playwright-chrome-profile',
         '--window-title=Playwright Test Window'
       ],
       headless: false, // Set to true for headless mode
@@ -54,10 +53,10 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
-    command: 'PORT=3001 npm run start:local',
-    url: 'http://localhost:3001',
-    reuseExistingServer: !process.env['CI'],
-    timeout: 120 * 1000,
-  },
+  // webServer: {
+  //   command: 'npm run dev:full',
+  //   url: 'http://localhost:3001',
+  //   reuseExistingServer: !process.env['CI'],
+  //   timeout: 120 * 1000,
+  // },
 });

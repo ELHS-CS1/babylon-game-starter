@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-10-05T15:44:01.862Z",
+  "sseMultiplayerMetrics": {
+    "serverStartTime": 0,
+    "sseConnectionTime": 0,
+    "peerUpdateLatency": 0,
+    "broadcastLatency": 0,
+    "connectionStability": 0,
+    "messageThroughput": 0
+  },
+  "e2eTestResults": {
+    "totalTests": 0,
+    "passedTests": 0,
+    "failedTests": 21,
+    "testDuration": 0,
+    "browserCompatibility": {}
+  },
+  "performanceMetrics": {
+    "memoryUsage": 0,
+    "cpuUsage": 0,
+    "networkLatency": 0,
+    "sseReconnectionRate": 0
+  }
+}

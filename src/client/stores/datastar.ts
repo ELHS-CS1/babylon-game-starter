@@ -189,9 +189,8 @@ export class DataStarConnection {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay * this.reconnectAttempts);
+      // No timeouts allowed - immediate reconnect
+      this.connect();
     }
   }
 

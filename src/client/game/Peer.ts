@@ -1,3 +1,6 @@
+import type { Scene, Observer } from '@babylonjs/core';
+import { logger } from '../utils/logger';
+
 export interface Vector3 {
   x: number;
   y: number;
@@ -16,9 +19,91 @@ export interface Peer {
 export class PeerManager {
   private peers: Map<string, Peer> = new Map();
   private localPeer: Peer | null = null;
+  private scene: Scene | null = null;
+  private cleanupObserver: Observer<Scene> | null = null;
+  private cleanupFrameCount: number = 0;
+  private cleanupInterval: number = 300; // Check every 300 frames (5 seconds at 60fps)
+  private defaultTimeoutMs: number = 60000; // 60 seconds default timeout
 
   constructor() {
     // Initialize with empty peer list
+  }
+
+  /**
+   * Initializes the PeerManager with automatic cleanup
+   * @param scene The Babylon.js scene
+   */
+  public initialize(scene: Scene): void {
+    this.scene = scene;
+    this.setupAutomaticCleanup();
+    logger.info("PeerManager initialized with automatic cleanup", { context: 'PeerManager', tag: 'peer' });
+  }
+
+  /**
+   * Sets up automatic peer cleanup using onBeforeRenderObservable
+   */
+  private setupAutomaticCleanup(): void {
+    if (!this.scene) {
+      logger.warn("Scene not available for automatic cleanup setup", { context: 'PeerManager', tag: 'peer' });
+      return;
+    }
+
+    this.cleanupObserver = this.scene.onBeforeRenderObservable.add(() => {
+      this.updateCleanup();
+    });
+
+    logger.info("Automatic peer cleanup setup complete", { context: 'PeerManager', tag: 'peer' });
+  }
+
+  /**
+   * Updates peer cleanup checking
+   */
+  private updateCleanup(): void {
+    this.cleanupFrameCount++;
+    if (this.cleanupFrameCount < this.cleanupInterval) {
+      return; // Skip this frame
+    }
+    this.cleanupFrameCount = 0; // Reset counter
+
+    // Perform automatic cleanup
+    this.performAutomaticCleanup();
+  }
+
+  /**
+   * Performs automatic cleanup of inactive peers
+   * @param timeoutMs Timeout in milliseconds for peer inactivity
+   * @returns Array of removed peer IDs
+   */
+  public performAutomaticCleanup(timeoutMs: number = this.defaultTimeoutMs): string[] {
+    const allPeers = Array.from(this.peers.values());
+    const now = Date.now();
+    const inactivePeers = allPeers.filter(peer => now - peer.lastUpdate > timeoutMs);
+    const removedIds: string[] = [];
+
+    inactivePeers.forEach(peer => {
+      this.removePeer(peer.id);
+      removedIds.push(peer.id);
+      logger.info(`Peer ${peer.id} automatically cleaned up (inactive for ${now - peer.lastUpdate}ms)`, { context: 'PeerManager', tag: 'peer' });
+    });
+
+    if (removedIds.length > 0) {
+      logger.info(`Automatic cleanup: ${removedIds.length} inactive peers removed`, { context: 'PeerManager', tag: 'peer' });
+    }
+
+    return removedIds;
+  }
+
+  /**
+   * Disposes the PeerManager and cleans up observers
+   */
+  public dispose(): void {
+    if (this.cleanupObserver && this.scene) {
+      this.scene.onBeforeRenderObservable.remove(this.cleanupObserver);
+      this.cleanupObserver = null;
+    }
+    this.scene = null;
+    this.clearPeers();
+    logger.info("PeerManager disposed", { context: 'PeerManager', tag: 'peer' });
   }
 
   // Create a new local peer

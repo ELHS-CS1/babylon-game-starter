@@ -222,8 +222,9 @@ const updateInventoryItems = async () => {
   try {
     const { InventoryManager } = await import('../game/InventoryManager');
     const items = InventoryManager.getInventoryItems();
-    logger.info(`InventoryPanel: Updating inventory items ${items.size}`, 'InventoryPanel');
-    reactiveInventoryItems.value = Array.from(items.entries()).map((entry: any) => ({
+    logger.info(`InventoryPanel: Updating inventory items ${items.size}`, { context: 'InventoryPanel', tag: 'inventory' });
+    
+    const newItems = Array.from(items.entries()).map((entry: any) => ({
       id: entry[0],
       name: entry[0],
       description: `${entry[1].itemEffectKind} item`,
@@ -233,9 +234,12 @@ const updateInventoryItems = async () => {
       effect: entry[1].itemEffectKind,
       value: 1
     }));
-    logger.info(`InventoryPanel: Updated inventory items ${reactiveInventoryItems.value.length}`, 'InventoryPanel');
+    
+    reactiveInventoryItems.value = newItems;
+    
+    logger.info(`InventoryPanel: Updated inventory items ${reactiveInventoryItems.value.length}`, { context: 'InventoryPanel', tag: 'inventory' });
   } catch (error) {
-    logger.error('InventoryPanel: Failed to update inventory items', 'InventoryPanel');
+    logger.error('InventoryPanel: Failed to update inventory items', { context: 'InventoryPanel', tag: 'inventory' });
   }
 };
 
@@ -271,20 +275,16 @@ const selectItem = (item: InventoryItem) => {
   emit('itemSelect', selectedItem.value);
 };
 
-const useItem = (item: InventoryItem) => {
+const useItem = async (item: InventoryItem) => {
   // Use the item through InventoryData - THE WORD OF THE LORD
   InventoryData.useItem(item.name);
   emit('itemUse', item);
   
-  // Reduce quantity or remove item
-  if (item.quantity > 1) {
-    item.quantity--;
-  } else {
-    const index = inventoryItems.value.findIndex(i => i.id === item.id);
-    if (index > -1) {
-      inventoryItems.value.splice(index, 1);
-    }
-  }
+  // Update inventory items from InventoryManager to sync with actual state
+  await updateInventoryItems();
+  
+  // Trigger inventory update event to notify other components - THE WORD OF THE LORD!
+  window.dispatchEvent(new CustomEvent('inventoryUpdated'));
   
   if (selectedItem.value?.id === item.id) {
     selectedItem.value = null;
@@ -326,20 +326,19 @@ const clearInventory = () => {
 };
 
 // Lifecycle hooks - THE WORD OF THE LORD!
-let updateInterval: number | null = null;
 
 onMounted(() => {
-  logger.info('InventoryPanel: Component mounted, starting update interval', 'InventoryPanel');
-  // Update inventory items periodically - THE WORD OF THE LORD!
-  updateInterval = window.setInterval(updateInventoryItems, 1000);
-  // Also call it immediately
+  logger.info('InventoryPanel: Component mounted', { context: 'InventoryPanel', tag: 'inventory' });
+  // Call it immediately
   updateInventoryItems();
+  
+  // Listen for inventory updates - THE WORD OF THE LORD!
+  window.addEventListener('inventoryUpdated', updateInventoryItems);
 });
 
 onUnmounted(() => {
-  if (updateInterval !== null) {
-    clearInterval(updateInterval);
-  }
+  // Remove event listener - THE WORD OF THE LORD!
+  window.removeEventListener('inventoryUpdated', updateInventoryItems);
 });
 
 // Item helper functions

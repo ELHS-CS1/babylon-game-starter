@@ -3,6 +3,25 @@
 // ============================================================================
 // THOU SHALT NOT USE CONSOLE.LOG OR CONSOLE.ERROR!
 // THOU SHALT USE THE SACRED LOGGER SYSTEM!
+// 
+// USAGE EXAMPLES:
+// 
+// // Create a logger with scope checking:
+// const logger = new Logger();
+// 
+// // This will be logged based on URL parameters and tag:
+// logger.info("HUD updated", { context: "GameHUD", tag: "hud" });
+// 
+// // This will be logged based on URL parameters and tag:
+// logger.info("Checking collisions", { context: "CollectiblesManager", tag: "collision" });
+// 
+// // This will be logged based on URL parameters and tag:
+// logger.info("General message", { tag: "general" });
+// 
+// // URL parameters:
+// // ?scope=all - show all logs
+// // ?scope=none - show no logs (default)
+// // ?scope=tag&tag=hud - show only logs with tag "hud"
 // ============================================================================
 
 // @ts-nocheck - Disable strict type checking for this file due to exactOptionalPropertyTypes
@@ -48,6 +67,8 @@ class Logger {
   private shouldLog(level: LogLevel): boolean {
     return level >= this.config.minLevel;
   }
+
+
 
   private formatMessage(level: LogLevel, message: string, context?: string, data?: unknown): string {
     const timestamp = new Date().toISOString();
@@ -107,28 +128,28 @@ class Logger {
     }
   }
 
-  public trace(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.TRACE, message, context, data);
+  public trace(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.TRACE, message, options?.context, options?.data);
   }
 
-  public debug(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.DEBUG, message, context, data);
+  public debug(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.DEBUG, message, options?.context, options?.data);
   }
 
-  public info(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.INFO, message, context, data);
+  public info(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.INFO, message, options?.context, options?.data);
   }
 
-  public warn(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.WARN, message, context, data);
+  public warn(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.WARN, message, options?.context, options?.data);
   }
 
-  public error(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.ERROR, message, context, data);
+  public error(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.ERROR, message, options?.context, options?.data);
   }
 
-  public fatal(message: string, context?: string, data?: unknown): void {
-    this.log(LogLevel.FATAL, message, context, data);
+  public fatal(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    this.log(LogLevel.FATAL, message, options?.context, options?.data);
   }
 
   /**
@@ -139,10 +160,10 @@ class Logger {
    * @param data Optional data to include with the assertion
    * @returns True if assertion passes, false if it fails
    */
-  public assert(condition: boolean, message: string, context?: string, data?: unknown): boolean {
+  public assert(condition: boolean, message: string, options?: { context?: string; data?: unknown; tag?: string }): boolean {
     const timestamp = new Date().toISOString();
-    const contextStr = context ? ` [${context}]` : '';
-    const dataStr = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    const contextStr = options?.context ? ` [${options.context}]` : '';
+    const dataStr = options?.data ? ` | Data: ${JSON.stringify(options.data)}` : '';
     
     if (condition) {
       // ASSERTION PASSED - THE SACRED SUCCESS!
@@ -150,7 +171,7 @@ class Logger {
       const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ${passMessage}`;
       
       // Log the assertion pass
-      this.log(LogLevel.INFO, `ASSERT PASS: ${message}`, context, data);
+      this.log(LogLevel.INFO, `ASSERT PASS: ${message}`, options?.context, options?.data);
       
       // Print pass result to console
       if (this.config.enableConsole) {
@@ -164,7 +185,7 @@ class Logger {
       const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ${failMessage}`;
       
       // Log the assertion failure
-      this.log(LogLevel.ERROR, `ASSERT FAIL: ${message}`, context, data);
+      this.log(LogLevel.ERROR, `ASSERT FAIL: ${message}`, options?.context, options?.data);
       
       // Print fail result to console
       if (this.config.enableConsole) {
@@ -188,19 +209,18 @@ class Logger {
     condition: boolean, 
     passMessage: string, 
     failMessage: string, 
-    context?: string, 
-    data?: unknown
+    options?: { context?: string; data?: unknown; tag?: string }
   ): boolean {
     const timestamp = new Date().toISOString();
-    const contextStr = context ? ` [${context}]` : '';
-    const dataStr = data ? ` | Data: ${JSON.stringify(data)}` : '';
+    const contextStr = options?.context ? ` [${options.context}]` : '';
+    const dataStr = options?.data ? ` | Data: ${JSON.stringify(options.data)}` : '';
     
     if (condition) {
       // ASSERTION PASSED - THE SACRED SUCCESS!
       const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ✅ ${passMessage}${dataStr}`;
       
       // Log the assertion pass
-      this.log(LogLevel.INFO, `ASSERT PASS: ${passMessage}`, context, data);
+      this.log(LogLevel.INFO, `ASSERT PASS: ${passMessage}`, options?.context, options?.data);
       
       // Print pass result to console
       if (this.config.enableConsole) {
@@ -213,7 +233,7 @@ class Logger {
       const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ❌ ${failMessage}${dataStr}`;
       
       // Log the assertion failure
-      this.log(LogLevel.ERROR, `ASSERT FAIL: ${failMessage}`, context, data);
+      this.log(LogLevel.ERROR, `ASSERT FAIL: ${failMessage}`, options?.context, options?.data);
       
       // Print fail result to console
       if (this.config.enableConsole) {
@@ -235,15 +255,139 @@ class Logger {
   public updateConfig(newConfig: Partial<LoggerConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
+
+  public clearStorage(): void {
+    this.clearLogs();
+  }
+
+  public getStorageEntries(): readonly LogEntry[] {
+    return this.getLogs();
+  }
+
+  public exportLogs(): string {
+    return JSON.stringify(this.getLogs(), null, 2);
+  }
+
+  public importLogs(logsJson: string): void {
+    try {
+      const logs = JSON.parse(logsJson);
+      if (Array.isArray(logs)) {
+        this.logs = [...logs];
+      }
+    } catch (error) {
+      this.error('Failed to import logs', 'Logger', { error });
+    }
+  }
+
+  public setMinLevel(level: LogLevel): void {
+    this.config = { ...this.config, minLevel: level };
+  }
 }
 
-// Create the sacred logger instance
-export const logger = new Logger({
-  minLevel: LogLevel.INFO,
-  enableConsole: true,
-  enableStorage: true,
-  maxStorageEntries: 1000
+// Check if we're in localhost and get URL parameters for logging scope
+const isLocalhost = typeof window !== 'undefined' && window.location.href.includes('localhost');
+const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+const loggingScope = urlParams.get('scope') || 'none'; // all, none, or tag
+const targetTag = urlParams.get('tag') || ''; // specific tag to target
+
+
+// Create empty stub logger for non-localhost environments
+const createStubLogger = () => ({
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+  trace: () => {},
+  fatal: () => {},
+  assert: () => {},
+  assertWithMessages: () => {},
+  log: () => {},
+  clearStorage: () => {},
+  getStorageEntries: () => [],
+  exportLogs: () => '',
+  importLogs: () => {},
+  setMinLevel: () => {},
 });
+
+// Create logger with scope checking
+const createScopedLogger = () => {
+  const logger = new Logger({
+    minLevel: LogLevel.INFO,
+    enableConsole: true,
+    enableStorage: true,
+    maxStorageEntries: 1000
+  });
+
+  // Private helper to determine if logging is within scope
+  const withinScope = (tag?: string): boolean => {
+    // Check scope and return early if out of scope
+    if (loggingScope === 'none') {
+      return false;
+    }
+    
+    if (loggingScope === 'all') {
+      return true;
+    }
+    
+    if (loggingScope === 'tag') {
+      // If targetTag is specified, only allow logs with that exact tag
+      if (targetTag) {
+        return tag === targetTag;
+      } else {
+        // If no targetTag specified, allow all logs
+        return true;
+      }
+    }
+    
+    // Fallback: if we get here, something went wrong with scope detection
+    return false; // Default to false if scope is not recognized
+  };
+
+  // Create wrapper that checks scope before calling logger methods
+  const createScopedMethod = (originalMethod: Function) => {
+    return function(this: any, ...args: any[]) {
+      // Extract tag from options object - second parameter
+      // Support both old format (message, context) and new format (message, options)
+      let tag: string | undefined;
+      
+      if (args.length >= 2 && typeof args[1] === 'object' && args[1] !== null) {
+        // New format: (message, options)
+        tag = args[1].tag;
+      } else {
+        // Old format: (message, context) - no tag, allow all logs
+        tag = undefined;
+      }
+      
+      // Check scope and return early if out of scope
+      const isWithinScope = withinScope(tag);
+      if (!isWithinScope) {
+        return;
+      }
+      
+      return originalMethod.apply(this, args);
+    };
+  };
+
+  return {
+    info: createScopedMethod(logger.info.bind(logger)),
+    warn: createScopedMethod(logger.warn.bind(logger)),
+    error: createScopedMethod(logger.error.bind(logger)),
+    debug: createScopedMethod(logger.debug.bind(logger)),
+    trace: createScopedMethod(logger.trace.bind(logger)),
+    fatal: createScopedMethod(logger.fatal.bind(logger)),
+    assert: createScopedMethod(logger.assert.bind(logger)),
+    assertWithMessages: createScopedMethod(logger.assertWithMessages.bind(logger)),
+    log: createScopedMethod(logger.log.bind(logger)),
+    clearStorage: createScopedMethod(logger.clearStorage.bind(logger)),
+    getStorageEntries: createScopedMethod(logger.getStorageEntries.bind(logger)),
+    exportLogs: createScopedMethod(logger.exportLogs.bind(logger)),
+    importLogs: createScopedMethod(logger.importLogs.bind(logger)),
+    setMinLevel: createScopedMethod(logger.setMinLevel.bind(logger)),
+  };
+};
+
+// Return stub logger if not localhost, otherwise return scoped logger
+export const logger = !isLocalhost ? createStubLogger() : createScopedLogger();
 
 // Export the Logger class for custom instances
 export { Logger };

@@ -312,8 +312,7 @@ onMounted(async () => {
   // Initialize push notifications
   await pushNotificationClient.initialize();
   
-  // Update inventory items periodically - THE WORD OF THE LORD!
-  setInterval(updateInventoryItems, 1000);
+  // No intervals allowed - THE WORD OF THE LORD!
 });
 
 onUnmounted(() => {

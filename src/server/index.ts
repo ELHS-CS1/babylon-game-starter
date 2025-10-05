@@ -348,7 +348,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                     gameState.peers[peer.id] = peer;
 
                     // Collect peer metrics
-                    reportCollector.collectPeerMetrics(peer.id, peer as unknown as Record<string, unknown>);
+                    reportCollector.collectPeerMetrics(peer.id, JSON.parse(JSON.stringify(peer)));
                     reportCollector.collectEnvironmentMetrics(gameState.currentEnvironment,
                       Object.values(gameState.peers).filter(p => p.environment === gameState.currentEnvironment).length);
 

@@ -1,4 +1,4 @@
-import { SceneManager } from './SceneManager';
+import type { SceneManager } from './SceneManager';
 
 export class SettingsUI {
     private static sceneManager: SceneManager | null = null;

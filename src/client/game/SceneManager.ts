@@ -1,4 +1,5 @@
-import { Scene, Engine, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, AbstractMesh, ImportMeshAsync, HingeConstraint, Mesh, Texture, StandardMaterial, PBRMaterial } from '@babylonjs/core';
+import type { Engine, AbstractMesh} from '@babylonjs/core';
+import { Scene, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, ImportMeshAsync, HingeConstraint, Mesh, Texture, StandardMaterial, PBRMaterial } from '@babylonjs/core';
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { CollectiblesManager } from './CollectiblesManager';
@@ -36,6 +37,10 @@ export class SceneManager {
     // Initialize collectibles system - THE WORD OF THE LORD!
     if (this.characterController) {
       await CollectiblesManager.initialize(this.scene, this.characterController);
+      
+      // Initialize inventory system - THE WORD OF THE LORD!
+      const { InventoryManager } = await import('./InventoryManager');
+      InventoryManager.initialize(this.scene, this.characterController);
     }
 
     // Set up environment items after character is fully loaded
@@ -53,6 +58,7 @@ export class SceneManager {
       const HavokPhysics = (await import('@babylonjs/havok')).default;
       const havokInstance = await HavokPhysics();
       const havokPlugin = new HavokPlugin(true, havokInstance);
+      havokPlugin.setTimeStep(1 / 120);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, havokPlugin);
       logger.info("Havok physics engine initialized successfully", 'SceneManager');
     } catch (error) {
@@ -289,7 +295,7 @@ export class SceneManager {
 
   private loadCharacter(character: any, preservedPosition?: Vector3 | null): void {
     // Remove all animation groups from the scene before loading a new character
-    this.scene.animationGroups.slice().forEach(group => group.dispose());
+    this.scene.animationGroups.slice().forEach(group => { group.dispose(); });
 
     ImportMeshAsync(character.model, this.scene)
       .then(async result => {

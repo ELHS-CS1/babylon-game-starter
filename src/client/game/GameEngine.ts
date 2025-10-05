@@ -9,6 +9,7 @@ import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
 import { SettingsUI } from './SettingsUI';
 import { logger } from '../utils/logger';
+import { HUDEvents } from '../utils/hudEventSystem';
 
 export class GameEngine {
   private engine: Engine;
@@ -19,6 +20,8 @@ export class GameEngine {
   private currentEnvironment: string = 'Level Test';
   private animationFrameId: number | null = null;
   private lastUpdateTime: number = 0;
+  private hudUpdateFrameCount: number = 0;
+  private hudUpdateInterval: number = 6; // Update HUD every 6 frames (60fps / 6 = 10fps)
    
   public onPeerUpdate?: () => void;
 
@@ -100,50 +103,49 @@ export class GameEngine {
   private async updateHUD(): Promise<void> {
     if (!this.sceneManager) return;
     
-    // Get the GameHUD component from the Vue app - THE WORD OF THE LORD!
-    const gameHUD = (window as any).gameHUD;
-    if (!gameHUD) {
-      logger.warn('GameHUD not found on window object', 'GameEngine');
-      return;
+    // Frame-based throttling for HUD updates - THE WORD OF THE LORD!
+    this.hudUpdateFrameCount++;
+    if (this.hudUpdateFrameCount < this.hudUpdateInterval) {
+      return; // Skip this frame
     }
-    
-    logger.info('GameHUD found, updating HUD', 'GameEngine');
+    this.hudUpdateFrameCount = 0; // Reset counter
     
     const characterController = this.sceneManager.getCharacterController();
-    
     if (!characterController) return;
     
-    // Update coordinates - THE WORD OF THE LORD!
+    // Emit HUD events instead of direct method calls - THE WORD OF THE LORD!
+    
+    // Update time
+    HUDEvents.time(new Date().toLocaleTimeString());
+    
+    // Update coordinates
     const position = characterController.getDisplayCapsule().position;
-    gameHUD.updateCoordinates(position.x, position.y, position.z);
+    HUDEvents.coordinates(position.x, position.y, position.z);
     
     // Update character state
     const state = characterController.getState();
-    gameHUD.updateState(state);
+    HUDEvents.state(state);
     
     // Update boost status
     const boostStatus = characterController.isBoosting() ? 'ACTIVE' : 'Inactive';
-    gameHUD.updateBoost(boostStatus);
+    HUDEvents.boost(boostStatus);
     
-    // Update credits from CollectiblesManager - THE WORD OF THE LORD!
+    // Update credits from CollectiblesManager
     try {
       const { CollectiblesManager } = await import('./CollectiblesManager');
       const credits = CollectiblesManager.getTotalCredits();
-      logger.info(`Updating credits: ${credits}`, 'GameEngine');
-      logger.info(`GameHUD.updateCredits method exists: ${typeof gameHUD.updateCredits}`, 'GameEngine');
-      if (typeof gameHUD.updateCredits === 'function') {
-        gameHUD.updateCredits(credits);
-        logger.info('Successfully called gameHUD.updateCredits', 'GameEngine');
-      } else {
-        logger.error('gameHUD.updateCredits is not a function', 'GameEngine');
-      }
+      HUDEvents.credits(credits);
     } catch (error) {
       logger.error(`Failed to update credits: ${error}`, 'GameEngine');
     }
     
     // Update FPS
     const fps = this.engine.getFps();
-    gameHUD.updateFPS(fps);
+    HUDEvents.fps(fps);
+    
+    // Update peers count
+    const peerCount = this.peerManager.getPeerCount();
+    HUDEvents.peers(peerCount);
   }
 
   private updateRemotePlayers(): void {

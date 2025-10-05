@@ -20,12 +20,14 @@ export interface InventoryItem {
 }
 
 export class InventoryManager {
-  // private static scene: Scene | null = null; // Unused for now
+  private static scene: Scene | null = null;
   private static characterController: CharacterController | null = null;
   private static inventoryItems: Map<string, InventoryItem> = new Map();
   private static originalJumpHeight: number = 0;
-  // private static originalVisibility: number = 1; // Unused for now
+  private static originalVisibility: number = 1;
   private static activeEffects: Set<string> = new Set();
+  private static effectExpiryTimes: Map<string, number> = new Map();
+  private static effectDurations: Map<string, number> = new Map();
 
   // Item effects implementation - IDENTICAL TO PLAYGROUND.TS
   private static readonly itemEffects: ItemEffect = {
@@ -48,81 +50,70 @@ export class InventoryManager {
 
       InventoryManager.activeEffects.add('superJump');
 
+      // Set expiry time for the effect
+      const duration = InventoryManager.effectDurations.get('superJump') || 10000;
+      const expiryTime = Date.now() + duration;
+      InventoryManager.effectExpiryTimes.set('superJump', expiryTime);
+
       // Log inventory item effects with assertions
-      logger.info(`Super jump effect activated for character`, 'InventoryManager');
+      logger.info(`Super jump effect activated for character, expires in ${duration}ms`, { context: 'InventoryManager', tag: 'inventory' });
       logger.assert(
         InventoryManager.activeEffects.has('superJump'),
         `Super jump effect should be active`,
         `Super jump effect was not properly activated`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
       logger.assert(
         newJumpHeight > InventoryManager.originalJumpHeight,
         `New jump height ${newJumpHeight} should be greater than original ${InventoryManager.originalJumpHeight}`,
         `Jump height was not properly increased`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
-
-      // Revert after 20 seconds
-      setTimeout(() => {
-        const currentCharacter = characterController.getCurrentCharacter();
-        if (currentCharacter) {
-          (currentCharacter as { jumpHeight: number }).jumpHeight = InventoryManager.originalJumpHeight;
-          // Update character physics to revert the jump height
-          characterController.updateCharacterPhysics(currentCharacter, characterController.getPosition());
-        }
-        InventoryManager.activeEffects.delete('superJump');
-        logger.info(`Super jump effect deactivated for character`, 'InventoryManager');
-      }, 20000);
     },
     invisibility: (characterController: CharacterController) => {
       if (InventoryManager.activeEffects.has('invisibility')) {
         return; // Effect already active
       }
-      // Store original visibility - commented out as property is unused
-      // InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
 
-      const playerMesh = characterController.getPlayerMesh();
-      if (playerMesh !== null && playerMesh !== undefined) {
-        characterController.getPlayerMesh().getChildMeshes()
-          .forEach(m => {
-            if (m.material) {
-              m.material.alpha = 0.25;
-            }
-          });
+      // Store original visibility
+      InventoryManager.originalVisibility = characterController.getPlayerMesh()?.visibility || 1;
+
+      if (characterController.getPlayerMesh()) {
+        const childMeshes = characterController.getPlayerMesh().getChildMeshes();
+        logger.info(`Found ${childMeshes.length} child meshes for invisibility effect`, { context: 'InventoryManager', tag: 'inventory' });
+        childMeshes.forEach((m, index) => {
+          if (m.material) {
+            logger.info(`Setting alpha to 0.25 for mesh ${index}: ${m.name}`, { context: 'InventoryManager', tag: 'inventory' });
+            m.material.alpha = 0.25;
+          } else {
+            logger.warn(`Mesh ${index} has no material: ${m.name}`, { context: 'InventoryManager', tag: 'inventory' });
+          }
+        });
+      } else {
+        logger.warn(`No player mesh found for invisibility effect`, { context: 'InventoryManager', tag: 'inventory' });
       }
 
       InventoryManager.activeEffects.add('invisibility');
 
+      // Set expiry time for the effect
+      const duration = InventoryManager.effectDurations.get('invisibility') || 15000;
+      const expiryTime = Date.now() + duration;
+      InventoryManager.effectExpiryTimes.set('invisibility', expiryTime);
+
       // Log inventory item effects with assertions
-      logger.info(`Invisibility effect activated for character`, 'InventoryManager');
+      logger.info(`Invisibility effect activated for character, expires in ${duration}ms`, { context: 'InventoryManager', tag: 'inventory' });
       logger.assert(
         InventoryManager.activeEffects.has('invisibility'),
         `Invisibility effect should be active`,
         `Invisibility effect was not properly activated`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
       logger.assert(
-        playerMesh !== null && playerMesh !== undefined,
+        characterController.getPlayerMesh() !== null && characterController.getPlayerMesh() !== undefined,
         `Player mesh should be available for invisibility effect`,
         `Player mesh was not available for invisibility effect`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
-
-      // Revert after 20 seconds
-      setTimeout(() => {
-        const playerMesh = characterController.getPlayerMesh();
-        if (playerMesh !== null && playerMesh !== undefined) {
-          characterController.getPlayerMesh().getChildMeshes()
-            .forEach(m => {
-              if (m.material) {
-                m.material.alpha = 1;
-              }
-            });
-        }
-        InventoryManager.activeEffects.delete('invisibility');
-        logger.info(`Invisibility effect deactivated for character`, 'InventoryManager');
-      }, 20000);
     }
   };
 
@@ -131,11 +122,119 @@ export class InventoryManager {
    * @param scene The Babylon.js scene
    * @param characterController The character controller
    */
-  public static initialize(_scene: Scene, characterController: CharacterController): void {
-    // this.scene = _scene; // Unused for now
+  public static initialize(scene: Scene, characterController: CharacterController): void {
+    this.scene = scene;
     this.characterController = characterController;
     this.inventoryItems.clear();
     this.activeEffects.clear();
+    this.effectExpiryTimes.clear();
+    
+    // Initialize effect durations (in milliseconds)
+    this.effectDurations.set('superJump', 10000); // 10 seconds
+    this.effectDurations.set('invisibility', 15000); // 15 seconds
+    
+    // Set up the update loop using onBeforeRenderObservable
+    this.setupUpdateLoop();
+    
+    logger.info("InventoryManager initialized with character controller and update loop", { context: 'InventoryManager', tag: 'inventory' });
+  }
+
+  /**
+   * Sets up the update loop using onBeforeRenderObservable
+   */
+  private static setupUpdateLoop(): void {
+    if (!this.scene) {
+      logger.warn("Scene not available for update loop setup", { context: 'InventoryManager', tag: 'inventory' });
+      return;
+    }
+
+    this.scene.onBeforeRenderObservable.add(() => {
+      this.updateEffects();
+    });
+
+    logger.info("Update loop setup complete", { context: 'InventoryManager', tag: 'inventory' });
+  }
+
+  /**
+   * Updates all active effects, checking for expiry and reverting expired effects
+   */
+  private static updateEffects(): void {
+    const currentTime = Date.now();
+    const expiredEffects: string[] = [];
+
+    // Check each active effect for expiry
+    for (const [effectName, expiryTime] of this.effectExpiryTimes) {
+      if (currentTime >= expiryTime) {
+        expiredEffects.push(effectName);
+      }
+    }
+
+    // Revert expired effects
+    for (const effectName of expiredEffects) {
+      this.revertEffect(effectName);
+    }
+  }
+
+  /**
+   * Reverts a specific effect to its original state
+   * @param effectName The name of the effect to revert
+   */
+  private static revertEffect(effectName: string): void {
+    if (!this.characterController) {
+      logger.warn("Character controller not available for effect reversion", { context: 'InventoryManager', tag: 'inventory' });
+      return;
+    }
+
+    switch (effectName) {
+      case 'superJump':
+        this.revertSuperJump();
+        break;
+      case 'invisibility':
+        this.revertInvisibility();
+        break;
+      default:
+        logger.warn(`Unknown effect to revert: ${effectName}`, { context: 'InventoryManager', tag: 'inventory' });
+        return;
+    }
+
+    // Clean up effect tracking
+    this.activeEffects.delete(effectName);
+    this.effectExpiryTimes.delete(effectName);
+
+    logger.info(`Effect ${effectName} reverted and cleaned up`, { context: 'InventoryManager', tag: 'inventory' });
+  }
+
+  /**
+   * Reverts the super jump effect to original jump height
+   */
+  private static revertSuperJump(): void {
+    if (!this.characterController) return;
+
+    const currentCharacter = this.characterController.getCurrentCharacter();
+    if (currentCharacter) {
+      (currentCharacter as { jumpHeight: number }).jumpHeight = this.originalJumpHeight;
+      this.characterController.updateCharacterPhysics(currentCharacter, this.characterController.getPosition());
+      logger.info(`Super jump effect reverted to original height: ${this.originalJumpHeight}`, { context: 'InventoryManager', tag: 'inventory' });
+    }
+  }
+
+  /**
+   * Reverts the invisibility effect to original visibility
+   */
+  private static revertInvisibility(): void {
+    if (!this.characterController) return;
+
+    const playerMesh = this.characterController.getPlayerMesh();
+    if (playerMesh) {
+      const childMeshes = playerMesh.getChildMeshes();
+      childMeshes.forEach((mesh, index) => {
+        if (mesh.material) {
+          mesh.material.alpha = this.originalVisibility;
+          logger.info(`Reverted alpha to ${this.originalVisibility} for mesh ${index}: ${mesh.name}`, { context: 'InventoryManager', tag: 'inventory' });
+        }
+      });
+      logger.info(`Invisibility effect reverted to original visibility: ${this.originalVisibility}`, { context: 'InventoryManager', tag: 'inventory' });
+    }
   }
 
   /**
@@ -161,8 +260,8 @@ export class InventoryManager {
 
     // Update inventory UI if it's open
     // Note: InventoryUI integration will be handled by the Vue component
-    logger.info(`Added inventory item: ${itemName}, count: ${existingItem ? existingItem.count : 1}`, 'InventoryManager');
-    logger.info(`Total inventory items: ${this.inventoryItems.size}`, 'InventoryManager');
+    logger.info(`Added inventory item: ${itemName}, count: ${existingItem ? existingItem.count : 1}`, { context: 'InventoryManager', tag: 'inventory' });
+    logger.info(`Total inventory items: ${this.inventoryItems.size}`, { context: 'InventoryManager', tag: 'inventory' });
   }
 
   /**
@@ -193,7 +292,7 @@ export class InventoryManager {
 
     // Update inventory UI
     // Note: InventoryUI integration will be handled by the Vue component
-    logger.info(`Used inventory item: ${itemName}, remaining count: ${item.count}`, 'InventoryManager');
+    logger.info(`Used inventory item: ${itemName}, remaining count: ${item.count}`, { context: 'InventoryManager', tag: 'inventory' });
 
     return true;
   }
@@ -222,10 +321,11 @@ export class InventoryManager {
   public static clearInventory(): void {
     this.inventoryItems.clear();
     this.activeEffects.clear();
+    this.effectExpiryTimes.clear();
 
     // Update inventory UI
     // Note: InventoryUI integration will be handled by the Vue component
-    logger.info("Cleared all inventory items", 'InventoryManager');
+    logger.info("Cleared all inventory items and active effects", { context: 'InventoryManager', tag: 'inventory' });
   }
 
   /**
@@ -233,19 +333,24 @@ export class InventoryManager {
    * @param itemName The name of the item to use
    */
   public static useItem(itemName: string): void {
+    logger.info(`useItem called for: ${itemName}`, { context: 'InventoryManager', tag: 'inventory' });
     if (!this.characterController) {
-      logger.warn("Character controller not available for item usage", 'InventoryManager');
+      logger.warn("Character controller not available for item usage", { context: 'InventoryManager', tag: 'inventory' });
       return;
     }
 
     const item = this.inventoryItems.get(itemName);
+    logger.info(`Item found: ${!!item}, count: ${item?.count || 0}`, { context: 'InventoryManager', tag: 'inventory' });
     if (!item || item.count <= 0) {
-      logger.warn(`Cannot use item ${itemName}: not available or count is 0`, 'InventoryManager');
+      logger.warn(`Cannot use item ${itemName}: not available or count is 0`, { context: 'InventoryManager', tag: 'inventory' });
       return;
     }
 
     // Apply the item effect
+    logger.info(`Item effect kind: ${item.itemEffectKind}`, { context: 'InventoryManager', tag: 'inventory' });
+    logger.info(`Effect function exists: ${!!this.itemEffects[item.itemEffectKind]}`, { context: 'InventoryManager', tag: 'inventory' });
     if (item.itemEffectKind !== null && item.itemEffectKind !== undefined && this.itemEffects[item.itemEffectKind] !== null && this.itemEffects[item.itemEffectKind] !== undefined) {
+      logger.info(`Applying item effect: ${item.itemEffectKind}`, { context: 'InventoryManager', tag: 'inventory' });
       this.itemEffects[item.itemEffectKind](this.characterController);
       
       // Decrease item count
@@ -256,24 +361,24 @@ export class InventoryManager {
         this.inventoryItems.delete(itemName);
       }
       
-      logger.info(`Used item: ${itemName}, remaining count: ${item.count}`, 'InventoryManager');
+      logger.info(`Used item: ${itemName}, remaining count: ${item.count}`, { context: 'InventoryManager', tag: 'inventory' });
       
       // Log inventory item effects with assertions
-      logger.info(`Inventory item effect applied for: ${itemName}`, 'InventoryManager');
+      logger.info(`Inventory item effect applied for: ${itemName}`, { context: 'InventoryManager', tag: 'inventory' });
       logger.assert(
         item.count >= 0,
         `Item count should be non-negative`,
         `Item count ${item.count} is negative for ${itemName}`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
       logger.assert(
         this.characterController !== null,
         `Character controller should be available for item effects`,
         `Character controller was not available for item effects`,
-        'InventoryManager'
+        { context: 'InventoryManager', tag: 'inventory' }
       );
     } else {
-      logger.warn(`No effect defined for item: ${itemName}`, 'InventoryManager');
+      logger.warn(`No effect defined for item: ${itemName}`, { context: 'InventoryManager', tag: 'inventory' });
     }
   }
 
@@ -281,9 +386,11 @@ export class InventoryManager {
    * Disposes the InventoryManager
    */
   public static dispose(): void {
-    // this.scene = null; // Unused for now
+    this.scene = null;
     this.characterController = null;
     this.inventoryItems.clear();
     this.activeEffects.clear();
+    this.effectExpiryTimes.clear();
+    this.effectDurations.clear();
   }
 }

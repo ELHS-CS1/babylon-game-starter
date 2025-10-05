@@ -2,7 +2,8 @@
 // SKY MANAGER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Scene, Mesh, Texture, StandardMaterial, Color3, MeshBuilder, Vector3 } from '@babylonjs/core';
+import type { Scene, Mesh} from '@babylonjs/core';
+import { Texture, StandardMaterial, Color3, MeshBuilder, Vector3 } from '@babylonjs/core';
 import { logger } from '../utils/logger';
 
 export interface SkyConfig {
