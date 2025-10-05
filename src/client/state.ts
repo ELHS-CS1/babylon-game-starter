@@ -76,7 +76,7 @@ export function isValidPeer(peer: unknown): peer is Player {
 // DataStar SSE send function - Backend communication
 export async function sendToServer(data: unknown): Promise<void> {
   try {
-    const response = await fetch('http://localhost:10000/api/datastar/send', {
+      const response = await fetch('http://localhost:10000/api/datastar/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

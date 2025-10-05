@@ -78,3 +78,9 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+
+# SSL Certificates for local development
+certs/
+*.pem
+*.key
+*.crt

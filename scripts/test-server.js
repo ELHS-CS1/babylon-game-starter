@@ -6,12 +6,30 @@
  * Following the Ten Commandments: ESM, DataStar SSE, No Console Logs
  */
 
-import { createServer } from 'http';
-import { readFileSync } from 'fs';
+import { createServer } from 'https';
+import { createServer as createHttpServer } from 'http';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 const PORT = 10000;
 const sseConnections = new Set();
+
+// Use mkcert certificates for HTTPS
+function getMkcertCert() {
+  const keyPath = join(process.cwd(), 'certs', 'localhost+2-key.pem');
+  const certPath = join(process.cwd(), 'certs', 'localhost+2.pem');
+  
+  if (!existsSync(keyPath) || !existsSync(certPath)) {
+    console.error('Mkcert certificates not found. Run: cd certs && mkcert localhost 127.0.0.1 ::1');
+    return null;
+  }
+  
+  return {
+    key: readFileSync(keyPath),
+    cert: readFileSync(certPath)
+  };
+}
 
 // SSE connection handler
 function handleSSEConnection(req, res) {
@@ -118,8 +136,9 @@ function handleDataStarSend(req, res) {
   });
 }
 
-// Create HTTP server
-const server = createServer(async (req, res) => {
+// Create HTTPS server
+const sslOptions = getMkcertCert();
+const server = sslOptions ? createServer(sslOptions, async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   
   // CORS headers
@@ -159,14 +178,41 @@ const server = createServer(async (req, res) => {
   // Default response
   res.writeHead(404);
   res.end('Not Found');
+}) : createHttpServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Cache-Control, Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+  
+  // Route handling
+  if (url.pathname === '/api/health') {
+    handleHealthCheck(req, res);
+  } else if (url.pathname === '/api/datastar/sse') {
+    handleSSEConnection(req, res);
+  } else if (url.pathname === '/api/datastar/send') {
+    handleDataStarSend(req, res);
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
 });
 
 // Start server
 server.listen(PORT, () => {
+  const protocol = sslOptions ? 'https' : 'http';
   console.log(`🚀 SSE Test Server running on port ${PORT}`);
-  console.log(`📡 SSE endpoint: http://localhost:${PORT}/api/datastar/sse`);
-  console.log(`📤 Send endpoint: http://localhost:${PORT}/api/datastar/send`);
-  console.log(`❤️ Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📡 SSE endpoint: ${protocol}://localhost:${PORT}/api/datastar/sse`);
+  console.log(`📤 Send endpoint: ${protocol}://localhost:${PORT}/api/datastar/send`);
+  console.log(`❤️ Health check: ${protocol}://localhost:${PORT}/api/health`);
 });
 
 // Handle process termination

@@ -36,7 +36,7 @@ export class DataStarIntegration {
     // Test server health first with async/await
     try {
       logger.info('🔍 Performing async server health check...', { context: 'DataStar', tag: 'connection' });
-      const response = await fetch('http://localhost:10000/api/health');
+      const response = await fetch('https://localhost:10000/api/health');
       const data = await response.json();
       logger.info(`📊 Server health check: ${JSON.stringify(data)}`, { context: 'DataStar', tag: 'connection' });
       logger.info('✅ Server health check completed successfully', { context: 'DataStar', tag: 'connection' });
@@ -52,7 +52,7 @@ export class DataStarIntegration {
     
     try {
       logger.info('🔗 Creating EventSource for DataStar SSE...', { context: 'DataStar', tag: 'connection' });
-      this.eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
+      this.eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
       logger.info('✅ EventSource created successfully', { context: 'DataStar', tag: 'connection' });
       
       // Check EventSource state immediately

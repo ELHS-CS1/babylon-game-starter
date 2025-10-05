@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "// === CORE WORKFLOW SCRIPTS ===": "",
+    "postinstall": "./scripts/setup-certs.sh",
     "install:all": "npm install",
     "build": "npm run lint:fix && npm run build:client && npm run build:server",
     "build:client": "npm run lint:fix && vite build",
