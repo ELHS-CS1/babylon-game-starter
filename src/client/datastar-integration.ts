@@ -97,10 +97,22 @@ export class DataStarIntegration {
   private connectToServerSSE(): void {
     logger.info('🔗 Connecting to server SSE endpoint for real DataStar events', { context: 'DataStar', tag: 'connection' });
     
-    // Prevent multiple connections
-    if (this.isConnecting || this.eventSource) {
-      logger.info('📊 Already connecting or connected, skipping duplicate connection', { context: 'DataStar', tag: 'connection' });
+    // Prevent multiple connections - check if already connected or connecting
+    if (this.isConnecting) {
+      logger.info('📊 Already connecting, skipping duplicate connection', { context: 'DataStar', tag: 'connection' });
       return;
+    }
+    
+    if (this.eventSource && this.eventSource.readyState === EventSource.OPEN) {
+      logger.info('📊 Already connected, skipping duplicate connection', { context: 'DataStar', tag: 'connection' });
+      return;
+    }
+    
+    // Close existing connection if it exists
+    if (this.eventSource) {
+      logger.info('📊 Closing existing connection before creating new one', { context: 'DataStar', tag: 'connection' });
+      this.eventSource.close();
+      this.eventSource = null;
     }
     
     this.isConnecting = true;
@@ -178,6 +190,7 @@ export class DataStarIntegration {
     } catch (error) {
       logger.error('❌ Failed to connect to server SSE', { context: 'DataStar', tag: 'connection' });
       logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
+      this.isConnecting = false; // Reset connecting state on error
     }
   }
 
@@ -372,17 +385,6 @@ export class DataStarIntegration {
     logger.info(`👥 DataStar patched ${gameState.players.length} peers`, { context: 'DataStar', tag: 'sse' });
   }
 
-  private forceStateUpdate(): void {
-    gameState.lastUpdate = Date.now();
-    logger.info('🔄 DataStar state update triggered', { context: 'DataStar', tag: 'sse' });
-  }
-
-  private setupDataStarEventListeners(): void {
-    logger.info('📡 Setting up DataStar event listeners', { context: 'DataStar', tag: 'connection' });
-    
-    // DataStar handles SSE internally - we listen for DOM changes
-    this.setupDOMWatcher();
-  }
 
   private setupDataStarDOMWatcher(): void {
     logger.info('📡 Setting up DataStar DOM watcher for SSE changes', { context: 'DataStar', tag: 'connection' });
@@ -455,6 +457,8 @@ export class DataStarIntegration {
   }
 
   public disconnect(): void {
+    logger.info('🔌 Disconnecting DataStar SSE connection', { context: 'DataStar', tag: 'connection' });
+    
     // Close EventSource connection
     if (this.eventSource) {
       this.eventSource.close();
