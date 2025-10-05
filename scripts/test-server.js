@@ -39,12 +39,12 @@ function handleSSEConnection(req, res) {
     // Add new connection to the set
     sseConnections.add(stream);
     
-    // Send initial connection status via DataStar signals
-    stream.patchSignals({ 
+    // Send initial connection status via DataStar signals (as string)
+    stream.patchSignals(JSON.stringify({ 
       isConnected: true,
       serverTime: new Date().toISOString(),
       connections: sseConnections.size
-    });
+    }));
 
     // Send DataStar patch-elements for DOM updates
     stream.patchElements('<div id="connection-status">Connected</div>');
@@ -53,10 +53,10 @@ function handleSSEConnection(req, res) {
     // Send periodic DataStar SSE heartbeat
     const heartbeat = setInterval(() => {
       if (sseConnections.has(stream)) {
-        stream.patchSignals({ 
+        stream.patchSignals(JSON.stringify({ 
           heartbeat: new Date().toISOString(),
           connections: sseConnections.size
-        });
+        }));
         stream.patchElements(`<div id="heartbeat">${new Date().toISOString()}</div>`);
       } else {
         clearInterval(heartbeat);
@@ -82,17 +82,17 @@ function broadcastToSSE(data) {
     try {
       if (data.type === 'peerUpdate' && data.peer) {
         // Send peer update via DataStar signals
-        stream.patchSignals({ 
+        stream.patchSignals(JSON.stringify({ 
           peerUpdate: data.peer,
           connections: sseConnections.size
-        });
+        }));
         // Send peer element via DataStar patch-elements
         stream.patchElements(`<div id="peer-${data.peer.id}">${data.peer.name} - ${data.peer.environment}</div>`);
       } else if (data.type === 'connected') {
-        stream.patchSignals({ isConnected: true });
+        stream.patchSignals(JSON.stringify({ isConnected: true }));
         stream.patchElements('<div id="connection-status">Connected</div>');
       } else {
-        stream.patchSignals({ broadcast: data });
+        stream.patchSignals(JSON.stringify({ broadcast: data }));
         stream.patchElements(`<div id="broadcast">${JSON.stringify(data)}</div>`);
       }
     } catch {

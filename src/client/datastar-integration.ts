@@ -76,6 +76,12 @@ export class DataStarIntegration {
         gameState.isConnected = true;
         logger.info('✅ DataStar connection established!', { context: 'DataStar', tag: 'connection' });
         logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
+        
+        // Check connection state after a brief delay
+        setTimeout(() => {
+          logger.info(`📊 EventSource readyState after open: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
+          logger.info(`📊 Connection still open: ${this.isConnected}`, { context: 'DataStar', tag: 'connection' });
+        }, 100);
       };
 
       this.eventSource.onerror = (error: Event) => {
@@ -83,6 +89,8 @@ export class DataStarIntegration {
         logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
         logger.error(`📊 EventSource readyState: ${this.eventSource?.readyState}`, { context: 'DataStar', tag: 'connection' });
         logger.error(`📊 EventSource URL: ${this.eventSource?.url}`, { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 Error type: ${error.type}`, { context: 'DataStar', tag: 'connection' });
+        logger.error(`📊 Error target: ${error.target}`, { context: 'DataStar', tag: 'connection' });
         this.isConnected = false;
         gameState.isConnected = false;
         logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
@@ -96,6 +104,13 @@ export class DataStarIntegration {
       this.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
         this.handleDataStarPatchSignals(event);
       });
+
+      // Add general message listener to see all events
+      this.eventSource.onmessage = (event: MessageEvent) => {
+        logger.info('📨 DataStar message received', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Message data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Message type: ${event.type}`, { context: 'DataStar', tag: 'sse' });
+      };
       
     } catch (error) {
       logger.error('❌ Failed to create DataStar SSE connection', { context: 'DataStar', tag: 'connection' });

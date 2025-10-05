@@ -19,12 +19,12 @@ const config: ClientConfig = {
   // API configuration
   apiBaseUrl: isProduction && isDocker
     ? '' // Same origin in production Docker
-    : 'http://localhost:10000', // Local development
+    : 'https://localhost:10000', // Local development
     
   // DataStar configuration
   datastarUrl: isProduction && isDocker
     ? `${window.location.protocol}//${window.location.host}` // Same origin in production
-    : 'http://localhost:10000', // Local development
+    : 'https://localhost:10000', // Local development
     
   // Debug mode
   debugMode: !isProduction
