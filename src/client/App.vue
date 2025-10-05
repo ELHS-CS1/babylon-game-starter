@@ -65,16 +65,17 @@
 import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue';
 import { GameEngine } from './game/GameEngine';
 // import type { Peer } from './game/Peer';
-import config, { logClientConfig } from './config';
+import { logClientConfig } from './config';
 import CONFIG, { ASSETS } from './config/gameConfig';
 import GameHUD from './components/GameHUD.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
-import { gameState, activePlayers } from './state';
+import { gameState } from './state';
 import { pwaManager } from './utils/pwa';
 import { pushNotificationClient } from './services/PushNotificationClient';
 import { logger } from './utils/logger';
 // DataStar signals are now handled by the store
+// import { dataStarIntegration } from './datastar-integration';
 
 // Reactive state
 const gameCanvas = ref<HTMLCanvasElement>();
@@ -89,7 +90,7 @@ const gameEngine = ref<GameEngine | null>(null);
 // DataStar signals (reactive state from store)
 const peers = computed(() => gameState.players);
 const isConnected = computed(() => gameState.isConnected);
-const activePeersCount = computed(() => activePlayers.value);
+const activePeersCount = computed(() => gameState.players.length);
 
 // Component refs
 const gameHUD = ref<InstanceType<typeof GameHUD>>();
@@ -104,26 +105,28 @@ const hudSettings = reactive({
   showFPS: CONFIG.HUD.SHOW_FPS,
   showState: CONFIG.HUD.SHOW_STATE,
   showBoost: CONFIG.HUD.SHOW_BOOST_STATUS,
-  showCredits: CONFIG.HUD.SHOW_CREDITS
+  showCredits: CONFIG.HUD.SHOW_CREDITS,
+  showPlayers: true,
+  showConnection: true
 });
 
 const inventoryItems = ref<any[]>([...CONFIG.INVENTORY.TILES]);
 
 // Update inventory items from InventoryManager - THE WORD OF THE LORD!
-const updateInventoryItems = async () => {
-  try {
-    const { InventoryManager } = await import('./game/InventoryManager');
-    const items = InventoryManager.getInventoryItems();
-    inventoryItems.value = Array.from(items.entries()).map((entry: any) => ({
-      name: entry[0],
-      count: entry[1].count,
-      itemEffectKind: entry[1].itemEffectKind,
-      thumbnail: entry[1].thumbnail
-    }));
-  } catch (error) {
-    // Failed to update inventory items
-  }
-};
+// const updateInventoryItems = async () => {
+//   try {
+//     const { InventoryManager } = await import('./game/InventoryManager');
+//     const items = InventoryManager.getInventoryItems();
+//     inventoryItems.value = Array.from(items.entries()).map((entry: any) => ({
+//       name: entry[0],
+//       count: entry[1].count,
+//       itemEffectKind: entry[1].itemEffectKind,
+//       thumbnail: entry[1].thumbnail
+//     }));
+//   } catch (error) {
+//     // Failed to update inventory items
+//   }
+// };
 
 // Computed properties
 
@@ -131,6 +134,8 @@ const updateInventoryItems = async () => {
 // Initialize DataStar signals connection
 const initDataStar = (): void => {
   // DataStar connection is now handled automatically in state.ts
+  // The dataStarIntegration singleton is already initialized
+  logger.info('🚀 DataStar integration initialized', { context: 'App', tag: 'datastar' });
 };
 
 // Initialize game engine

@@ -47,6 +47,9 @@ export class DataStarIntegration {
     // DataStar automatically patches elements into DOM
     // We just need to update our state based on the patched elements
     this.updateStateFromPatchedElements();
+    
+    // Force reactivity update
+    this.forceStateUpdate();
   }
 
   private handleDataStarMessage(event: MessageEvent) {
@@ -98,6 +101,12 @@ export class DataStarIntegration {
     });
 
     logger.info(`👥 DataStar patched ${gameState.players.length} peers`, { context: 'DataStar', tag: 'sse' });
+  }
+
+  private forceStateUpdate() {
+    // Force reactivity update by triggering a state change
+    gameState.lastUpdate = Date.now();
+    logger.info('🔄 DataStar state update triggered', { context: 'DataStar', tag: 'sse' });
   }
 
   public disconnect() {
