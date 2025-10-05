@@ -42,30 +42,35 @@ export const gameState = reactive<GameState>({
 // Connect to DataStar SSE - simple and clean
 const eventSource = new EventSource('http://localhost:10000/api/datastar/sse');
 
-// Add connection event handlers for debugging
+// Add connection event handlers for debugging - FOLLOWING THE SACRED COMMANDMENTS!
 eventSource.onopen = () => {
-  console.log('SSE connection opened');
+  logger.info('🔗 SSE connection opened successfully', { context: 'State', tag: 'connection' });
   gameState.isConnected = true;
-  console.log('Connection state updated to:', gameState.isConnected);
+  logger.info(`✅ Connection state updated to: ${gameState.isConnected}`, { context: 'State', tag: 'connection' });
 };
 
 eventSource.onerror = (error) => {
-  console.error('SSE connection error:', error);
+  logger.error('❌ SSE connection error', { context: 'State', tag: 'connection' });
+  logger.error(`📊 Error details: ${error}`, { context: 'State', tag: 'connection' });
   gameState.isConnected = false;
-  console.log('Connection state updated to:', gameState.isConnected);
+  logger.info(`❌ Connection state updated to: ${gameState.isConnected}`, { context: 'State', tag: 'connection' });
 };
 
     eventSource.onmessage = (event) => {
       try {
         const dataString = typeof event.data === 'string' ? event.data : String(event.data);
+        logger.info(`📨 Received SSE message: ${dataString}`, { context: 'State', tag: 'sse' });
+        
         const update: unknown = JSON.parse(dataString);
         if (update === null || update === undefined || typeof update !== 'object' || !('type' in update) || typeof update.type !== 'string') {
+          logger.warn('⚠️ Invalid SSE message format - ignoring', { context: 'State', tag: 'sse' });
           return;
         }
     
     // Handle different message types with proper type checking
     switch (update.type) {
       case 'connected':
+        logger.info('🔗 Received connected message from server', { context: 'State', tag: 'sse' });
         gameState.isConnected = true;
         gameState.lastUpdate = Date.now();
         break;
@@ -75,15 +80,23 @@ eventSource.onerror = (error) => {
         break;
         
       case 'peerUpdate':
+        logger.info('👥 Received peer update from server', { context: 'State', tag: 'sse' });
         if ('peer' in update && isValidPeer(update.peer)) {
           const peer = update.peer;
+          logger.info(`📊 Peer data: ${JSON.stringify(peer)}`, { context: 'State', tag: 'sse' });
+          
           // Add or update player
           const existingIndex = gameState.players.findIndex(p => p.id === peer.id);
           if (existingIndex >= 0) {
+            logger.info(`🔄 Updating existing peer: ${peer.id}`, { context: 'State', tag: 'sse' });
             gameState.players[existingIndex] = peer;
           } else {
+            logger.info(`➕ Adding new peer: ${peer.id}`, { context: 'State', tag: 'sse' });
             gameState.players.push(peer);
           }
+          logger.info(`📊 Total peers now: ${gameState.players.length}`, { context: 'State', tag: 'sse' });
+        } else {
+          logger.warn('⚠️ Invalid peer data in peerUpdate message', { context: 'State', tag: 'sse' });
         }
         if ('gameState' in update && update.gameState !== null && update.gameState !== undefined && typeof update.gameState === 'object' && 'environment' in update.gameState && typeof update.gameState.environment === 'string') {
           gameState.environment = update.gameState.environment;

@@ -182,15 +182,29 @@ const initGameEngine = (): void => {
 
 // Join game
 const joinGame = async (): Promise<void> => {
-  if (!gameEngine.value) return;
+  logger.info('🎮 Join Game button clicked - starting join process', { context: 'App', tag: 'multiplayer' });
+  
+  if (!gameEngine.value) {
+    logger.error('❌ GameEngine not initialized - cannot join game', { context: 'App', tag: 'multiplayer' });
+    return;
+  }
+  
+  logger.info('✅ GameEngine found - proceeding with player creation', { context: 'App', tag: 'multiplayer' });
   
   try {
     const playerName = `Player_${Math.random().toString(36).substr(2, 9)}`;
+    logger.info(`👤 Creating player with name: ${playerName}`, { context: 'App', tag: 'multiplayer' });
+    
     const playerPeer = gameEngine.value.createPlayer(playerName);
     if (playerPeer === null || playerPeer === undefined) {
+      logger.error('❌ Failed to create player - createPlayer returned null/undefined', { context: 'App', tag: 'multiplayer' });
       throw new Error('Failed to create player');
     }
     
+    logger.info('✅ Player created successfully', { context: 'App', tag: 'multiplayer' });
+    logger.info(`📊 Player data: ${JSON.stringify(playerPeer)}`, { context: 'App', tag: 'multiplayer' });
+    
+    logger.info('📡 Sending peer update to server...', { context: 'App', tag: 'multiplayer' });
     const response = await fetch('http://localhost:10000/api/datastar/send', {
       method: 'POST',
       headers: {
@@ -202,22 +216,38 @@ const joinGame = async (): Promise<void> => {
       })
     });
     
+    logger.info(`📡 Server response status: ${response.status}`, { context: 'App', tag: 'multiplayer' });
+    
     if (response.ok) {
-      // Successfully joined game
+      logger.info('🎉 Successfully joined game!', { context: 'App', tag: 'multiplayer' });
+      const responseData = await response.json();
+      logger.info(`📊 Server response: ${JSON.stringify(responseData)}`, { context: 'App', tag: 'multiplayer' });
+    } else {
+      logger.error(`❌ Server rejected join request - status: ${response.status}`, { context: 'App', tag: 'multiplayer' });
+      const errorText = await response.text();
+      logger.error(`📊 Server error response: ${errorText}`, { context: 'App', tag: 'multiplayer' });
     }
-  } catch {
-    // Failed to join game
+  } catch (error) {
+    logger.error('❌ Failed to join game', { context: 'App', tag: 'multiplayer' });
+    logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'App', tag: 'multiplayer' });
   }
 };
 
 // Leave game
 const leaveGame = (): void => {
+  logger.info('🚪 Leave Game button clicked - starting leave process', { context: 'App', tag: 'multiplayer' });
+  
   if (gameEngine.value) {
+    logger.info('✅ GameEngine found - proceeding with player removal', { context: 'App', tag: 'multiplayer' });
     try {
-    // gameEngine.value.removePlayer();
-    } catch {
-      // Error removing player - handled silently
+      // gameEngine.value.removePlayer();
+      logger.info('🎉 Successfully left game!', { context: 'App', tag: 'multiplayer' });
+    } catch (error) {
+      logger.error('❌ Error removing player', { context: 'App', tag: 'multiplayer' });
+      logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'App', tag: 'multiplayer' });
     }
+  } else {
+    logger.warn('⚠️ GameEngine not found - cannot leave game', { context: 'App', tag: 'multiplayer' });
   }
 };
 
