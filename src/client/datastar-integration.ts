@@ -59,21 +59,26 @@ export class DataStarIntegration {
           
           this.datastar.eventSource.onopen = () => {
             logger.info('✅ DataStar SSE connection opened!', { context: 'DataStar', tag: 'connection' });
+            this.isConnected = true;
+            gameState.isConnected = true;
+            logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
             if (this.datastar.listeners.open) {
               this.datastar.listeners.open();
             }
           };
           
-          this.datastar.eventSource.onerror = (error) => {
+          this.datastar.eventSource.onerror = (error: any) => {
             logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
+            this.isConnected = false;
+            gameState.isConnected = false;
+            logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
             if (this.datastar.listeners.error) {
               this.datastar.listeners.error(error);
             }
           };
           
-          this.datastar.eventSource.addEventListener('datastar-patch-signals', (event) => {
+          this.datastar.eventSource.addEventListener('datastar-patch-signals', (event: any) => {
             logger.info('📨 DataStar signals received', { context: 'DataStar', tag: 'connection' });
-            logger.info(`📊 Raw event data: ${JSON.stringify(event.data)}`, { context: 'DataStar', tag: 'connection' });
             
             // Parse the signals data (remove "signals " prefix if present)
             let signalsData = event.data;
@@ -83,22 +88,14 @@ export class DataStarIntegration {
             
             try {
               const signals = JSON.parse(signalsData);
-              logger.info(`📊 Parsed signals: ${JSON.stringify(signals)}`, { context: 'DataStar', tag: 'connection' });
-              logger.info(`🔍 About to call updateDataStarSignals`, { context: 'DataStar', tag: 'connection' });
               this.updateDataStarSignals(signals);
-              logger.info(`🔍 updateDataStarSignals called successfully`, { context: 'DataStar', tag: 'connection' });
             } catch (error) {
               logger.error(`❌ Failed to parse signals: ${error}`, { context: 'DataStar', tag: 'connection' });
             }
-            
-            if (this.datastar.listeners.message) {
-              this.datastar.listeners.message(event);
-            }
           });
           
-          this.datastar.eventSource.addEventListener('datastar-patch-elements', (event) => {
+          this.datastar.eventSource.addEventListener('datastar-patch-elements', (event: any) => {
             logger.info('📨 DataStar elements received', { context: 'DataStar', tag: 'connection' });
-            logger.info(`📊 Raw element data: ${JSON.stringify(event.data)}`, { context: 'DataStar', tag: 'connection' });
             
             // Parse the elements data (remove "elements " prefix if present)
             let elementsData = event.data;
@@ -106,12 +103,7 @@ export class DataStarIntegration {
               elementsData = elementsData.substring(9); // Remove "elements " prefix
             }
             
-            logger.info(`📊 Parsed elements: ${elementsData}`, { context: 'DataStar', tag: 'connection' });
             this.handleServerDataStarElements(elementsData);
-            
-            if (this.datastar.listeners.message) {
-              this.datastar.listeners.message(event);
-            }
           });
         },
         
@@ -123,49 +115,6 @@ export class DataStarIntegration {
         }
       };
 
-      // Set up event listeners
-      this.datastar.on('open', () => {
-        logger.info('✅ DataStar connection opened!', { context: 'DataStar', tag: 'connection' });
-        this.isConnected = true;
-        gameState.isConnected = true;
-        logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
-      });
-
-      this.datastar.on('error', (error: any) => {
-        logger.error('❌ DataStar connection error!', { context: 'DataStar', tag: 'connection' });
-        logger.error(`📊 Error: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
-        this.isConnected = false;
-        gameState.isConnected = false;
-        logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
-      });
-
-      // Listen for DataStar events
-      this.datastar.on('datastar-patch-signals', (data: string) => {
-        logger.info('📨 DataStar signals received!', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Signals: ${data}`, { context: 'DataStar', tag: 'sse' });
-
-        try {
-          const signals = JSON.parse(data);
-          this.updateDataStarSignals(signals);
-        } catch (error) {
-          logger.error('❌ Failed to parse DataStar signals', { context: 'DataStar', tag: 'sse' });
-        }
-      });
-
-      this.datastar.on('datastar-patch-elements', (data: string) => {
-        logger.info('📨 DataStar elements received!', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Elements: ${data}`, { context: 'DataStar', tag: 'sse' });
-
-        // Handle server elements
-        this.handleServerDataStarElements(data);
-      });
-
-      // Listen for general messages
-      this.datastar.on('message', (data: string) => {
-        logger.info('📨 DataStar message received!', { context: 'DataStar', tag: 'sse' });
-        logger.info(`📊 Message: ${data}`, { context: 'DataStar', tag: 'sse' });
-        logger.info(`🔍 Message type: ${typeof data}`, { context: 'DataStar', tag: 'sse' });
-      });
 
       logger.info('✅ DataStar client setup complete', { context: 'DataStar', tag: 'connection' });
       
