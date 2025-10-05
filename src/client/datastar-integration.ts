@@ -33,29 +33,40 @@ export class DataStarIntegration {
   private async connectToDataStar(): Promise<void> {
     logger.info('🔗 Connecting to DataStar SSE endpoint', { context: 'DataStar', tag: 'connection' });
     
-    // Test server health first with async/await
-    try {
-      logger.info('🔍 Performing async server health check...', { context: 'DataStar', tag: 'connection' });
-      logger.info('📡 Fetching: https://localhost:10000/api/health', { context: 'DataStar', tag: 'connection' });
-      const response = await fetch('https://localhost:10000/api/health');
-      logger.info(`📊 Response status: ${response.status}`, { context: 'DataStar', tag: 'connection' });
-      logger.info(`📊 Response ok: ${response.ok}`, { context: 'DataStar', tag: 'connection' });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      logger.info(`📊 Server health check: ${JSON.stringify(data)}`, { context: 'DataStar', tag: 'connection' });
-      logger.info('✅ Server health check completed successfully', { context: 'DataStar', tag: 'connection' });
-    } catch (error) {
-      logger.error('❌ Server health check failed', { context: 'DataStar', tag: 'connection' });
-      logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'DataStar', tag: 'connection' });
-      logger.error(`📊 Error type: ${typeof error}`, { context: 'DataStar', tag: 'connection' });
-      this.isConnected = false;
-      gameState.isConnected = false;
-      return;
-    }
+        // Test server health first with async/await
+        try {
+          logger.info('🔍 Performing async server health check...', { context: 'DataStar', tag: 'connection' });
+          logger.info('📡 Fetching: https://localhost:10000/api/health', { context: 'DataStar', tag: 'connection' });
+          const response = await fetch('https://localhost:10000/api/health');
+          logger.info(`📊 Response status: ${response.status}`, { context: 'DataStar', tag: 'connection' });
+          logger.info(`📊 Response ok: ${response.ok}`, { context: 'DataStar', tag: 'connection' });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          logger.info(`📊 Server health check: ${JSON.stringify(data)}`, { context: 'DataStar', tag: 'connection' });
+          logger.info('✅ Server health check completed successfully', { context: 'DataStar', tag: 'connection' });
+        } catch (error) {
+          logger.error('❌ Server health check failed', { context: 'DataStar', tag: 'connection' });
+          logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'DataStar', tag: 'connection' });
+          logger.error(`📊 Error type: ${typeof error}`, { context: 'DataStar', tag: 'connection' });
+          this.isConnected = false;
+          gameState.isConnected = false;
+          return;
+        }
+
+        // Test SSE endpoint with fetch to see if it's accessible
+        try {
+          logger.info('🔍 Testing SSE endpoint accessibility...', { context: 'DataStar', tag: 'connection' });
+          const sseResponse = await fetch('https://localhost:10000/api/datastar/sse');
+          logger.info(`📊 SSE endpoint status: ${sseResponse.status}`, { context: 'DataStar', tag: 'connection' });
+          logger.info(`📊 SSE endpoint headers: ${JSON.stringify([...sseResponse.headers.entries()])}`, { context: 'DataStar', tag: 'connection' });
+        } catch (error) {
+          logger.error('❌ SSE endpoint test failed', { context: 'DataStar', tag: 'connection' });
+          logger.error(`📊 SSE Error: ${error instanceof Error ? error.message : String(error)}`, { context: 'DataStar', tag: 'connection' });
+        }
     
     // USE EVENTSOURCE WITH DATASTAR'S SPECIFIC EVENT TYPES!
     logger.info('🔗 Using EventSource with DataStar event types...', { context: 'DataStar', tag: 'connection' });
@@ -98,11 +109,23 @@ export class DataStarIntegration {
       
       // Handle DataStar's specific event types
       this.eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
+        logger.info('📨 datastar-patch-elements event listener triggered', { context: 'DataStar', tag: 'sse' });
         this.handleDataStarPatchElements(event);
       });
 
       this.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
+        logger.info('📨 datastar-patch-signals event listener triggered', { context: 'DataStar', tag: 'sse' });
         this.handleDataStarPatchSignals(event);
+      });
+
+      // Add catch-all listener for debugging
+      this.eventSource.addEventListener('open', () => {
+        logger.info('📨 EventSource open event', { context: 'DataStar', tag: 'sse' });
+      });
+
+      this.eventSource.addEventListener('error', (error: Event) => {
+        logger.info('📨 EventSource error event', { context: 'DataStar', tag: 'sse' });
+        logger.info(`📊 Error event: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'sse' });
       });
 
       // Add general message listener to see all events
@@ -117,6 +140,11 @@ export class DataStarIntegration {
         logger.info('📨 EventSource message event received', { context: 'DataStar', tag: 'sse' });
         logger.info(`📊 Event data: ${event.data}`, { context: 'DataStar', tag: 'sse' });
       });
+
+      // Test if EventSource is working at all
+      logger.info(`📊 EventSource URL: ${this.eventSource.url}`, { context: 'DataStar', tag: 'connection' });
+      logger.info(`📊 EventSource readyState: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'connection' });
+      logger.info(`📊 EventSource withCredentials: ${this.eventSource.withCredentials}`, { context: 'DataStar', tag: 'connection' });
       
     } catch (error) {
       logger.error('❌ Failed to create DataStar SSE connection', { context: 'DataStar', tag: 'connection' });
