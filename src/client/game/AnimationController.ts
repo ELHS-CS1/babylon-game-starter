@@ -78,16 +78,6 @@ export class AnimationController {
       targetAnimationName = this.currentCharacter.animations.idle;
     }
 
-    // Debug: Log animation state changes occasionally
-    if (isMoving || this.currentAnimation !== targetAnimationName) { // Log when moving or animation changes
-      console.log("ANIMATION DEBUG:", {
-        isMoving,
-        characterState,
-        targetAnimationName,
-        currentAnimation: this.currentAnimation,
-        isBlending: this.isBlending
-      });
-    }
 
     // If animation is already playing and no change needed, do nothing
     if (this.currentAnimation === targetAnimationName && !this.isBlending) {

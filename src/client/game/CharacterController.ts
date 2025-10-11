@@ -471,14 +471,6 @@ export class CharacterController {
   private updateAnimations(): void {
     const isMoving = this.isAnyMovementKeyPressed();
 
-    // Debug: Log what we're passing to animation system
-    if (this.keysDown.size > 0) {
-      console.log("ANIMATION INPUT DEBUG:", {
-        isMoving,
-        state: this.state,
-        keysDown: Array.from(this.keysDown)
-      });
-    }
 
     // Update animation controller with character state
     if (this.animationController) {
@@ -501,10 +493,6 @@ export class CharacterController {
       INPUT_KEYS.STRAFE_LEFT.some(key => this.keysDown.has(key)) ||
       INPUT_KEYS.STRAFE_RIGHT.some(key => this.keysDown.has(key));
 
-    // Debug: Log keys and movement detection occasionally
-    if (this.keysDown.size > 0) { // Log every time when keys are pressed
-      console.log("DEBUG: keysDown:", Array.from(this.keysDown), "keyboardMoving:", keyboardMoving);
-    }
 
     // Always return keyboard input for movement detection
     // Mobile input is handled separately in the mobile input system
