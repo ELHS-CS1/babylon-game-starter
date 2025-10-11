@@ -34,7 +34,7 @@ export class EffectsManager {
 
     try {
       // Parse the snippet from the online editor
-      const particleSystem = await (window as any).BABYLON.ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
+      const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
 
       if (particleSystem && emitter) {
         particleSystem.emitter = emitter;

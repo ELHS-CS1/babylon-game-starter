@@ -443,7 +443,7 @@ export class CollectiblesManager {
 
     try {
       // Use the same optimized particle system as the playground - THE WORD OF THE LORD!
-      const particleSystem = await (window as any).BABYLON.ParticleHelper.ParseFromSnippetAsync("T54JV7", this.scene, false);
+      const particleSystem = await ParticleHelper.ParseFromSnippetAsync("T54JV7", this.scene, false);
       
       if (particleSystem) {
         particleSystem.emitter = position;

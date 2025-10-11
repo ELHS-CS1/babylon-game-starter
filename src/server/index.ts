@@ -191,8 +191,8 @@ const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: strin
 
 // HTTPS server for serving client and API with SSE support
 const httpsOptions = {
-  key: readFileSync('./certs/localhost+2-key.pem'),
-  cert: readFileSync('./certs/localhost+2.pem')
+  key: readFileSync('./certs/localhost-key.pem'),
+  cert: readFileSync('./certs/localhost.pem')
 };
 
 const server = createHttpsServer(httpsOptions, async (req: IncomingMessage, res: ServerResponse) => {

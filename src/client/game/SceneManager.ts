@@ -9,6 +9,9 @@ import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
 
+// Animation Groups - THE WORD OF THE LORD FROM PLAYGROUND!
+const playerAnimations: Record<string, any> = {};
+
 export class SceneManager {
   private readonly scene: Scene;
   private readonly camera: TargetCamera;
@@ -20,6 +23,11 @@ export class SceneManager {
     this.scene = new Scene(engine);
     this.camera = new TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
 
+    // Test PHYSICS logging
+    console.log('DIRECT CONSOLE TEST - SceneManager constructor called');
+    alert('SceneManager constructor called!');
+    logger.info('SceneManager constructor called - PHYSICS logging test', { context: 'PHYSICS' });
+    
     this.initializeScene().catch(() => {
       logger.error("Failed to initialize scene:", 'SceneManager');
     });
@@ -27,7 +35,7 @@ export class SceneManager {
 
   private async initializeScene(): Promise<void> {
     this.setupLighting();
-    this.setupPhysics();
+    await this.setupPhysics();
     this.setupSky();
     await this.setupEffects();
     await this.loadEnvironment("Level Test");
@@ -52,16 +60,37 @@ export class SceneManager {
     light.intensity = 0.7;
   }
 
-  private setupPhysics(): void {
+  private async setupPhysics(): Promise<void> {
     try {
+      logger.info('Initializing physics with HavokPlugin', { context: 'PHYSICS' });
+      
+      // Wait for Havok to be initialized - THE WORD OF THE LORD!
+      const windowObj = window as unknown as Record<string, unknown>;
+      const isHavokReady = (window as any).isHavokReady;
+      
+      // Wait for Havok to be ready
+      if (isHavokReady && !isHavokReady()) {
+        logger.info('Waiting for Havok initialization...', { context: 'PHYSICS' });
+        
+        // Poll until Havok is ready
+        while (!isHavokReady()) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        logger.info('Havok is now ready!', { context: 'PHYSICS' });
+      }
+      
       // Use HavokPlugin directly like the playground - THE WORD OF THE LORD!
-      const havokPlugin = new (window as any).BABYLON.HavokPlugin(false);
+      const havokPlugin = new HavokPlugin(false);
+      logger.info('HavokPlugin created successfully', { context: 'PHYSICS' });
+      
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, havokPlugin);
+      logger.info('Physics enabled with gravity', { context: 'PHYSICS', data: CONFIG.PHYSICS.GRAVITY });
       
       // DON'T freeze active meshes in dynamic games with moving characters!
       
     } catch (error) {
-      // HavokPlugin failed, physics disabled
+      logger.error('HavokPlugin failed, physics disabled', { context: 'PHYSICS', data: error });
     }
   }
 
@@ -336,27 +365,26 @@ export class SceneManager {
           this.characterController.updateCharacterPhysics(character, characterPosition);
 
           // Setup animations using character's animation mapping with fallbacks - THE WORD OF THE LORD
-          const playerAnimations: Record<string, any> = {};
-          playerAnimations['walk'] = result.animationGroups.find(a => a.name === character.animations.walk) ||
+          playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
 
-          playerAnimations['idle'] = result.animationGroups.find(a => a.name === character.animations.idle) ||
+          playerAnimations.idle = result.animationGroups.find(a => a.name === character.animations.idle) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
 
           // Debug: Log animation setup results
-          if (!playerAnimations['walk'] || !playerAnimations['idle']) {
+          if (!playerAnimations.walk || !playerAnimations.idle) {
             logger.warn(`Animation setup for ${character.name}:`, 'SceneManager');
             logger.warn(`Available animations: ${result.animationGroups.map(a => a.name).join(', ')}`, 'SceneManager');
-            logger.warn(`Found walk: ${playerAnimations['walk']?.name || 'NOT FOUND'}`, 'SceneManager');
-            logger.warn(`Found idle: ${playerAnimations['idle']?.name || 'NOT FOUND'}`, 'SceneManager');
+            logger.warn(`Found walk: ${playerAnimations.walk?.name || 'NOT FOUND'}`, 'SceneManager');
+            logger.warn(`Found idle: ${playerAnimations.idle?.name || 'NOT FOUND'}`, 'SceneManager');
           }
 
           // Stop animations initially
-          playerAnimations['walk']?.stop();
-          playerAnimations['idle']?.stop();
+          playerAnimations.walk?.stop();
+          playerAnimations.idle?.stop();
 
           // Set character in animation controller - THE WORD OF THE LORD
           if (this.characterController && this.characterController.animationController) {
@@ -382,8 +410,10 @@ export class SceneManager {
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
         }
       })
-      .catch(() => {
-        logger.error("Failed to load character:", 'SceneManager');
+      .catch((error) => {
+        logger.error(`Failed to load character (${character.name}):`, 'SceneManager');
+        logger.error(`Error: ${error.message}`, 'SceneManager');
+        logger.error(`Model URL: ${character.model}`, 'SceneManager');
       });
   }
 

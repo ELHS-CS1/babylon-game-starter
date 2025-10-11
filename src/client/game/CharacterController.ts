@@ -4,7 +4,7 @@
 
 import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
-import CONFIG, { ASSETS } from '../config/gameConfig';
+import CONFIG, { ASSETS, CHARACTER_STATES } from '../config/gameConfig';
 import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -30,10 +30,7 @@ function isCameraControllerInterface(obj: unknown): obj is CameraControllerInter
   return typeof obj === 'object' && obj !== null;
 }
 
-// Character states - THE WORD OF GOD
-export enum CHARACTER_STATES {
-  // Character states for animation and physics
-}
+// Character states are imported from gameConfig - THE WORD OF GOD
 
 // Input keys from THE WORD OF GOD
 const INPUT_KEYS = {
@@ -62,7 +59,7 @@ export class CharacterController {
   private displayCapsule: Mesh;
   private playerMesh: AbstractMesh;
 
-  private state: string = 'IN_AIR';
+  private state: string = CHARACTER_STATES.IN_AIR;
   private wantJump = false;
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
@@ -114,7 +111,7 @@ export class CharacterController {
       },
       scene
     );
-        this.displayCapsule.isVisible = false; // Hidden by default, only show with F1 key
+        this.displayCapsule.isVisible = CONFIG.DEBUG.CAPSULE_VISIBLE; // Use config setting like playground
 
     // Initialize player mesh (will be replaced by loaded model)
     this.playerMesh = this.displayCapsule;
@@ -423,7 +420,7 @@ export class CharacterController {
     }
 
     // Prevent rotation while in air for more realistic physics
-    if (this.state === 'IN_AIR') {
+    if (this.state === CHARACTER_STATES.IN_AIR) {
       return;
     }
 
@@ -517,6 +514,17 @@ export class CharacterController {
 
     this.characterController.setVelocity(desiredVelocity);
     this.characterController.integrate(deltaTime, support, CONFIG.PHYSICS.CHARACTER_GRAVITY);
+    
+    // Log physics update for debugging
+    logger.debug('Character physics updated', { 
+      context: 'PHYSICS', 
+      data: { 
+        deltaTime, 
+        velocity: desiredVelocity, 
+        gravity: CONFIG.PHYSICS.CHARACTER_GRAVITY,
+        position: this.displayCapsule.position 
+      } 
+    });
   };
 
   private calculateDesiredVelocity(
@@ -695,22 +703,22 @@ export class CharacterController {
 
   private getNextState(supportInfo: CharacterSurfaceInfo): CharacterState {
     switch (this.state) {
-      case 'IN_AIR':
+      case CHARACTER_STATES.IN_AIR:
         return supportInfo.supportedState === CharacterSupportedState.SUPPORTED
-          ? 'ON_GROUND'
-          : 'IN_AIR';
+          ? CHARACTER_STATES.ON_GROUND
+          : CHARACTER_STATES.IN_AIR;
 
-      case 'ON_GROUND':
+      case CHARACTER_STATES.ON_GROUND:
         if (supportInfo.supportedState !== CharacterSupportedState.SUPPORTED) {
-          return 'IN_AIR';
+          return CHARACTER_STATES.IN_AIR;
         }
-        return this.wantJump ? 'START_JUMP' : 'ON_GROUND';
+        return this.wantJump ? CHARACTER_STATES.START_JUMP : CHARACTER_STATES.ON_GROUND;
 
-      case 'START_JUMP':
-        return 'IN_AIR';
+      case CHARACTER_STATES.START_JUMP:
+        return CHARACTER_STATES.IN_AIR;
 
       default:
-        return 'IN_AIR';
+        return CHARACTER_STATES.IN_AIR;
     }
   }
 
@@ -718,6 +726,10 @@ export class CharacterController {
   public setPlayerMesh(mesh: AbstractMesh): void {
     this.playerMesh = mesh;
     mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+    
+    // Position the character mesh at the same location as the display capsule - THE WORD OF THE LORD!
+    mesh.position = this.displayCapsule.position.clone();
+    mesh.rotation = this.displayCapsule.rotation.clone();
   }
 
   public getPlayerMesh(): AbstractMesh {
@@ -760,7 +772,7 @@ export class CharacterController {
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;
-    this.state = 'IN_AIR';
+    this.state = CHARACTER_STATES.IN_AIR;
   }
 
   public getDisplayCapsule(): Mesh {
@@ -799,7 +811,7 @@ export class CharacterController {
   }
 
   public isOnGround(): boolean {
-    return this.state === 'ON_GROUND';
+    return this.state === CHARACTER_STATES.ON_GROUND;
   }
 
   public getPhysicsBody(): PhysicsBody | null {
@@ -814,6 +826,11 @@ export class CharacterController {
 
   public setPosition(position: Vector3): void {
     this.characterController.setPosition(position);
+    
+    // Update character mesh position to match display capsule - THE WORD OF THE LORD!
+    if (this.playerMesh && this.playerMesh !== this.displayCapsule) {
+      this.playerMesh.position = position.clone();
+    }
   }
 
   public setVelocity(velocity: Vector3): void {
@@ -843,7 +860,7 @@ export class CharacterController {
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;
-    this.state = 'IN_AIR';
+    this.state = CHARACTER_STATES.IN_AIR;
   }
 
   public dispose(): void {

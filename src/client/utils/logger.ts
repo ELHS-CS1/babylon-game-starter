@@ -83,8 +83,20 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, context?: string, data?: unknown): void {
-    // ALL LOGGING COMPLETELY DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
-    // NO LOGS SHALL BE CREATED! NO PROCESSING SHALL OCCUR!
+  // Check URL parameters for logging scope - THE WORD OF THE LORD!
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const loggingScope = urlParams.get('scope') ?? 'none';
+  const targetTag = urlParams.get('tag') ?? '';
+  
+  // Debug: Always log the URL parameters
+  console.log('LOGGER DEBUG:', { loggingScope, targetTag, context, level, message });
+  
+  // Enable logging based on URL parameters
+  if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === context)) {
+    console.log(`[${level}] [${context}] ${message}`, data || '');
+  } else {
+    console.log('LOGGER FILTERED OUT:', { loggingScope, targetTag, context });
+  }
     return;
   }
 
@@ -93,23 +105,51 @@ class Logger {
     return;
   }
 
-  public debug(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
-    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+  public debug(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    // Check URL parameters for logging scope - THE WORD OF THE LORD!
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const loggingScope = urlParams.get('scope') ?? 'none';
+    const targetTag = urlParams.get('tag') ?? '';
+    
+    if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === options?.context)) {
+      this.log('DEBUG', message, options?.context, options?.data);
+    }
     return;
   }
 
-  public info(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
-    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+  public info(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    // Check URL parameters for logging scope - THE WORD OF THE LORD!
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const loggingScope = urlParams.get('scope') ?? 'none';
+    const targetTag = urlParams.get('tag') ?? '';
+    
+    if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === options?.context)) {
+      this.log('INFO', message, options?.context, options?.data);
+    }
     return;
   }
 
-  public warn(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
-    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+  public warn(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    // Check URL parameters for logging scope - THE WORD OF THE LORD!
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const loggingScope = urlParams.get('scope') ?? 'none';
+    const targetTag = urlParams.get('tag') ?? '';
+    
+    if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === options?.context)) {
+      this.log('WARN', message, options?.context, options?.data);
+    }
     return;
   }
 
-  public error(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
-    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+  public error(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
+    // Check URL parameters for logging scope - THE WORD OF THE LORD!
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const loggingScope = urlParams.get('scope') ?? 'none';
+    const targetTag = urlParams.get('tag') ?? '';
+    
+    if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === options?.context)) {
+      this.log('ERROR', message, options?.context, options?.data);
+    }
     return;
   }
 
@@ -274,7 +314,8 @@ const _createScopedLogger = () => {
       if (args.length >= 2 && typeof args[1] === 'object' && args[1] !== null) {
         // New format: (message, options)
         const options = args[1] as Record<string, unknown>;
-        tag = typeof options.tag === 'string' ? options.tag : undefined;
+        tag = typeof options.tag === 'string' ? options.tag : 
+              typeof options.context === 'string' ? options.context : undefined;
       } else {
         // Old format: (message, context) - no tag, allow all logs
         tag = undefined;
@@ -308,18 +349,24 @@ const _createScopedLogger = () => {
   };
 };
 
-// ALL LOGGING COMPLETELY DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
-// OVERWRITE CONSOLE.LOG WITH EMPTY FUNCTION - THE WORD OF THE LORD!
+// CONDITIONAL LOGGING DISABLE - THE WORD OF THE LORD!
+// Only disable console if no logging scope is specified in URL
 if (typeof window !== 'undefined') {
-  console.log = () => {};
-  console.warn = () => {};
-  console.error = () => {};
-  console.info = () => {};
-  console.debug = () => {};
+  const urlParams = new URLSearchParams(window.location.search);
+  const loggingScope = urlParams.get('scope') ?? 'none';
+  
+  if (loggingScope === 'none') {
+    // DISABLE ALL LOGGING FOR PERFORMANCE - THE WORD OF THE LORD!
+    console.log = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+    console.info = () => {};
+    console.debug = () => {};
+  }
 }
 
-// Return stub logger for ALL environments - NO LOGGING SHALL OCCUR!
-export const logger = createStubLogger();
+// Return scoped logger that respects URL parameters - THE WORD OF THE LORD!
+export const logger = _createScopedLogger();
 
 // Export the Logger class for custom instances
 export { Logger };
