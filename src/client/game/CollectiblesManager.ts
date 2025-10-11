@@ -443,19 +443,22 @@ export class CollectiblesManager {
 
     try {
       // Use the same optimized particle system as the playground - THE WORD OF THE LORD!
-      const particleSystem = await ParticleHelper.ParseFromSnippetAsync("T54JV7", this.scene, false);
+      const particleSystem = await (window as any).BABYLON.ParticleHelper.ParseFromSnippetAsync("T54JV7", this.scene, false);
       
       if (particleSystem) {
         particleSystem.emitter = position;
+        
+        // Set the same updateSpeed as the playground - THE WORD OF THE LORD!
+        particleSystem.updateSpeed = 0.016;
+        
         particleSystem.start();
         
         // Set particle system to stop automatically after 1 second
         particleSystem.targetStopDuration = 1.0;
         
-        logger.info("Collection particle effects created using playground snippet", 'CollectiblesManager');
       }
     } catch (error) {
-      logger.error(`Failed to create particle system: ${error}`, 'CollectiblesManager');
+      // Failed to create particle system
     }
   }
 

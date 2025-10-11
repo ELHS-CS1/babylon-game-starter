@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import config, { logConfig } from './config.js';
@@ -189,13 +189,18 @@ const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: strin
   }
 };
 
-// HTTP server for serving client and API with SSE support
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+// HTTPS server for serving client and API with SSE support
+const httpsOptions = {
+  key: readFileSync('./certs/localhost+2-key.pem'),
+  cert: readFileSync('./certs/localhost+2.pem')
+};
+
+const server = createHttpsServer(httpsOptions, async (req: IncomingMessage, res: ServerResponse) => {
   const hostHeader = req.headers.host;
   const host: string | undefined = Array.isArray(hostHeader) ? 
     (typeof hostHeader[0] === 'string' ? hostHeader[0] : undefined) : 
     hostHeader;
-  const url = new URL(req.url ?? '/', `http://${host ?? 'localhost'}`);
+  const url = new URL(req.url ?? '/', `https://${host ?? 'localhost'}`);
   
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', config.corsOrigin);
@@ -349,7 +354,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
                     gameState.peers[peer.id] = peer;
 
                     // Collect peer metrics
-                    reportCollector.collectPeerMetrics(peer.id, JSON.parse(JSON.stringify(peer)));
+                    reportCollector.collectPeerMetrics(peer.id, peer as unknown as Record<string, unknown>);
                     reportCollector.collectEnvironmentMetrics(gameState.currentEnvironment,
                       Object.values(gameState.peers).filter(p => p.environment === gameState.currentEnvironment).length);
 
@@ -413,7 +418,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
   
           if (url.pathname.startsWith('/api/peer/') && req.method === 'PUT') {
             const peerId = url.pathname.split('/')[3];
-            if (!peerId) {
+            if (peerId === null || peerId === undefined || peerId === '') {
               res.writeHead(400);
               res.end(JSON.stringify({ error: 'Peer ID is required' }));
               return;

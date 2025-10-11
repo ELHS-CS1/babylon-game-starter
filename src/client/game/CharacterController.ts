@@ -127,7 +127,7 @@ export class CharacterController {
 
   private initializeEventListeners(): void {
     this.scene.onKeyboardObservable.add(this.handleKeyboard);
-    // Character updates handled by default Babylon.js render loop like the playground
+    this.scene.onBeforeRenderObservable.add(this.updateCharacter);
     this.scene.onAfterPhysicsObservable.add(this.updatePhysics);
 
     // Initialize mobile controls if on mobile device

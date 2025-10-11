@@ -27,7 +27,7 @@ export class SceneManager {
 
   private async initializeScene(): Promise<void> {
     this.setupLighting();
-    await this.setupPhysics();
+    this.setupPhysics();
     this.setupSky();
     await this.setupEffects();
     await this.loadEnvironment("Level Test");
@@ -52,19 +52,16 @@ export class SceneManager {
     light.intensity = 0.7;
   }
 
-  private async setupPhysics(): Promise<void> {
+  private setupPhysics(): void {
     try {
-      // Import HavokPhysics dynamically as per official documentation
-      const HavokPhysics = (await import('@babylonjs/havok')).default;
-      const havokInstance = await HavokPhysics();
-      const havokPlugin = new HavokPlugin(false, havokInstance);
+      // Use HavokPlugin directly like the playground - THE WORD OF THE LORD!
+      const havokPlugin = new (window as any).BABYLON.HavokPlugin(false);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, havokPlugin);
       
       // DON'T freeze active meshes in dynamic games with moving characters!
       
-      logger.info("Havok physics engine initialized successfully", 'SceneManager');
     } catch (error) {
-      logger.warn("HavokPlugin failed, physics disabled:", 'SceneManager');
+      // HavokPlugin failed, physics disabled
     }
   }
 
@@ -78,9 +75,14 @@ export class SceneManager {
       NodeMaterialManager.initialize(this.scene);
 
       // Create thruster sound
-      await EffectsManager.createSound("Thruster");
+      const thrusterSound = await EffectsManager.createSound("Thruster");
+      if (thrusterSound) {
+        // Sound created successfully
+      } else {
+        // Sound creation failed
+      }
     } catch (error) {
-      logger.warn("Failed to setup effects:", 'SceneManager');
+      // Failed to setup effects
     }
   }
 
@@ -172,7 +174,7 @@ export class SceneManager {
       const mesh = this.scene.getMeshByName(lightmappedMesh.name);
       if (!mesh) return;
 
-      new PhysicsAggregate(mesh, PhysicsShapeType.BOX);
+      new PhysicsAggregate(mesh, PhysicsShapeType.MESH);
       mesh.isPickable = false;
 
       if (mesh.material instanceof StandardMaterial || mesh.material instanceof PBRMaterial) {
@@ -261,7 +263,7 @@ export class SceneManager {
       if (mesh instanceof Mesh && mesh.geometry && mesh.geometry.getTotalVertices() > 0) {
         // Create a static physics body (mass = 0) for environment geometry
         // The physics shape will automatically account for the mesh's current scaling
-        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0 });
+        new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 });
         mesh.isPickable = false;
       }
     });

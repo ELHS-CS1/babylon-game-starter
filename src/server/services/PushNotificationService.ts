@@ -220,7 +220,7 @@ class PushNotificationService {
             return;
           }
           
-          const success = await this.subscribeUser(userId, dataObj['subscription'] as any);
+          const success = await this.subscribeUser(userId, dataObj['subscription'] as PushSubscription);
           res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success }));
         } catch {
@@ -305,7 +305,7 @@ class PushNotificationService {
               return;
             }
             
-            const success = await this.sendNotificationToUser(userId, dataObj3['payload'] as any);
+            const success = await this.sendNotificationToUser(userId, dataObj3['payload'] as NotificationPayload);
             successCount = success ? 1 : 0;
           } else {
             if (!isNotificationPayload(dataObj3['payload'] as unknown)) {
@@ -314,7 +314,7 @@ class PushNotificationService {
               return;
             }
 
-            successCount = await this.sendNotificationToAll(dataObj3['payload'] as any);
+            successCount = await this.sendNotificationToAll(dataObj3['payload'] as NotificationPayload);
           }
           
           res.writeHead(200, { 'Content-Type': 'application/json' });

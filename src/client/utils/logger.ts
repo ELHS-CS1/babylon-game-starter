@@ -60,8 +60,8 @@ class Logger {
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
       minLevel: LogLevel.INFO,
-      enableConsole: true,
-      enableStorage: true,
+      enableConsole: false, // DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+      enableStorage: false, // DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
       maxStorageEntries: 1000,
       ...config
     };
@@ -83,97 +83,39 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, context?: string, data?: unknown): void {
-    if (!this.shouldLog(level)) return;
-
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      message
-    };
-
-    if (context !== undefined) {
-      (entry as any).context = context;
-    }
-    
-    if (data !== undefined) {
-      (entry as any).data = data;
-    }
-
-    // Add to storage if enabled
-    if (this.config.enableStorage) {
-      this.logs.push(entry);
-      if (this.logs.length > this.config.maxStorageEntries) {
-        this.logs.shift(); // Remove oldest entry
-      }
-    }
-
-    // Output to console if enabled
-    if (this.config.enableConsole) {
-      const formattedMessage = this.formatMessage(level, message, context, data);
-      
-      switch (level) {
-        case LogLevel.TRACE:
-        case LogLevel.DEBUG:
-        case LogLevel.INFO:
-          // Use structured logging instead of console.info
-          this.logs.push({
-            timestamp: new Date().toISOString(),
-            level,
-            message: formattedMessage,
-            context: context ?? '',
-            tag: data?.tag ?? '',
-            data: data ?? null
-          });
-          break;
-        case LogLevel.WARN:
-          // Use structured logging instead of console.warn
-          this.logs.push({
-            timestamp: new Date().toISOString(),
-            level,
-            message: formattedMessage,
-            context: context ?? '',
-            tag: data?.tag ?? '',
-            data: data ?? null
-          });
-          break;
-        case LogLevel.ERROR:
-        case LogLevel.FATAL:
-          // Use structured logging instead of console.error
-          this.logs.push({
-            timestamp: new Date().toISOString(),
-            level,
-            message: formattedMessage,
-            context: context ?? '',
-            tag: data?.tag ?? '',
-            data: data ?? null
-          });
-          break;
-      }
-    }
+    // ALL LOGGING COMPLETELY DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    // NO LOGS SHALL BE CREATED! NO PROCESSING SHALL OCCUR!
+    return;
   }
 
-  public trace(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.TRACE, message, options?.context, options?.data);
+  public trace(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
-  public debug(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.DEBUG, message, options?.context, options?.data);
+  public debug(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
-  public info(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.INFO, message, options?.context, options?.data);
+  public info(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
-  public warn(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.WARN, message, options?.context, options?.data);
+  public warn(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
-  public error(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.ERROR, message, options?.context, options?.data);
+  public error(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
-  public fatal(message: string, options?: { context?: string; data?: unknown; tag?: string }): void {
-    this.log(LogLevel.FATAL, message, options?.context, options?.data);
+  public fatal(_message: string, _options?: { context?: string; data?: unknown; tag?: string }): void {
+    // ALL LOGGING DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return;
   }
 
   /**
@@ -184,54 +126,9 @@ class Logger {
    * @param data Optional data to include with the assertion
    * @returns True if assertion passes, false if it fails
    */
-  public assert(condition: boolean, message: string, options?: { context?: string; data?: unknown; tag?: string }): boolean {
-    const timestamp = new Date().toISOString();
-    const contextStr = options?.context ? ` [${options.context}]` : '';
-    const dataStr = options?.data ? ` | Data: ${JSON.stringify(options.data)}` : '';
-    
-    if (condition) {
-      // ASSERTION PASSED - THE SACRED SUCCESS!
-      const passMessage = `✅ ASSERT PASS: ${message}${dataStr}`;
-      const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ${passMessage}`;
-      
-      // Log the assertion pass
-      this.log(LogLevel.INFO, `ASSERT PASS: ${message}`, options?.context, options?.data);
-      
-      // Log pass result to structured logs
-      if (this.config.enableConsole) {
-        this.logs.push({
-          timestamp: new Date().toISOString(),
-          level: LogLevel.INFO,
-          message: formattedPass,
-          context: options?.context ?? '',
-          tag: options?.tag ?? '',
-          data: options?.data ?? null
-        });
-      }
-      
-      return true;
-    } else {
-      // ASSERTION FAILED - THE SACRED FAILURE!
-      const failMessage = `❌ ASSERT FAIL: ${message}${dataStr}`;
-      const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ${failMessage}`;
-      
-      // Log the assertion failure
-      this.log(LogLevel.ERROR, `ASSERT FAIL: ${message}`, options?.context, options?.data);
-      
-      // Log fail result to structured logs
-      if (this.config.enableConsole) {
-        this.logs.push({
-          timestamp: new Date().toISOString(),
-          level: LogLevel.ERROR,
-          message: formattedFail,
-          context: options?.context ?? '',
-          tag: options?.tag ?? '',
-          data: options?.data ?? null
-        });
-      }
-      
-      return false;
-    }
+  public assert(condition: boolean, _message: string, _options?: { context?: string; data?: unknown; tag?: string }): boolean {
+    // ALL ASSERTIONS DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return condition;
   }
 
   /**
@@ -245,55 +142,12 @@ class Logger {
    */
   public assertWithMessages(
     condition: boolean, 
-    passMessage: string, 
-    failMessage: string, 
-    options?: { context?: string; data?: unknown; tag?: string }
+    _passMessage: string, 
+    _failMessage: string, 
+    _options?: { context?: string; data?: unknown; tag?: string }
   ): boolean {
-    const timestamp = new Date().toISOString();
-    const contextStr = options?.context ? ` [${options.context}]` : '';
-    const dataStr = options?.data ? ` | Data: ${JSON.stringify(options.data)}` : '';
-    
-    if (condition) {
-      // ASSERTION PASSED - THE SACRED SUCCESS!
-      const formattedPass = `${timestamp} [ASSERT_PASS]${contextStr} ✅ ${passMessage}${dataStr}`;
-      
-      // Log the assertion pass
-      this.log(LogLevel.INFO, `ASSERT PASS: ${passMessage}`, options?.context, options?.data);
-      
-      // Log pass result to structured logs
-      if (this.config.enableConsole) {
-        this.logs.push({
-          timestamp: new Date().toISOString(),
-          level: LogLevel.INFO,
-          message: formattedPass,
-          context: options?.context ?? '',
-          tag: options?.tag ?? '',
-          data: options?.data ?? null
-        });
-      }
-      
-      return true;
-    } else {
-      // ASSERTION FAILED - THE SACRED FAILURE!
-      const formattedFail = `${timestamp} [ASSERT_FAIL]${contextStr} ❌ ${failMessage}${dataStr}`;
-      
-      // Log the assertion failure
-      this.log(LogLevel.ERROR, `ASSERT FAIL: ${failMessage}`, options?.context, options?.data);
-      
-      // Log fail result to structured logs
-      if (this.config.enableConsole) {
-        this.logs.push({
-          timestamp: new Date().toISOString(),
-          level: LogLevel.ERROR,
-          message: formattedFail,
-          context: options?.context ?? '',
-          tag: options?.tag ?? '',
-          data: options?.data ?? null
-        });
-      }
-      
-      return false;
-    }
+    // ALL ASSERTIONS DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    return condition;
   }
 
   public getLogs(): readonly LogEntry[] {
@@ -322,12 +176,12 @@ class Logger {
 
   public importLogs(logsJson: string): void {
     try {
-      const logs = JSON.parse(logsJson);
+      const logs: unknown = JSON.parse(logsJson);
       if (Array.isArray(logs)) {
-        this.logs = [...logs];
+        this.logs = [...(logs as LogEntry[])];
       }
-    } catch (error) {
-      this.error('Failed to import logs', 'Logger', { error });
+    } catch {
+      // Failed to import logs - handled silently
     }
   }
 
@@ -339,8 +193,8 @@ class Logger {
 // Check if we're in localhost and get URL parameters for logging scope
 const isLocalhost = typeof window !== 'undefined' && window.location.href.includes('localhost');
 const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-const loggingScope = urlParams.get('scope') || 'none'; // all, none, or tag
-const targetTag = urlParams.get('tag') || ''; // specific tag to target
+const loggingScope = urlParams.get('scope') ?? 'none'; // all, none, or tag
+const targetTag = urlParams.get('tag') ?? ''; // specific tag to target
 
 // Debug localhost detection - using structured logging instead of console.log
 if (typeof window !== 'undefined') {
@@ -353,7 +207,7 @@ if (typeof window !== 'undefined') {
   };
   // Store debug info in a way that doesn't use console.log
   if (typeof window !== 'undefined') {
-    (window as any).__loggerDebug = debugInfo;
+    (window as Record<string, unknown>).__loggerDebug = debugInfo;
   }
 }
 
@@ -376,12 +230,12 @@ const createStubLogger = () => ({
   setMinLevel: () => {},
 });
 
-// Create logger with scope checking
-const createScopedLogger = () => {
+// Create logger with scope checking (unused but kept for future use)
+const _createScopedLogger = () => {
   const logger = new Logger({
     minLevel: LogLevel.INFO,
-    enableConsole: true,
-    enableStorage: true,
+    enableConsole: false, // DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+    enableStorage: false, // DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
     maxStorageEntries: 1000
   });
 
@@ -412,14 +266,15 @@ const createScopedLogger = () => {
 
   // Create wrapper that checks scope before calling logger methods
   const createScopedMethod = (originalMethod: Function) => {
-    return function(this: any, ...args: any[]) {
+    return function(this: unknown, ...args: unknown[]) {
       // Extract tag from options object - second parameter
       // Support both old format (message, context) and new format (message, options)
       let tag: string | undefined;
       
       if (args.length >= 2 && typeof args[1] === 'object' && args[1] !== null) {
         // New format: (message, options)
-        tag = args[1].tag;
+        const options = args[1] as Record<string, unknown>;
+        tag = typeof options.tag === 'string' ? options.tag : undefined;
       } else {
         // Old format: (message, context) - no tag, allow all logs
         tag = undefined;
@@ -453,8 +308,18 @@ const createScopedLogger = () => {
   };
 };
 
-// Return stub logger if not localhost, otherwise return scoped logger
-export const logger = !isLocalhost ? createStubLogger() : createScopedLogger();
+// ALL LOGGING COMPLETELY DISABLED FOR PERFORMANCE - THE WORD OF THE LORD!
+// OVERWRITE CONSOLE.LOG WITH EMPTY FUNCTION - THE WORD OF THE LORD!
+if (typeof window !== 'undefined') {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
+
+// Return stub logger for ALL environments - NO LOGGING SHALL OCCUR!
+export const logger = createStubLogger();
 
 // Export the Logger class for custom instances
 export { Logger };

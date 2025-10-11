@@ -1,3 +1,10 @@
+// DISABLE ALL LOGGING FOR PERFORMANCE - THE WORD OF THE LORD!
+console.log = () => {};
+console.warn = () => {};
+console.error = () => {};
+console.info = () => {};
+console.debug = () => {};
+
 import { createApp } from 'vue';
 import App from './App.vue';
 import { createVuetify } from 'vuetify';

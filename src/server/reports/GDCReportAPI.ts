@@ -161,7 +161,7 @@ export class GDCReportAPI {
       }
 
       // Return specific format
-      const content = await this.reportManager.getReportContent(reportId!, format);
+      const content = await this.reportManager.getReportContent(reportId ?? '', format);
       if (!content) {
         this.sendError(res, 404, 'Report not found');
         return;
@@ -204,7 +204,7 @@ export class GDCReportAPI {
         return;
       }
 
-      const deleted = await this.reportManager.deleteReport(reportId!, format);
+      const deleted = await this.reportManager.deleteReport(reportId ?? '', format);
       if (!deleted) {
         this.sendError(res, 404, 'Report not found');
         return;

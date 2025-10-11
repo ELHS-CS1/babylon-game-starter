@@ -7,6 +7,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     vue()
   ],
+  logLevel: 'error', // DISABLE VITE LOGGING - THE WORD OF THE LORD!
+  clearScreen: false, // Don't clear screen on rebuild
   server: {
     port: 3001,
     host: true,

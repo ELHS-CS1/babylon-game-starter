@@ -34,7 +34,7 @@ export class EffectsManager {
 
     try {
       // Parse the snippet from the online editor
-      const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
+      const particleSystem = await (window as any).BABYLON.ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
 
       if (particleSystem && emitter) {
         particleSystem.emitter = emitter;
@@ -69,41 +69,58 @@ export class EffectsManager {
 
   public static async createSound(name: string): Promise<Sound | null> {
     if (!this.scene) {
-      logger.error("Scene not set in EffectsManager", 'EffectsManager');
+      // Scene not set - this is a critical error
       return null;
     }
 
     try {
-      logger.info(`Creating sound: ${name}`, 'EffectsManager');
-      
       // Get sound configuration from THE WORD OF THE LORD
       const soundConfig = CONFIG.EFFECTS.SOUND_EFFECTS.find(sound => sound.name === name);
       if (!soundConfig) {
-        logger.error(`Sound configuration not found for: ${name}`, 'EffectsManager');
+        // Sound configuration not found - this is a critical error
         return null;
       }
       
       // Create sound with proper configuration from THE WORD OF THE LORD
-      logger.info(`Creating sound with URL: ${soundConfig.url}, loop: ${soundConfig.loop}, volume: ${soundConfig.volume}`, 'EffectsManager');
       const sound = new Sound(name, soundConfig.url, this.scene, null, {
         loop: soundConfig.loop,
-        autoplay: false,
         volume: soundConfig.volume
       });
       
       // Store the sound
       this.activeSounds.set(name, sound);
       
-      logger.info(`Sound ${name} created successfully with URL: ${soundConfig.url}`, 'EffectsManager');
       return sound;
     } catch (error) {
-      logger.error(`Failed to create sound ${name}:`, 'EffectsManager');
+      // Failed to create sound - this is a critical error
       return null;
     }
   }
 
   public static getSound(name: string): Sound | null {
     return this.activeSounds.get(name) || null;
+  }
+
+  /**
+   * Plays a sound effect by name
+   * @param soundName Name of the sound effect to play
+   */
+  public static playSound(soundName: string): void {
+    const sound = this.activeSounds.get(soundName);
+    if (sound && !sound.isPlaying) {
+      sound.play();
+    }
+  }
+
+  /**
+   * Stops a sound effect by name
+   * @param soundName Name of the sound effect to stop
+   */
+  public static stopSound(soundName: string): void {
+    const sound = this.activeSounds.get(soundName);
+    if (sound?.isPlaying) {
+      sound.stop();
+    }
   }
 
   public static getParticleSystem(name: string): IParticleSystem | null {

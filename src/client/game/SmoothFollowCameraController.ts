@@ -51,7 +51,7 @@ export class SmoothFollowCameraController {
 
   private initializeEventListeners(): void {
     this.pointerObserver = this.scene.onPointerObservable.add(this.handlePointer);
-    // Camera updates handled by default Babylon.js render loop like the playground
+    this.beforeRenderObserver = this.scene.onBeforeRenderObservable.add(this.updateCamera);
 
     this.canvas = this.scene.getEngine().getRenderingCanvas();
     if (this.canvas) {
