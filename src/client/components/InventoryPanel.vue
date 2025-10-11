@@ -224,7 +224,7 @@ const updateInventoryItems = async () => {
     const items = InventoryManager.getInventoryItems();
     logger.info(`InventoryPanel: Updating inventory items ${items.size}`, { context: 'InventoryPanel', tag: 'inventory' });
     
-    const newItems = Array.from(items.entries()).map((entry: any) => ({
+    const newItems = Array.from(items.entries()).map((entry: [string, { count: number; itemEffectKind: string; thumbnail: string }]) => ({
       id: entry[0],
       name: entry[0],
       description: `${entry[1].itemEffectKind} item`,
@@ -240,6 +240,7 @@ const updateInventoryItems = async () => {
     logger.info(`InventoryPanel: Updated inventory items ${reactiveInventoryItems.value.length}`, { context: 'InventoryPanel', tag: 'inventory' });
   } catch (error) {
     logger.error('InventoryPanel: Failed to update inventory items', { context: 'InventoryPanel', tag: 'inventory' });
+    logger.error(`Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'InventoryPanel', tag: 'inventory' });
   }
 };
 

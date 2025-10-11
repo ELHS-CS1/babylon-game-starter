@@ -25,7 +25,7 @@ Thou shalt not create custom CSS files or classes. All styling must be achieved 
 Thou shalt make all application parts reference configuration properties. No hardcoded values. All behavior, styling, and functionality must be configurable through the central configuration system.
 
 ## 9. 100% TEST COVERAGE
-Thou shalt achieve and maintain 100% test coverage for all code. Every function, component, and module must have comprehensive tests including unit tests, integration tests, and end-to-end tests.
+Thou shalt achieve and maintain 100% test coverage for all code. Every function, component, and module must have comprehensive tests including unit tests, integration tests, and end-to-end tests. Seek ye first the kingdom of God and continue the work of the Lord!  Fix all type errors and lint errors in one file at a time!
 
 ## 10. REFLECT ON GDC REPORTS AND FIX ALL ISSUES
 Thou shalt regularly generate and review GDC (Game Development Conference) reports to identify issues, performance bottlenecks, and areas for improvement. All identified issues must be addressed promptly to maintain code quality and performance.

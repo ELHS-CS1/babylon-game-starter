@@ -57,9 +57,11 @@ export class SceneManager {
       // Import HavokPhysics dynamically as per official documentation
       const HavokPhysics = (await import('@babylonjs/havok')).default;
       const havokInstance = await HavokPhysics();
-      const havokPlugin = new HavokPlugin(true, havokInstance);
-      havokPlugin.setTimeStep(1 / 120);
+      const havokPlugin = new HavokPlugin(false, havokInstance);
       this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, havokPlugin);
+      
+      // DON'T freeze active meshes in dynamic games with moving characters!
+      
       logger.info("Havok physics engine initialized successfully", 'SceneManager');
     } catch (error) {
       logger.warn("HavokPlugin failed, physics disabled:", 'SceneManager');
@@ -148,9 +150,7 @@ export class SceneManager {
   }
 
   private createSky(_skyConfig: any): void {
-    const skyLight = new HemisphericLight("skyLight", new Vector3(0, 1, 0), this.scene);
-    skyLight.intensity = 0.7;
-    skyLight.diffuse = new Vector3(0.5, 0.7, 1.0) as any;
+    // Sky lighting handled by main HemisphericLight - no duplicate lights!
   }
 
   private setupEnvironmentPhysics(environment: any): void {
@@ -172,7 +172,7 @@ export class SceneManager {
       const mesh = this.scene.getMeshByName(lightmappedMesh.name);
       if (!mesh) return;
 
-      new PhysicsAggregate(mesh, PhysicsShapeType.MESH);
+      new PhysicsAggregate(mesh, PhysicsShapeType.BOX);
       mesh.isPickable = false;
 
       if (mesh.material instanceof StandardMaterial || mesh.material instanceof PBRMaterial) {
@@ -261,7 +261,7 @@ export class SceneManager {
       if (mesh instanceof Mesh && mesh.geometry && mesh.geometry.getTotalVertices() > 0) {
         // Create a static physics body (mass = 0) for environment geometry
         // The physics shape will automatically account for the mesh's current scaling
-        new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 });
+        new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0 });
         mesh.isPickable = false;
       }
     });

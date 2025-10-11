@@ -263,6 +263,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { SettingsData } from '../game/SettingsData';
 // import { ThemeUtils } from '../config/themeConfig'; // Unused for now
 import CONFIG from '../config/gameConfig';
+import { logger } from '../utils/logger';
 
 // Props
 interface Props {
@@ -271,7 +272,7 @@ interface Props {
   initialCharacter?: string;
   initialEnvironment?: string;
   isConnected?: boolean;
-  gameEngine?: any;
+  gameEngine?: Record<string, unknown> | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -460,7 +461,8 @@ const onSectionChange = (section: Record<string, unknown>, value: boolean | stri
   // Call the section's onChange callback if it exists
   if (section.onChange !== null && section.onChange !== undefined && typeof section.onChange === 'function') {
     try {
-      section.onChange(value);
+      const callback = section.onChange as (value: unknown) => void;
+      callback(value);
     } catch {
       // Callback error - handled silently
     }
@@ -488,17 +490,17 @@ const onAudioSettingsChange = () => {
 };
 
 const joinGame = () => {
-  console.log('🎮 JOIN GAME BUTTON CLICKED IN SETTINGS PANEL!');
-  console.log('📊 Current connection status:', isConnected.value);
-  console.log('📊 GameEngine status:', !!props.gameEngine);
-  console.log('📊 Props received:', { isConnected: props.isConnected, gameEngine: !!props.gameEngine });
-  console.log('📊 All props:', props);
+  logger.info('🎮 JOIN GAME BUTTON CLICKED IN SETTINGS PANEL!', { context: 'SettingsPanel', tag: 'game' });
+  logger.info('📊 Current connection status:', { context: 'SettingsPanel', tag: 'connection', isConnected: props.isConnected });
+  logger.info('📊 GameEngine status:', { context: 'SettingsPanel', tag: 'game', hasGameEngine: !!props.gameEngine });
+  logger.info('📊 Props received:', { context: 'SettingsPanel', tag: 'props', isConnected: props.isConnected, gameEngine: !!props.gameEngine });
+  logger.info('📊 All props:', { context: 'SettingsPanel', tag: 'props', props });
   emit('joinGame');
 };
 
 const leaveGame = () => {
-  console.log('🚪 LEAVE GAME BUTTON CLICKED IN SETTINGS PANEL!');
-  console.log('📊 Current connection status:', isConnected.value);
+  logger.info('🚪 LEAVE GAME BUTTON CLICKED IN SETTINGS PANEL!', { context: 'SettingsPanel', tag: 'game' });
+  logger.info('📊 Current connection status:', { context: 'SettingsPanel', tag: 'connection', isConnected: props.isConnected });
   emit('leaveGame');
 };
 

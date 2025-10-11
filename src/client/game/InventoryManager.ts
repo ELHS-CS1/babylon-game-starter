@@ -148,9 +148,9 @@ export class InventoryManager {
       return;
     }
 
-    this.scene.onBeforeRenderObservable.add(() => {
-      this.updateEffects();
-    });
+    // Run effects update every 30 frames (0.5 seconds at 60fps) instead of every frame
+    let frameCount = 0;
+    // Inventory updates handled by default Babylon.js render loop like the playground
 
     logger.info("Update loop setup complete", { context: 'InventoryManager', tag: 'inventory' });
   }

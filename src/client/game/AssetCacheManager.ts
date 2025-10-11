@@ -97,7 +97,10 @@ export class AssetCacheManager {
     if (this.isOnline) {
       try {
         logger.info(`Loading model from remote: ${url}`, 'AssetCacheManager');
-        const result = await ImportMeshAsync(url, this.scene!);
+        if (!this.scene) {
+          throw new Error('Scene is not available');
+        }
+        const result = await ImportMeshAsync(url, this.scene);
         
         const cachedModel: CachedModel = {
           meshes: result.meshes,
@@ -116,7 +119,7 @@ export class AssetCacheManager {
         this.saveCacheToStorage();
         
         return cachedModel;
-      } catch (error) {
+      } catch {
         logger.error(`Failed to load model from remote: ${url}`, 'AssetCacheManager');
         // Fall back to cached version if available
         if (cached) {
@@ -156,12 +159,12 @@ export class AssetCacheManager {
     if (this.isOnline) {
       try {
         logger.info(`Loading particle system from snippet: ${snippetId}`, 'AssetCacheManager');
-        if (this.scene === null) {
+        if (!this.scene) {
           throw new Error('Scene not initialized');
         }
         const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippetId, this.scene, false);
         
-        if (particleSystem) {
+        if (particleSystem !== null && particleSystem !== undefined) {
           const cachedParticle: CachedParticleSnippet = {
             name,
             snippetId,
@@ -179,7 +182,7 @@ export class AssetCacheManager {
           
           return cachedParticle;
         }
-      } catch (error) {
+      } catch {
         logger.error(`Failed to load particle system from snippet: ${snippetId}`, 'AssetCacheManager');
         // Fall back to cached version if available
         if (cached) {
@@ -219,7 +222,7 @@ export class AssetCacheManager {
             await this.loadSound(asset.url, asset.name);
             break;
         }
-      } catch (error) {
+      } catch {
         logger.error(`Failed to preload asset: ${asset.name}`, 'AssetCacheManager');
       }
     });
@@ -232,14 +235,14 @@ export class AssetCacheManager {
    * Loads a sound with local-first caching strategy
    * @param url The remote URL of the sound
    * @param name The name/identifier for the sound
-   * @returns Promise<any | null>
+   * @returns Promise<Sound | null>
    */
-  public async loadSound(url: string, name: string): Promise<unknown | null> {
+  public async loadSound(url: string, name: string): Promise<Sound | null> {
     const cacheKey = `sound_${name}`;
     
     // Check if we have a cached version
     const cached = this.soundCache.get(cacheKey);
-    if (cached && this.isCacheValid((cached as { timestamp: number }).timestamp)) {
+    if (cached !== null && cached !== undefined && typeof cached === 'object' && cached !== null && 'timestamp' in cached && typeof cached.timestamp === 'number' && this.isCacheValid(cached.timestamp)) {
       logger.info(`Using cached sound: ${name}`, 'AssetCacheManager');
       return cached;
     }
@@ -262,10 +265,10 @@ export class AssetCacheManager {
         this.saveCacheToStorage();
         
         return cachedSound;
-      } catch (error) {
+      } catch {
         logger.error(`Failed to load sound from remote: ${url}`, 'AssetCacheManager');
         // Fall back to cached version if available
-        if (cached) {
+        if (cached !== null && cached !== undefined) {
           logger.warn(`Using stale cached sound: ${name}`, 'AssetCacheManager');
           return cached;
         }
@@ -273,7 +276,7 @@ export class AssetCacheManager {
     }
 
     // If offline or remote load failed, use cached version
-    if (cached) {
+    if (cached !== null && cached !== undefined) {
       logger.warn(`Using cached sound (offline): ${name}`, 'AssetCacheManager');
       return cached;
     }
@@ -318,14 +321,14 @@ export class AssetCacheManager {
   private loadCacheFromStorage(): void {
     try {
       const cacheData = localStorage.getItem('babylon_asset_cache');
-      if (cacheData) {
-        const parsed = JSON.parse(cacheData);
+      if (cacheData !== null) {
+        const parsed = JSON.parse(cacheData) as Record<string, unknown>;
         
         // Check version compatibility
         if (parsed.version === this.cacheVersion) {
-          this.modelCache = new Map(parsed.models);
-          this.particleCache = new Map(parsed.particles);
-          this.soundCache = new Map(parsed.sounds);
+          this.modelCache = new Map((parsed.models as Iterable<readonly [string, CachedModel]>) || []);
+          this.particleCache = new Map((parsed.particles as Iterable<readonly [string, CachedParticleSnippet]>) || []);
+          this.soundCache = new Map((parsed.sounds as Iterable<readonly [string, unknown]>) || []);
           
           logger.info(`Loaded cache from localStorage (${this.modelCache.size} models, ${this.particleCache.size} particles, ${this.soundCache.size} sounds)`, 'AssetCacheManager');
         } else {
@@ -333,7 +336,7 @@ export class AssetCacheManager {
           this.clearCache();
         }
       }
-    } catch (error) {
+    } catch {
       logger.error('Failed to load cache from localStorage', 'AssetCacheManager');
       this.clearCache();
     }

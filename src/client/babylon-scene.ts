@@ -12,7 +12,7 @@ interface GameState {
 }
 
 export default function setupBabylonScene(canvas: HTMLCanvasElement, gameState: GameState) {
-  const engine = new Engine(canvas, true);
+  const engine = new Engine(canvas, false);
   const scene = new Scene(engine);
   
   // Setup camera
@@ -59,10 +59,10 @@ export default function setupBabylonScene(canvas: HTMLCanvasElement, gameState: 
     }
   );
 
-  // Start render loop
-  engine.runRenderLoop(() => {
-    scene.render();
-  });
+  // Render loop is handled by GameEngine - don't start another one here
+  // engine.runRenderLoop(() => {
+  //   scene.render();
+  // });
 
   // Handle window resize
   window.addEventListener('resize', () => {

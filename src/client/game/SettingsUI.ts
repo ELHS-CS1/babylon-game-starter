@@ -1,4 +1,5 @@
 import type { SceneManager } from './SceneManager';
+import { logger } from '../utils/logger';
 
 export class SettingsUI {
     private static sceneManager: SceneManager | null = null;
@@ -7,8 +8,9 @@ export class SettingsUI {
         this.sceneManager = sceneManager;
     }
 
-  public static async changeCharacter(_characterIndexOrName: number | string): Promise<void> {
-
+  public static async changeCharacter(characterIndexOrName: number | string): Promise<void> {
+    // Character change logic would go here
+    logger.info(`Character change requested: ${characterIndexOrName}`, { context: 'SettingsUI', tag: 'character' });
   }
 
     public static async changeEnvironment(environmentName: string): Promise<void> {

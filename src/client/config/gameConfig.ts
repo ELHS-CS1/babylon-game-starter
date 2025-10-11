@@ -174,7 +174,7 @@ interface GameConfig {
 type ItemEffectKind = "superJump" | "invisibility";
 
 type ItemEffect = {
-    readonly [_K in ItemEffectKind]: () => void;
+    readonly [EffectKey in ItemEffectKind]: () => void;
 };
 
 interface Tile {
@@ -352,8 +352,8 @@ const ASSETS = {
             },
             jumpHeight: 11, // Lower jumps
             rotationSpeed: 0.04, // Slower rotation
-            rotationSmoothing: 0.25, // More smoothing for sluggish feel
-            animationBlend: 200,
+            rotationSmoothing: 0.01, // More smoothing for sluggish feel
+            animationBlend: 10,
             jumpDelay: 200
         }
     ],
@@ -389,7 +389,7 @@ const ASSETS = {
                 {
                     name: "Magic Sparkles",
                     position: new Vector3(-2, 0, -8), // Left of player start
-                    updateSpeed: 0.007
+                            updateSpeed: 0.007
                 }
             ],
             items: [
@@ -545,13 +545,13 @@ const CONFIG = {
         DRAG_SENSITIVITY: 0.02,
         ZOOM_MIN: -15,
         ZOOM_MAX: -2,
-        FOLLOW_SMOOTHING: 0.1
+                FOLLOW_SMOOTHING: 0.1
     },
 
     // Physics Settings
     PHYSICS: {
         GRAVITY: new Vector3(0, -9.8, 0),
-        CHARACTER_GRAVITY: new Vector3(0, -18, 0)
+                CHARACTER_GRAVITY: new Vector3(0, -18, 0)
     },
 
     // Animation Settings

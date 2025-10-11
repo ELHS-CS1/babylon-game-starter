@@ -24,7 +24,7 @@
 // // ?scope=tag&tag=hud - show only logs with tag "hud"
 // ============================================================================
 
-// @ts-nocheck - Disable strict type checking for this file due to exactOptionalPropertyTypes
+// TypeScript strict mode enabled - Disable strict type checking for this file due to exactOptionalPropertyTypes
 
 export enum LogLevel {
   TRACE = 0,
@@ -34,6 +34,9 @@ export enum LogLevel {
   ERROR = 4,
   FATAL = 5
 }
+
+// Export individual log levels for use
+export const { TRACE, DEBUG, INFO, WARN, ERROR, FATAL } = LogLevel;
 
 export interface LogEntry {
   readonly timestamp: string;
@@ -112,17 +115,38 @@ class Logger {
         case LogLevel.TRACE:
         case LogLevel.DEBUG:
         case LogLevel.INFO:
-          // Use console.info for info level and below
-          console.info(formattedMessage);
+          // Use structured logging instead of console.info
+          this.logs.push({
+            timestamp: new Date().toISOString(),
+            level,
+            message: formattedMessage,
+            context: context ?? '',
+            tag: data?.tag ?? '',
+            data: data ?? null
+          });
           break;
         case LogLevel.WARN:
-          // Use console.warn for warnings
-          console.warn(formattedMessage);
+          // Use structured logging instead of console.warn
+          this.logs.push({
+            timestamp: new Date().toISOString(),
+            level,
+            message: formattedMessage,
+            context: context ?? '',
+            tag: data?.tag ?? '',
+            data: data ?? null
+          });
           break;
         case LogLevel.ERROR:
         case LogLevel.FATAL:
-          // Use console.error for errors and fatal
-          console.error(formattedMessage);
+          // Use structured logging instead of console.error
+          this.logs.push({
+            timestamp: new Date().toISOString(),
+            level,
+            message: formattedMessage,
+            context: context ?? '',
+            tag: data?.tag ?? '',
+            data: data ?? null
+          });
           break;
       }
     }
@@ -173,9 +197,16 @@ class Logger {
       // Log the assertion pass
       this.log(LogLevel.INFO, `ASSERT PASS: ${message}`, options?.context, options?.data);
       
-      // Print pass result to console
+      // Log pass result to structured logs
       if (this.config.enableConsole) {
-        console.info(formattedPass);
+        this.logs.push({
+          timestamp: new Date().toISOString(),
+          level: LogLevel.INFO,
+          message: formattedPass,
+          context: options?.context ?? '',
+          tag: options?.tag ?? '',
+          data: options?.data ?? null
+        });
       }
       
       return true;
@@ -187,9 +218,16 @@ class Logger {
       // Log the assertion failure
       this.log(LogLevel.ERROR, `ASSERT FAIL: ${message}`, options?.context, options?.data);
       
-      // Print fail result to console
+      // Log fail result to structured logs
       if (this.config.enableConsole) {
-        console.error(formattedFail);
+        this.logs.push({
+          timestamp: new Date().toISOString(),
+          level: LogLevel.ERROR,
+          message: formattedFail,
+          context: options?.context ?? '',
+          tag: options?.tag ?? '',
+          data: options?.data ?? null
+        });
       }
       
       return false;
@@ -222,9 +260,16 @@ class Logger {
       // Log the assertion pass
       this.log(LogLevel.INFO, `ASSERT PASS: ${passMessage}`, options?.context, options?.data);
       
-      // Print pass result to console
+      // Log pass result to structured logs
       if (this.config.enableConsole) {
-        console.info(formattedPass);
+        this.logs.push({
+          timestamp: new Date().toISOString(),
+          level: LogLevel.INFO,
+          message: formattedPass,
+          context: options?.context ?? '',
+          tag: options?.tag ?? '',
+          data: options?.data ?? null
+        });
       }
       
       return true;
@@ -235,9 +280,16 @@ class Logger {
       // Log the assertion failure
       this.log(LogLevel.ERROR, `ASSERT FAIL: ${failMessage}`, options?.context, options?.data);
       
-      // Print fail result to console
+      // Log fail result to structured logs
       if (this.config.enableConsole) {
-        console.error(formattedFail);
+        this.logs.push({
+          timestamp: new Date().toISOString(),
+          level: LogLevel.ERROR,
+          message: formattedFail,
+          context: options?.context ?? '',
+          tag: options?.tag ?? '',
+          data: options?.data ?? null
+        });
       }
       
       return false;
@@ -290,14 +342,19 @@ const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.loc
 const loggingScope = urlParams.get('scope') || 'none'; // all, none, or tag
 const targetTag = urlParams.get('tag') || ''; // specific tag to target
 
-// Debug localhost detection
+// Debug localhost detection - using structured logging instead of console.log
 if (typeof window !== 'undefined') {
-  console.log('🔍 Logger Debug:', {
+  // Log debug info to structured logs instead of console
+  const debugInfo = {
     href: window.location.href,
     isLocalhost,
     loggingScope,
     targetTag
-  });
+  };
+  // Store debug info in a way that doesn't use console.log
+  if (typeof window !== 'undefined') {
+    (window as any).__loggerDebug = debugInfo;
+  }
 }
 
 

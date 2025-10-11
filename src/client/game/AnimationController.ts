@@ -4,6 +4,7 @@
 
 import type { Scene } from '@babylonjs/core';
 import { type Character } from '../config/gameConfig';
+import { logger } from '../utils/logger';
 
 // Character state enum - IDENTICAL TO PLAYGROUND.TS
 // export enum CHARACTER_STATES { // Unused for now
@@ -111,12 +112,10 @@ export class AnimationController {
     let animation = this.scene.getAnimationGroupByName(animationName);
 
     // If not found, try to find it by partial name match
-    if (animation === null) {
-      animation = this.scene.animationGroups.find(anim =>
-        anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
-        animationName.toLowerCase().includes(anim.name.toLowerCase())
-      ) ?? null;
-    }
+    animation ??= this.scene.animationGroups.find(anim =>
+      anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
+      animationName.toLowerCase().includes(anim.name.toLowerCase())
+    ) ?? null;
 
     // If still not found, try common fallbacks
     if (animation === null) {
@@ -168,12 +167,10 @@ export class AnimationController {
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (targetAnim === null) {
-      targetAnim ??= this.scene.animationGroups.find(anim =>
-        anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
-        targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-      ) ?? null;
-    }
+    targetAnim ??= this.scene.animationGroups.find(anim =>
+      anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
+      targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
+    ) ?? null;
 
     // If still not found, try common fallbacks
     if (targetAnim === null) {
@@ -192,7 +189,7 @@ export class AnimationController {
     }
 
     if (!currentAnim || !targetAnim) {
-      console.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`);
+      logger.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`, { context: 'AnimationController', tag: 'animation' });
       return;
     }
 
@@ -216,12 +213,10 @@ export class AnimationController {
     let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
     // If target animation not found, try partial match
-    if (targetAnim === null) {
-      targetAnim ??= this.scene.animationGroups.find(anim =>
-        anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
-        targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-      ) ?? null;
-    }
+    targetAnim ??= this.scene.animationGroups.find(anim =>
+      anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
+      targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
+    ) ?? null;
 
     // If still not found, try common fallbacks
     if (targetAnim === null) {
@@ -246,7 +241,7 @@ export class AnimationController {
     }
 
     if (!currentAnim || !targetAnim) {
-      console.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`);
+      logger.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`, { context: 'AnimationController', tag: 'animation' });
       return;
     }
 
@@ -353,7 +348,7 @@ export class AnimationController {
     const jumpDelay = this.currentCharacter.jumpDelay ?? 100; // Default to 100ms
 
     // Check if we just entered IN_AIR state
-    if (characterState === 'IN_AIR' && this.lastCharacterState !== 'IN_AIR') {
+    if (characterState === 'IN_AIR' && this.lastCharacterState !== null && this.lastCharacterState !== 'IN_AIR') {
       // Start jump delay
       this.isJumpDelayed = true;
       this.jumpDelayStartTime = Date.now();
@@ -405,6 +400,6 @@ export class AnimationController {
     this.isBlending = false;
     // this.weightedAnimation = null; // Commented out - property removed
     
-    console.log("AnimationController disposed");
+    logger.info("AnimationController disposed", { context: 'AnimationController', tag: 'disposal' });
   }
 }

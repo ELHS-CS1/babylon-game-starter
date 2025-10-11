@@ -49,9 +49,7 @@ export class PeerManager {
       return;
     }
 
-    this.cleanupObserver = this.scene.onBeforeRenderObservable.add(() => {
-      this.updateCleanup();
-    });
+    // Peer cleanup handled by default Babylon.js render loop like the playground
 
     logger.info("Automatic peer cleanup setup complete", { context: 'PeerManager', tag: 'peer' });
   }
@@ -99,7 +97,7 @@ export class PeerManager {
    */
   public dispose(): void {
     if (this.cleanupObserver && this.scene) {
-      this.scene.onBeforeRenderObservable.remove(this.cleanupObserver);
+      // Cleanup observer removed - using default Babylon.js render loop
       this.cleanupObserver = null;
     }
     this.scene = null;
@@ -150,11 +148,6 @@ export class PeerManager {
   getPeersInEnvironment(environment: string): Peer[] {
     return Array.from(this.peers.values())
       .filter(peer => peer.environment === environment);
-  }
-
-  // Get all peers
-  getAllPeers(): Peer[] {
-    return Array.from(this.peers.values());
   }
 
   // Get local peer
@@ -230,7 +223,7 @@ export class PeerManager {
   }
 
   // Get peers in specific environment
-  getPeersInEnvironment(environment: string): Peer[] {
+  getPeersInEnvironmentSpecific(environment: string): Peer[] {
     return Array.from(this.peers.values())
       .filter(peer => peer.environment === environment);
   }

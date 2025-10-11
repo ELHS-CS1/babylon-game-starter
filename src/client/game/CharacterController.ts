@@ -11,16 +11,28 @@ import { logger } from '../utils/logger';
 import { HUDEvents } from '../utils/hudEventSystem';
 import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
+// Character surface info interface for physics support
+interface CharacterSurfaceInfo {
+  averageSurfaceNormal?: Vector3;
+  averageSurfaceVelocity?: Vector3;
+  isSupported?: boolean;
+}
+
+// Camera controller interface for type safety
+interface CameraControllerInterface {
+  resetCameraToDefaultOffset?: () => void;
+  isRotatingCharacter?: boolean;
+  checkForWalkActivation?: () => void;
+}
+
+// Type guard for camera controller
+function isCameraControllerInterface(obj: unknown): obj is CameraControllerInterface {
+  return typeof obj === 'object' && obj !== null;
+}
+
 // Character states - THE WORD OF GOD
-enum CHARACTER_STATES {
-  IDLE = "idle",
-  WALKING = "walking",
-  RUNNING = "running",
-  JUMPING = "jumping",
-  FALLING = "falling",
-  ON_GROUND = "ON_GROUND",
-  IN_AIR = "IN_AIR",
-  START_JUMP = "START_JUMP"
+export enum CHARACTER_STATES {
+  // Character states for animation and physics
 }
 
 // Input keys from THE WORD OF GOD
@@ -80,8 +92,8 @@ export class CharacterController {
 
     // Get default character configuration from ASSETS - THE WORD OF GOD!
     const defaultCharacter = ASSETS.CHARACTERS[0];
-    const defaultHeight = defaultCharacter?.height ?? 1.8;
-    const defaultRadius = defaultCharacter?.radius ?? 0.6;
+    const defaultHeight = defaultCharacter.height;
+    const defaultRadius = defaultCharacter.radius;
 
     // Create character physics controller with default position (will be updated when character is loaded)
     this.characterController = new PhysicsCharacterController(
@@ -115,7 +127,7 @@ export class CharacterController {
 
   private initializeEventListeners(): void {
     this.scene.onKeyboardObservable.add(this.handleKeyboard);
-    this.scene.onBeforeRenderObservable.add(this.updateCharacter);
+    // Character updates handled by default Babylon.js render loop like the playground
     this.scene.onAfterPhysicsObservable.add(this.updatePhysics);
 
     // Initialize mobile controls if on mobile device
@@ -172,7 +184,7 @@ export class CharacterController {
         if (this.keyboardEventCount >= keyboardThreshold) {
           // Remove the listener once we've confirmed keyboard presence
           document.removeEventListener('keydown', checkKeyboardEvents);
-          if (this.keyboardDetectionTimeout !== null && this.keyboardDetectionTimeout !== undefined) {
+          if (this.keyboardDetectionTimeout !== null) {
             clearTimeout(this.keyboardDetectionTimeout);
           }
           return true;
@@ -212,32 +224,32 @@ export class CharacterController {
 
   private handleKeyDown(key: string): void {
     // Movement input
-    if (INPUT_KEYS.FORWARD.includes(key as 'w' | 'arrowup')) {
+    if (INPUT_KEYS.FORWARD.includes(key)) {
       this.inputDirection.z = 1;
 
-    } else if (INPUT_KEYS.BACKWARD.includes(key as 's' | 'arrowdown')) {
+    } else if (INPUT_KEYS.BACKWARD.includes(key)) {
       this.inputDirection.z = -1;
 
-    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key as 'q')) {
+    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key)) {
       this.inputDirection.x = -1;
 
-    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key as 'e')) {
+    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
       this.inputDirection.x = 1;
 
-    } else if (INPUT_KEYS.JUMP.includes(key as ' ')) {
+    } else if (INPUT_KEYS.JUMP.includes(key)) {
       this.wantJump = true;
-    } else if (INPUT_KEYS.BOOST.includes(key as 'shift')) {
+    } else if (INPUT_KEYS.BOOST.includes(key)) {
       logger.info("Boost key pressed!", 'CharacterController');
       this.boostActive = true;
       this.updateParticleSystem();
-    } else if (INPUT_KEYS.DEBUG.includes(key as '0')) {
+    } else if (INPUT_KEYS.DEBUG.includes(key)) {
       logger.info("Debug key pressed!", 'CharacterController');
       this.toggleDebugDisplay();
-    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key as 'h')) {
+    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key)) {
       this.toggleHUD();
-    } else if (INPUT_KEYS.HUD_POSITION.includes(key as 'p')) {
+    } else if (INPUT_KEYS.HUD_POSITION.includes(key)) {
       this.cycleHUDPosition();
-    } else if (INPUT_KEYS.RESET_CAMERA.includes(key as '1')) {
+    } else if (INPUT_KEYS.RESET_CAMERA.includes(key)) {
       this.resetCameraToDefaultOffset();
     }
 
@@ -249,19 +261,19 @@ export class CharacterController {
 
   private handleKeyUp(key: string): void {
     // Reset movement input
-    if (INPUT_KEYS.FORWARD.includes(key as 'w' | 'arrowup') || INPUT_KEYS.BACKWARD.includes(key as 's' | 'arrowdown')) {
+    if (INPUT_KEYS.FORWARD.includes(key) || INPUT_KEYS.BACKWARD.includes(key)) {
       this.inputDirection.z = 0;
     }
-    if (INPUT_KEYS.LEFT.includes(key as 'a' | 'arrowleft') || INPUT_KEYS.RIGHT.includes(key as 'd' | 'arrowright')) {
+    if (INPUT_KEYS.LEFT.includes(key) || INPUT_KEYS.RIGHT.includes(key)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.STRAFE_LEFT.includes(key as 'q') || INPUT_KEYS.STRAFE_RIGHT.includes(key as 'e')) {
+    if (INPUT_KEYS.STRAFE_LEFT.includes(key) || INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.JUMP.includes(key as ' ')) {
+    if (INPUT_KEYS.JUMP.includes(key)) {
       this.wantJump = false;
     }
-    if (INPUT_KEYS.BOOST.includes(key as 'shift')) {
+    if (INPUT_KEYS.BOOST.includes(key)) {
       logger.info("Boost key released!", 'CharacterController');
       this.boostActive = false;
       this.updateParticleSystem();
@@ -357,8 +369,8 @@ export class CharacterController {
   }
 
   private resetCameraToDefaultOffset(): void {
-    if (this.cameraController && typeof this.cameraController === 'object' && 'resetCameraToDefaultOffset' in this.cameraController) {
-      (this.cameraController as { resetCameraToDefaultOffset: () => void }).resetCameraToDefaultOffset();
+    if (this.cameraController && isCameraControllerInterface(this.cameraController) && 'resetCameraToDefaultOffset' in this.cameraController) {
+      this.cameraController.resetCameraToDefaultOffset();
     }
   }
 
@@ -402,20 +414,22 @@ export class CharacterController {
 
   private updateRotation(): void {
     // If camera is controlling rotation, don't interfere
-    if (this.cameraController && typeof this.cameraController === 'object' && 'isRotatingCharacter' in this.cameraController && (this.cameraController as { isRotatingCharacter: boolean }).isRotatingCharacter) {
-      // Update target rotation to match current rotation to prevent jerking
-      this.targetRotationY = this.displayCapsule.rotation.y;
-      return;
+    if (this.cameraController && isCameraControllerInterface(this.cameraController) && 'isRotatingCharacter' in this.cameraController) {
+      if (this.cameraController.isRotatingCharacter === true) {
+        // Update target rotation to match current rotation to prevent jerking
+        this.targetRotationY = this.displayCapsule.rotation.y;
+        return;
+      }
     }
 
     // Prevent rotation while in air for more realistic physics
-    if (this.state === CHARACTER_STATES.IN_AIR) {
+    if (this.state === 'IN_AIR') {
       return;
     }
 
     // Handle rotation based on input using active character's properties
-    const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
-    const rotationSmoothing = this.currentCharacter?.rotationSmoothing || 0.2;
+    const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
+    const rotationSmoothing = this.currentCharacter?.rotationSmoothing ?? 0.2;
 
     if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
       this.targetRotationY -= rotationSpeed;
@@ -437,9 +451,7 @@ export class CharacterController {
 
     // Update player mesh rotation
     if (this.displayCapsule.rotationQuaternion) {
-      if (!this.playerMesh.rotationQuaternion) {
-        this.playerMesh.rotationQuaternion = new Quaternion();
-      }
+      this.playerMesh.rotationQuaternion ??= new Quaternion();
       this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
     } else {
       this.playerMesh.rotationQuaternion = null;
@@ -457,8 +469,8 @@ export class CharacterController {
     }
 
     // Check for walk activation to trigger character rotation
-    if (isMoving && this.cameraController && typeof this.cameraController === 'object' && 'checkForWalkActivation' in this.cameraController) {
-      (this.cameraController as { checkForWalkActivation: () => void }).checkForWalkActivation();
+    if (isMoving && this.cameraController && isCameraControllerInterface(this.cameraController) && 'checkForWalkActivation' in this.cameraController) {
+      this.cameraController.checkForWalkActivation();
     }
   }
 
@@ -509,7 +521,7 @@ export class CharacterController {
 
   private calculateDesiredVelocity(
     deltaTime: number,
-    supportInfo: any, // CharacterSurfaceInfo type not available in Babylon.js 8
+    supportInfo: CharacterSurfaceInfo,
     characterOrientation: Quaternion
   ): Vector3 {
     const nextState = this.getNextState(supportInfo);
@@ -551,7 +563,7 @@ export class CharacterController {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
-      console.warn("No character set for air physics calculations");
+      logger.warn("No character set for air physics calculations", { context: 'CharacterController', tag: 'physics' });
       return currentVelocity;
     }
 
@@ -594,13 +606,13 @@ export class CharacterController {
     forwardWorld: Vector3,
     upWorld: Vector3,
     currentVelocity: Vector3,
-    supportInfo: any, // CharacterSurfaceInfo type not available in Babylon.js 8
+    supportInfo: CharacterSurfaceInfo,
     characterOrientation: Quaternion
   ): Vector3 {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
-      console.warn("No character set for physics calculations");
+      logger.warn("No character set for physics calculations", { context: 'CharacterController', tag: 'physics' });
       return currentVelocity;
     }
 
@@ -612,11 +624,13 @@ export class CharacterController {
 
     const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
     const outputVelocity = this.characterController.calculateMovement(
-      deltaTime, forwardWorld, supportInfo.averageSurfaceNormal, currentVelocity,
-      supportInfo.averageSurfaceVelocity, desiredVelocity, upWorld
+      deltaTime, forwardWorld, supportInfo.averageSurfaceNormal ?? new Vector3(0, 1, 0), currentVelocity,
+      supportInfo.averageSurfaceVelocity ?? new Vector3(0, 0, 0), desiredVelocity, upWorld
     );
 
-    outputVelocity.subtractInPlace(supportInfo.averageSurfaceVelocity);
+    if (supportInfo.averageSurfaceVelocity) {
+      outputVelocity.subtractInPlace(supportInfo.averageSurfaceVelocity);
+    }
 
     // Character-specific friction based on mass
     // Heavier characters have more friction (more stable), lighter characters have less friction (more slippery)
@@ -630,7 +644,8 @@ export class CharacterController {
     // Clamp velocity to prevent excessive sliding
     const currentSpeed = outputVelocity.length();
     if (currentSpeed > maxSpeed) {
-      outputVelocity.normalize().scaleInPlace(maxSpeed);
+      const normalizedVelocity = outputVelocity.normalize();
+      normalizedVelocity.scaleInPlace(maxSpeed);
     }
 
     // Character-specific damping when no input is detected
@@ -641,7 +656,7 @@ export class CharacterController {
     }
 
     const inv1k = 1e-3;
-    if (outputVelocity.dot(upWorld) > inv1k) {
+    if (outputVelocity.dot(upWorld) > inv1k && supportInfo.averageSurfaceNormal) {
       const velLen = outputVelocity.length();
       outputVelocity.normalizeFromLength(velLen);
       const horizLen = velLen / supportInfo.averageSurfaceNormal.dot(upWorld);
@@ -651,7 +666,9 @@ export class CharacterController {
       return newOutputVelocity;
     }
 
-    outputVelocity.addInPlace(supportInfo.averageSurfaceVelocity);
+    if (supportInfo.averageSurfaceVelocity) {
+      outputVelocity.addInPlace(supportInfo.averageSurfaceVelocity);
+    }
     return outputVelocity;
   }
 
@@ -659,7 +676,7 @@ export class CharacterController {
     // Get character-specific physics attributes
     const character = this.currentCharacter;
     if (!character) {
-      console.warn("No character set for jump physics calculations");
+      logger.warn("No character set for jump physics calculations", { context: 'CharacterController', tag: 'physics' });
       return currentVelocity;
     }
 
@@ -676,24 +693,24 @@ export class CharacterController {
     return currentVelocity.add(upWorld.scale(u - curRelVel));
   }
 
-  private getNextState(supportInfo: any): CharacterState { // CharacterSurfaceInfo type not available in Babylon.js 8
+  private getNextState(supportInfo: CharacterSurfaceInfo): CharacterState {
     switch (this.state) {
-      case CHARACTER_STATES.IN_AIR:
+      case 'IN_AIR':
         return supportInfo.supportedState === CharacterSupportedState.SUPPORTED
-          ? CHARACTER_STATES.ON_GROUND
-          : CHARACTER_STATES.IN_AIR;
+          ? 'ON_GROUND'
+          : 'IN_AIR';
 
-      case CHARACTER_STATES.ON_GROUND:
+      case 'ON_GROUND':
         if (supportInfo.supportedState !== CharacterSupportedState.SUPPORTED) {
-          return CHARACTER_STATES.IN_AIR;
+          return 'IN_AIR';
         }
-        return this.wantJump ? CHARACTER_STATES.START_JUMP : CHARACTER_STATES.ON_GROUND;
+        return this.wantJump ? 'START_JUMP' : 'ON_GROUND';
 
-      case CHARACTER_STATES.START_JUMP:
-        return CHARACTER_STATES.IN_AIR;
+      case 'START_JUMP':
+        return 'IN_AIR';
 
       default:
-        return CHARACTER_STATES.IN_AIR;
+        return 'IN_AIR';
     }
   }
 
@@ -743,7 +760,7 @@ export class CharacterController {
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;
-    this.state = CHARACTER_STATES.IN_AIR;
+    this.state = 'IN_AIR';
   }
 
   public getDisplayCapsule(): Mesh {
@@ -782,7 +799,7 @@ export class CharacterController {
   }
 
   public isOnGround(): boolean {
-    return this.state === CHARACTER_STATES.ON_GROUND;
+    return this.state === 'ON_GROUND';
   }
 
   public getPhysicsBody(): PhysicsBody | null {
@@ -820,20 +837,18 @@ export class CharacterController {
   public resetToStartPosition(): void {
     // Use environment spawn point instead of character start position
     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
-    const spawnPoint = environment?.spawnPoint || new Vector3(0, 0, 0);
+    const spawnPoint = environment?.spawnPoint ?? new Vector3(0, 0, 0);
     this.characterController.setPosition(spawnPoint);
     this.characterController.setVelocity(new Vector3(0, 0, 0));
     this.inputDirection.setAll(0);
     this.wantJump = false;
     this.boostActive = false;
-    this.state = CHARACTER_STATES.IN_AIR;
+    this.state = 'IN_AIR';
   }
 
   public dispose(): void {
     // Dispose display capsule
-    if (this.displayCapsule) {
-      this.displayCapsule.dispose();
-    }
+    this.displayCapsule.dispose();
     
     // Dispose animation controller
     if (this.animationController) {
@@ -846,6 +861,6 @@ export class CharacterController {
     // Note: PhysicsCharacterController doesn't have a dispose method
     // It will be automatically cleaned up when the scene is disposed
     
-    console.log("CharacterController disposed");
+    logger.info("CharacterController disposed", { context: 'CharacterController', tag: 'disposal' });
   }
 }

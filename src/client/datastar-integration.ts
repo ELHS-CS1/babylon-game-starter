@@ -5,9 +5,19 @@ import { gameState } from './state';
 import { logger } from './utils/logger';
 
 // DataStar integration using proper patterns
+interface DataStarInstance {
+  url: string;
+  eventSource: EventSource | null;
+  listeners: Record<string, Function>;
+  on: (_event: string, _callback: Function) => void;
+  connect: () => void;
+  disconnect: () => void;
+  send: (_data: Record<string, unknown>) => void;
+}
+
 export class DataStarIntegration {
   private isConnected = false;
-  private datastar: any = null;
+  private datastar: DataStarInstance | null = null;
   private isInitialized = false;
 
   constructor() {
@@ -50,10 +60,14 @@ export class DataStarIntegration {
         listeners: {},
         
         on: (event: string, callback: Function) => {
-          this.datastar.listeners[event] = callback;
+          if (this.datastar) {
+            this.datastar.listeners[event] = callback;
+          }
         },
         
         connect: () => {
+          if (!this.datastar) return;
+          
           logger.info('🔗 Connecting to DataStar SSE endpoint', { context: 'DataStar', tag: 'connection' });
           this.datastar.eventSource = new EventSource(this.datastar.url);
           
@@ -62,45 +76,43 @@ export class DataStarIntegration {
             this.isConnected = true;
             gameState.isConnected = true;
             logger.info('📊 Connection state updated: isConnected = true', { context: 'DataStar', tag: 'connection' });
-            if (this.datastar.listeners.open) {
-              this.datastar.listeners.open();
-            }
+            this.datastar?.listeners.open?.();
           };
           
-          this.datastar.eventSource.onerror = (error: any) => {
+          this.datastar.eventSource.onerror = (error: Event) => {
             logger.error('❌ DataStar SSE connection error', { context: 'DataStar', tag: 'connection' });
             logger.error(`📊 Error details: ${JSON.stringify(error)}`, { context: 'DataStar', tag: 'connection' });
             this.isConnected = false;
             gameState.isConnected = false;
             logger.info('📊 Connection state updated: isConnected = false', { context: 'DataStar', tag: 'connection' });
-            if (this.datastar.listeners.error) {
-              this.datastar.listeners.error(error);
-            }
+            this.datastar?.listeners.error?.(error);
           };
           
-          this.datastar.eventSource.addEventListener('datastar-patch-signals', (event: any) => {
+          this.datastar.eventSource.addEventListener('datastar-patch-signals', (event: MessageEvent) => {
             logger.info('📨 DataStar signals received', { context: 'DataStar', tag: 'connection' });
             
             // Parse the signals data (remove "signals " prefix if present)
-            let signalsData = event.data;
-            if (signalsData.startsWith('signals ')) {
+            let signalsData: string = String(event.data);
+            if (typeof signalsData === 'string' && signalsData.startsWith('signals ')) {
               signalsData = signalsData.substring(8); // Remove "signals " prefix
             }
             
             try {
-              const signals = JSON.parse(signalsData);
-              this.updateDataStarSignals(signals);
+              const signals: unknown = JSON.parse(signalsData);
+              if (typeof signals === 'object' && signals !== null) {
+                this.updateDataStarSignals(signals);
+              }
             } catch (error) {
-              logger.error(`❌ Failed to parse signals: ${error}`, { context: 'DataStar', tag: 'connection' });
+              logger.error(`❌ Failed to parse signals: ${String(error)}`, { context: 'DataStar', tag: 'connection' });
             }
           });
           
-          this.datastar.eventSource.addEventListener('datastar-patch-elements', (event: any) => {
+          this.datastar.eventSource.addEventListener('datastar-patch-elements', (event: MessageEvent) => {
             logger.info('📨 DataStar elements received', { context: 'DataStar', tag: 'connection' });
             
             // Parse the elements data (remove "elements " prefix if present)
-            let elementsData = event.data;
-            if (elementsData.startsWith('elements ')) {
+            let elementsData: string = String(event.data);
+            if (typeof elementsData === 'string' && elementsData.startsWith('elements ')) {
               elementsData = elementsData.substring(9); // Remove "elements " prefix
             }
             
@@ -109,9 +121,24 @@ export class DataStarIntegration {
         },
         
         disconnect: () => {
-          if (this.datastar.eventSource) {
-            this.datastar.eventSource.close();
+          this.datastar?.eventSource?.close();
+          if (this.datastar) {
             this.datastar.eventSource = null;
+          }
+        },
+        
+        send: (data: Record<string, unknown>) => {
+          if (this.datastar?.eventSource) {
+            // Send data via fetch to the server
+            fetch(this.datastar.url.replace('/sse', '/message'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            }).catch((error) => {
+              logger.error(`❌ Failed to send DataStar message: ${String(error)}`, { context: 'DataStar', tag: 'connection' });
+            });
           }
         }
       };
@@ -124,7 +151,7 @@ export class DataStarIntegration {
       
     } catch (error) {
       logger.error('❌ Failed to setup DataStar client', { context: 'DataStar', tag: 'connection' });
-      logger.error(`📊 Error: ${error}`, { context: 'DataStar', tag: 'connection' });
+      logger.error(`📊 Error: ${String(error)}`, { context: 'DataStar', tag: 'connection' });
     }
   }
 
@@ -164,8 +191,8 @@ export class DataStarIntegration {
     
     const peer = {
       id: peerId,
-      name: name || `Peer_${peerId}`,
-      environment: environment || 'Level Test',
+      name: name ?? `Peer_${peerId}`,
+      environment: environment ?? 'Level Test',
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
       lastUpdate: Date.now()
@@ -186,7 +213,7 @@ export class DataStarIntegration {
     logger.info('🔌 Disconnecting DataStar connection', { context: 'DataStar', tag: 'connection' });
     
     if (this.datastar) {
-      this.datastar.close();
+      this.datastar.disconnect();
       this.datastar = null;
     }
     
@@ -200,14 +227,15 @@ export class DataStarIntegration {
   }
 
   // Update DataStar signals from server data
-  public updateDataStarSignals(signals: Record<string, unknown>): void {
+  public updateDataStarSignals(signals: unknown): void {
     logger.info('📡 Updating DataStar signals from server', { context: 'DataStar', tag: 'signals' });
     logger.info(`📊 Signals: ${JSON.stringify(signals)}`, { context: 'DataStar', tag: 'signals' });
     logger.info(`🔍 Current connection state before processing: ${this.isConnected}`, { context: 'DataStar', tag: 'signals' });
     
-    Object.entries(signals).forEach(([signal, value]) => {
+    if (typeof signals === 'object' && signals !== null) {
+      Object.entries(signals).forEach(([signal, value]) => {
       switch (signal) {
-        case 'isConnected':
+        case 'isConnected': {
           const isConnected = value === true;
           // Only update connection state if we're not already connected
           if (!this.isConnected && isConnected) {
@@ -218,9 +246,10 @@ export class DataStarIntegration {
             logger.info(`⚠️ Server sent isConnected=false but we're already connected, ignoring`, { context: 'DataStar', tag: 'signals' });
           }
           break;
+        }
           
         case 'serverTime':
-          gameState.lastUpdate = new Date(value as string).getTime();
+          gameState.lastUpdate = new Date(String(value)).getTime();
           logger.info(`✅ DataStar signal updated: serverTime = ${value}`, { context: 'DataStar', tag: 'signals' });
           break;
           
@@ -230,7 +259,7 @@ export class DataStarIntegration {
           break;
           
         case 'peerUpdate':
-          if (value && typeof value === 'object') {
+          if (value !== null && value !== undefined && typeof value === 'object') {
             this.handlePeerUpdateFromSignal(value);
           }
           break;
@@ -239,21 +268,24 @@ export class DataStarIntegration {
           logger.info(`📊 Unknown DataStar signal: ${signal} = ${value}`, { context: 'DataStar', tag: 'signals' });
       }
     });
+    }
     
     logger.info(`🔍 Connection state after processing signals: ${this.isConnected}`, { context: 'DataStar', tag: 'signals' });
   }
 
   // Handle peer update from signal
-  private handlePeerUpdateFromSignal(peerData: any): void {
-    if (peerData.id && peerData.name) {
-      const peer = {
-        id: peerData.id,
-        name: peerData.name,
-        environment: peerData.environment || 'Level Test',
-        position: peerData.position || { x: 0, y: 0, z: 0 },
-        rotation: peerData.rotation || { x: 0, y: 0, z: 0 },
-        lastUpdate: peerData.lastUpdate || Date.now()
-      };
+  private handlePeerUpdateFromSignal(peerData: unknown): void {
+    if (typeof peerData === 'object' && peerData !== null) {
+      const data = peerData as Record<string, unknown>;
+      if (data.id !== null && data.id !== undefined && data.name !== null && data.name !== undefined) {
+        const peer = {
+          id: typeof data.id === 'string' ? data.id : String(data.id),
+          name: typeof data.name === 'string' ? data.name : String(data.name),
+          environment: typeof data.environment === 'string' ? data.environment : 'Level Test',
+          position: (data.position as Record<string, unknown>) ?? { x: 0, y: 0, z: 0 },
+          rotation: (data.rotation as Record<string, unknown>) ?? { x: 0, y: 0, z: 0 },
+          lastUpdate: Number(data.lastUpdate ?? Date.now())
+        };
 
       // Add or update peer in game state
       const existingIndex = gameState.players.findIndex(p => p.id === peer.id);
@@ -263,7 +295,8 @@ export class DataStarIntegration {
         gameState.players.push(peer);
       }
 
-      logger.info(`👥 DataStar peer signal updated: ${peer.name}`, { context: 'DataStar', tag: 'signals' });
+        logger.info(`👥 DataStar peer signal updated: ${peer.name}`, { context: 'DataStar', tag: 'signals' });
+      }
     }
   }
 

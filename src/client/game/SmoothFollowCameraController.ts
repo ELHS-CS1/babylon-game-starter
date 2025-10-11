@@ -51,7 +51,7 @@ export class SmoothFollowCameraController {
 
   private initializeEventListeners(): void {
     this.pointerObserver = this.scene.onPointerObservable.add(this.handlePointer);
-    this.beforeRenderObserver = this.scene.onBeforeRenderObservable.add(this.updateCamera);
+    // Camera updates handled by default Babylon.js render loop like the playground
 
     this.canvas = this.scene.getEngine().getRenderingCanvas();
     if (this.canvas) {
@@ -313,7 +313,7 @@ export class SmoothFollowCameraController {
 
   public dispose(): void {
     this.scene.onPointerObservable.remove(this.pointerObserver);
-    this.scene.onBeforeRenderObservable.remove(this.beforeRenderObserver);
+    // Camera observer removed - using default Babylon.js render loop
 
     if (this.canvas) {
       this.canvas.removeEventListener("touchstart", this.handleTouchStart);

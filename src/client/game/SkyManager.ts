@@ -113,7 +113,7 @@ export class SkyManager {
   /**
    * Removes the sky from the scene - THE WORD OF THE LORD!
    */
-  public static removeSky(_scene: Scene): void {
+  public static removeSky(scene: Scene): void {
     logger.info("Removing sky", 'SkyManager');
     
     if (this.sky) {

@@ -56,20 +56,20 @@ export function isValidPeer(peer: unknown): peer is Player {
   const p = peer as Record<string, unknown>;
   
   return (
-    typeof p.id === 'string' &&
-    typeof p.name === 'string' &&
-    typeof p.environment === 'string' &&
-    typeof p.lastUpdate === 'number' &&
-    typeof p.position === 'object' &&
-    p.position !== null &&
-    typeof (p.position as Record<string, unknown>).x === 'number' &&
-    typeof (p.position as Record<string, unknown>).y === 'number' &&
-    typeof (p.position as Record<string, unknown>).z === 'number' &&
-    typeof p.rotation === 'object' &&
-    p.rotation !== null &&
-    typeof (p.rotation as Record<string, unknown>).x === 'number' &&
-    typeof (p.rotation as Record<string, unknown>).y === 'number' &&
-    typeof (p.rotation as Record<string, unknown>).z === 'number'
+    typeof p['id'] === 'string' &&
+    typeof p['name'] === 'string' &&
+    typeof p['environment'] === 'string' &&
+    typeof p['lastUpdate'] === 'number' &&
+    typeof p['position'] === 'object' &&
+    p['position'] !== null &&
+    typeof (p['position'] as Record<string, unknown>)['x'] === 'number' &&
+    typeof (p['position'] as Record<string, unknown>)['y'] === 'number' &&
+    typeof (p['position'] as Record<string, unknown>)['z'] === 'number' &&
+    typeof p['rotation'] === 'object' &&
+    p['rotation'] !== null &&
+    typeof (p['rotation'] as Record<string, unknown>)['x'] === 'number' &&
+    typeof (p['rotation'] as Record<string, unknown>)['y'] === 'number' &&
+    typeof (p['rotation'] as Record<string, unknown>)['z'] === 'number'
   );
 }
 

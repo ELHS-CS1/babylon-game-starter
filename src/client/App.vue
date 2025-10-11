@@ -75,6 +75,35 @@ import { gameState } from './state';
 import { pwaManager } from './utils/pwa';
 import { pushNotificationClient } from './services/PushNotificationClient';
 import { logger } from './utils/logger';
+
+// Interface for window object extensions
+interface WindowWithExtensions extends Window {
+  lastPeerUpdate?: number;
+  onEnvironmentChange?: (arg0: string) => void;
+  gameEngine?: unknown;
+  gameHUD?: unknown;
+  isConnected?: boolean;
+  peers?: unknown;
+  selectedEnvironment?: string;
+  pushNotificationClient?: unknown;
+}
+
+// Interface for server response data
+interface ServerResponseData {
+  status?: string;
+  message?: string;
+  data?: Record<string, unknown>;
+}
+
+// Type guard for window object
+function isWindowWithExtensions(window: unknown): window is WindowWithExtensions {
+  return typeof window === 'object' && window !== null && 'addEventListener' in window;
+}
+
+// Type guard for server response data
+function isServerResponseData(data: unknown): data is ServerResponseData {
+  return typeof data === 'object' && data !== null;
+}
 // DataStar signals are now handled by the store
 // import { dataStarIntegration } from './datastar-integration';
 
@@ -95,7 +124,7 @@ const gameEngine = ref<GameEngine | null>(null);
 // DataStar signals (reactive state from store)
 const peers = computed(() => gameState.players);
 const isConnected = computed(() => {
-  console.log('🔍 isConnected computed - gameState.isConnected:', gameState.isConnected);
+  logger.info('🔍 isConnected computed - gameState.isConnected:', { context: 'App', tag: 'connection', isConnected: gameState.isConnected });
   return gameState.isConnected;
 });
 const activePeersCount = computed(() => gameState.players.length);
@@ -107,7 +136,16 @@ const inventoryPanel = ref<InstanceType<typeof InventoryPanel>>();
 
 // HUD and settings state
 const hudPosition = ref<'top' | 'bottom' | 'left' | 'right'>(CONFIG.HUD.POSITION);
-const hudSettings = reactive({
+const hudSettings = reactive<{
+  showCoordinates: boolean;
+  showTime: boolean;
+  showFPS: boolean;
+  showState: boolean;
+  showBoost: boolean;
+  showCredits: boolean;
+  showPlayers: boolean;
+  showConnection: boolean;
+}>({
   showCoordinates: CONFIG.HUD.SHOW_COORDINATES,
   showTime: CONFIG.HUD.SHOW_TIME,
   showFPS: CONFIG.HUD.SHOW_FPS,
@@ -118,7 +156,7 @@ const hudSettings = reactive({
   showConnection: true
 });
 
-const inventoryItems = ref<any[]>([...CONFIG.INVENTORY.TILES]);
+const inventoryItems = ref<Array<{ name: string; count: number; itemEffectKind: string; thumbnail: string }>>([...CONFIG.INVENTORY.TILES]);
 
 // Update inventory items from InventoryManager - THE WORD OF THE LORD!
 // const updateInventoryItems = async () => {
@@ -172,15 +210,17 @@ const initGameEngine = (): void => {
       }
 
       // Update timestamp for testing
-      (window as any).lastPeerUpdate = Date.now();
+      if (isWindowWithExtensions(window)) {
+        window.lastPeerUpdate = Date.now();
+      }
     };
     
     // Expose the environment change handler on window object AFTER game engine is initialized - THE SACRED COMMANDMENTS!
-    if (typeof window !== 'undefined') {
-      (window as any).onEnvironmentChange = onEnvironmentChange;
+    if (isWindowWithExtensions(window)) {
+      window.onEnvironmentChange = onEnvironmentChange;
       logger.info('Environment change handler exposed on window object', 'App');
-      logger.info(`Handler function type: ${typeof (window as any).onEnvironmentChange}`, 'App');
-      logger.info(`Handler function exists: ${!!(window as any).onEnvironmentChange}`, 'App');
+      logger.info(`Handler function type: ${typeof window.onEnvironmentChange}`, 'App');
+      logger.info(`Handler function exists: ${window.onEnvironmentChange !== null && window.onEnvironmentChange !== undefined}`, 'App');
     }
   } catch {
     // Game engine initialization failed
@@ -233,8 +273,10 @@ const joinGame = async (): Promise<void> => {
     
     if (response.ok) {
       logger.info('🎉 Successfully joined game!', { context: 'App', tag: 'multiplayer' });
-      const responseData = await response.json();
-      logger.info(`📊 Server response: ${JSON.stringify(responseData)}`, { context: 'App', tag: 'multiplayer' });
+      const responseData: unknown = await response.json();
+      if (isServerResponseData(responseData)) {
+        logger.info(`📊 Server response: ${JSON.stringify(responseData)}`, { context: 'App', tag: 'multiplayer' });
+      }
     } else {
       logger.error(`❌ Server rejected join request - status: ${response.status}`, { context: 'App', tag: 'multiplayer' });
       const errorText = await response.text();
@@ -278,12 +320,18 @@ const onEnvironmentChange = (environment: string) => {
 };
 
 const onHUDSettingsChange = (settings: Record<string, unknown>) => {
-  Object.assign(hudSettings, settings);
+  // Type-safe assignment of HUD settings
+  if (typeof settings['showBoost'] === 'boolean') hudSettings.showBoost = settings['showBoost'];
+  if (typeof settings['showCredits'] === 'boolean') hudSettings.showCredits = settings['showCredits'];
+  if (typeof settings['showPlayers'] === 'boolean') hudSettings.showPlayers = settings['showPlayers'];
+  if (typeof settings['showConnection'] === 'boolean') hudSettings.showConnection = settings['showConnection'];
   // HUD settings changed
 };
 
 const onHUDPositionChange = (position: string) => {
-  hudPosition.value = position as 'top' | 'bottom' | 'left' | 'right';
+  if (position === 'top' || position === 'bottom' || position === 'left' || position === 'right') {
+    hudPosition.value = position;
+  }
   // HUD position changed
 };
 
@@ -329,16 +377,20 @@ const onItemSelect = () => {
 
 // Expose variables for testing
 const exposeToWindow = () => {
-  const windowObj = window as any;
-  windowObj.gameEngine = gameEngine.value;
-  windowObj.gameHUD = gameHUD.value; // THE WORD OF THE LORD!
-  windowObj.isConnected = isConnected.value;
-  windowObj.peers = peers.value;
-  windowObj.selectedEnvironment = selectedEnvironment.value;
-  windowObj.pushNotificationClient = pushNotificationClient;
-  windowObj.lastPeerUpdate = Date.now();
-  
-  // Exposed gameHUD to window for debugging
+  if (isWindowWithExtensions(window)) {
+    window.gameEngine = gameEngine.value;
+    if (gameHUD.value !== null && gameHUD.value !== undefined) {
+      const gameHUDValue: unknown = gameHUD.value;
+      window.gameHUD = gameHUDValue; // THE WORD OF THE LORD!
+    }
+    window.isConnected = isConnected.value;
+    window.peers = peers.value;
+    window.selectedEnvironment = selectedEnvironment.value;
+    window.pushNotificationClient = pushNotificationClient;
+    window.lastPeerUpdate = Date.now();
+    
+    // Exposed gameHUD to window for debugging
+  }
 };
 
 // Watch for changes and expose to window
@@ -383,4 +435,4 @@ onUnmounted(() => {
   height: 100%;
   display: block;
 }
-</style>}
+</style>
