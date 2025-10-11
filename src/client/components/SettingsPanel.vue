@@ -230,6 +230,32 @@
               @update:model-value="onAudioSettingsChange"
             />
           </div>
+
+          <!-- Inspector Settings -->
+          <div class="mb-6">
+            <v-label class="text-subtitle-1 font-weight-medium mb-3 d-block">
+              <v-icon color="amber-lighten-2" class="me-2">mdi-bug</v-icon>
+              Debug Inspector
+            </v-label>
+            
+            <v-switch
+              v-model="inspectorEnabled"
+              label="Enable Babylon.js Inspector"
+              color="amber-lighten-2"
+              density="comfortable"
+              @update:model-value="onInspectorToggle"
+            />
+            
+            <v-alert
+              v-if="inspectorEnabled"
+              type="info"
+              variant="tonal"
+              density="compact"
+              class="mt-2"
+            >
+              Inspector is now active! Use the scene explorer to debug sound, physics, and scene objects.
+            </v-alert>
+          </div>
         </v-form>
       </v-card-text>
 
@@ -413,6 +439,8 @@ const audioSettings = reactive({
   musicVolume: CONFIG.AUDIO.MUSIC_VOLUME
 });
 
+const inspectorEnabled = ref(false);
+
 const hudPositions = [
   { title: 'Top', value: 'top' },
   { title: 'Bottom', value: 'bottom' },
@@ -487,6 +515,27 @@ const onHUDPositionChange = (position: string) => {
 
 const onAudioSettingsChange = () => {
   emit('audioSettingsChange', { ...audioSettings });
+};
+
+const onInspectorToggle = async () => {
+  console.log('Inspector toggle called, enabled:', inspectorEnabled.value);
+  const windowObj = window as any;
+  if (inspectorEnabled.value) {
+    console.log('Attempting to show inspector...');
+    if (windowObj.showBabylonInspector) {
+      console.log('Inspector function found, calling...');
+      await windowObj.showBabylonInspector();
+      console.log('Inspector function called');
+    } else {
+      console.warn('Babylon.js Inspector not available. Make sure the scene is loaded.');
+      console.log('Available window functions:', Object.keys(windowObj).filter(key => key.includes('inspector') || key.includes('Inspector')));
+    }
+  } else {
+    console.log('Attempting to hide inspector...');
+    if (windowObj.hideBabylonInspector) {
+      windowObj.hideBabylonInspector();
+    }
+  }
 };
 
 const joinGame = () => {

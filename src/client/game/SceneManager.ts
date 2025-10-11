@@ -1,5 +1,6 @@
 import type { Engine, AbstractMesh} from '@babylonjs/core';
 import { Scene, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, ImportMeshAsync, HingeConstraint, Mesh, Texture, StandardMaterial, PBRMaterial } from '@babylonjs/core';
+import "@babylonjs/core/Debug/debugLayer";
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { CollectiblesManager } from './CollectiblesManager';
@@ -30,6 +31,9 @@ export class SceneManager {
     this.initializeScene().catch(() => {
       logger.error("Failed to initialize scene:", 'SceneManager');
     });
+    
+    // Add Babylon.js inspector if enabled
+    this.setupInspector();
   }
 
   private async initializeScene(): Promise<void> {
@@ -99,23 +103,25 @@ export class SceneManager {
 
   private async setupEffects(): Promise<void> {
     try {
+      console.log("Setting up effects...");
       EffectsManager.initialize(this.scene);
       NodeMaterialManager.initialize(this.scene);
 
-      // Create thruster sound
-      logger.info("Creating thruster sound...", { context: 'SOUND' });
-      console.log("DIRECT CONSOLE: About to create thruster sound");
+      // Create thruster sound (like playground)
+      console.log("Creating thruster sound...");
       const thrusterSound = await EffectsManager.createSound("Thruster");
-      console.log("DIRECT CONSOLE: Thruster sound creation result:", thrusterSound);
+      console.log("Thruster sound creation result:", thrusterSound ? "SUCCESS" : "FAILED");
+      
       if (thrusterSound) {
-        logger.info("Thruster sound created successfully", { context: 'SOUND' });
-        console.log("DIRECT CONSOLE: Thruster sound created successfully");
-      } else {
-        logger.warn("Thruster sound creation failed", { context: 'SOUND' });
-        console.log("DIRECT CONSOLE: Thruster sound creation failed");
+        console.log("Thruster sound details:", {
+          name: thrusterSound.name,
+          isReady: thrusterSound.isReady ? thrusterSound.isReady() : 'N/A',
+          volume: thrusterSound.getVolume(),
+          loop: thrusterSound.loop
+        });
       }
     } catch (error) {
-      // Failed to setup effects
+      console.warn("Failed to setup effects:", error);
     }
   }
 
@@ -162,9 +168,12 @@ export class SceneManager {
 
             // Set up environment-specific particles if configured
             if (environment.particles) {
+              console.log(`Setting up ${environment.particles.length} environment particles for ${environment.name}`);
               try {
                 for (const particle of environment.particles) {
+                  console.log(`Creating particle system: ${particle.name} at position:`, particle.position);
                   const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
+                  console.log(`Particle system creation result:`, particleSystem ? "SUCCESS" : "FAILED");
 
                   // Apply environment-specific settings if provided
                   if (particleSystem && particle.updateSpeed !== undefined) {
@@ -172,8 +181,10 @@ export class SceneManager {
                   }
                 }
               } catch (error) {
-                logger.warn("Failed to create environment particles:", 'SceneManager');
+                console.warn("Failed to create environment particles:", error);
               }
+            } else {
+              console.log(`No particles configured for environment: ${environment.name}`);
             }
 
             this.currentEnvironment = environmentName;
@@ -576,5 +587,105 @@ export class SceneManager {
 
     // Dispose scene
     this.scene.dispose();
+  }
+
+  private setupInspector(): void {
+    // Expose inspector functions globally for manual debugging
+    const windowObj = window as any;
+    
+    windowObj.showBabylonInspector = () => {
+      console.clear();
+      console.log('🔍 BABYLON.JS SCENE INSPECTOR');
+      console.log('=====================================');
+      
+      // Scene info
+      console.log('📊 SCENE INFO:');
+      console.log('  - Meshes:', this.scene.meshes.length);
+      console.log('  - Lights:', this.scene.lights.length);
+      console.log('  - Cameras:', this.scene.cameras.length);
+      console.log('  - Materials:', this.scene.materials.length);
+      console.log('  - Textures:', this.scene.textures.length);
+      
+      // Sound info - THE IMPORTANT STUFF!
+      console.log('🎵 SOUND INFO:');
+      const sounds = this.scene.soundTracks.map(track => track.soundCollection).flat();
+      console.log('  - Total Sounds:', sounds.length);
+      sounds.forEach((sound, index) => {
+        console.log(`  - Sound ${index + 1}:`, {
+          name: sound.name,
+          isPlaying: sound.isPlaying,
+          isReady: sound.isReady ? sound.isReady() : 'N/A',
+          volume: sound.getVolume(),
+          loop: sound.loop,
+          autoplay: sound.autoplay
+        });
+      });
+      
+      // Character thruster sound - THE MAIN ISSUE!
+      if (this.characterController) {
+        console.log('👤 CHARACTER THRUSTER SOUND:');
+        const thrusterSound = this.characterController.getThrusterSound();
+        if (thrusterSound) {
+          console.log('  - Thruster Sound Found:', {
+            name: thrusterSound.name,
+            isPlaying: thrusterSound.isPlaying,
+            isReady: thrusterSound.isReady ? thrusterSound.isReady() : 'N/A',
+            volume: thrusterSound.getVolume(),
+            loop: thrusterSound.loop,
+            autoplay: thrusterSound.autoplay
+          });
+        } else {
+          console.log('  - ❌ NO THRUSTER SOUND FOUND!');
+        }
+      }
+      
+      // Physics info
+      console.log('⚡ PHYSICS INFO:');
+      console.log('  - Physics Enabled:', this.scene.isPhysicsEnabled());
+      if (this.scene.isPhysicsEnabled()) {
+        console.log('  - Gravity:', this.scene.getPhysicsEngine()?.gravity);
+      }
+      
+      console.log('=====================================');
+      console.log('💡 Use scene.meshes, scene.lights, etc. to explore objects');
+      console.log('💡 Use scene.soundTracks to explore sounds');
+      console.log('💡 Use characterController.getThrusterSound() to debug thruster');
+    };
+    
+    windowObj.hideBabylonInspector = () => {
+      if (this.scene.debugLayer.isVisible()) {
+        this.scene.debugLayer.hide();
+      }
+    };
+    
+    windowObj.toggleBabylonInspector = async () => {
+      if (this.scene.debugLayer.isVisible()) {
+        windowObj.hideBabylonInspector();
+      } else {
+        await windowObj.showBabylonInspector();
+      }
+    };
+    
+    // Add keyboard shortcut for inspector (Shift+Ctrl+Alt+I)
+    window.addEventListener('keydown', (ev) => {
+      if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
+        if (this.scene.debugLayer.isVisible()) {
+          this.scene.debugLayer.hide();
+        } else {
+          windowObj.showBabylonInspector();
+        }
+      }
+    });
+    
+    // Check if inspector is enabled via URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const inspectorEnabled = urlParams.get('inspector') === 'true';
+    
+    if (inspectorEnabled) {
+      // Delay inspector loading to avoid startup errors
+      setTimeout(() => {
+        windowObj.showBabylonInspector();
+      }, 2000);
+    }
   }
 }

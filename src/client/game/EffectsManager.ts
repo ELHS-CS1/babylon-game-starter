@@ -37,11 +37,15 @@ export class EffectsManager {
       const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
 
       if (particleSystem) {
-        // CRITICAL: Stop the particle system IMMEDIATELY to prevent it from showing at origin
-        particleSystem.stop();
-
         if (emitter) {
           particleSystem.emitter = emitter;
+        }
+
+        // Only stop particle systems that are attached to player meshes (for boost control)
+        // Environment particles should be visible and running
+        if (emitter instanceof AbstractMesh) {
+          // CRITICAL: Stop the particle system IMMEDIATELY to prevent it from showing at origin
+          particleSystem.stop();
         }
 
         // Special handling for Magic Sparkles - if it has a mesh emitter, it's for the player
@@ -70,78 +74,62 @@ export class EffectsManager {
 
 
 
-  public static async createSound(name: string): Promise<Sound | null> {
-    console.log("DIRECT CONSOLE: EffectsManager.createSound called with:", name);
+  public static async createSound(soundName: string): Promise<Sound | null> {
     if (!this.scene) {
-      logger.warn("EffectsManager not initialized. Call initialize() first.", { context: 'SOUND' });
-      console.log("DIRECT CONSOLE: EffectsManager not initialized");
+      console.warn("EffectsManager not initialized. Call initialize() first.");
+      return null;
+    }
+
+    const soundConfig = CONFIG.EFFECTS.SOUND_EFFECTS.find(s => s.name === soundName);
+    if (!soundConfig) {
+      console.warn(`Sound effect "${soundName}" not found.`);
       return null;
     }
 
     try {
-      // Get sound configuration from THE WORD OF THE LORD
-      const soundConfig = CONFIG.EFFECTS.SOUND_EFFECTS.find(sound => sound.name === name);
-      if (!soundConfig) {
-        logger.warn(`Sound effect "${name}" not found.`, { context: 'SOUND' });
-        return null;
-      }
-      
-      logger.info(`Creating sound: ${name} from ${soundConfig.url}`, { context: 'SOUND' });
-      
-      // Test if the sound file is accessible
-      try {
-        const response = await fetch(soundConfig.url, { method: 'HEAD' });
-        logger.info(`Sound file accessibility check: ${response.status} ${response.statusText}`, { context: 'SOUND' });
-        if (!response.ok) {
-          logger.error(`Sound file not accessible: ${response.status} ${response.statusText}`, { context: 'SOUND' });
-        }
-      } catch (error) {
-        logger.error(`Failed to check sound file accessibility:`, { context: 'SOUND', data: error });
-      }
-      
-      // Create sound with proper configuration from THE WORD OF THE LORD
-      const sound = new Sound(name, soundConfig.url, this.scene, null, {
-        loop: soundConfig.loop,
+      console.log(`Creating sound "${soundName}" from ${soundConfig.url}`);
+      const sound = new Sound(soundName, soundConfig.url, this.scene, null, {
         volume: soundConfig.volume,
-        autoplay: false  // Explicitly disable autoplay
+        loop: soundConfig.loop
       });
-      
-      // Add sound event listeners for debugging
+
+      // Add basic sound event handling
       sound.onended = () => {
-        logger.debug(`Sound "${name}" ended`, { context: 'SOUND' });
+        // Sound ended
       };
-      
+
+      // Add sound event handlers for debugging
       sound.onload = () => {
-        logger.info(`Sound "${name}" loaded successfully`, { context: 'SOUND' });
+        console.log(`Sound "${soundName}" loaded successfully`);
       };
-      
-      // Add error handling for sound loading
-      sound.onError = (error: any) => {
-        logger.error(`Sound "${name}" failed to load:`, { context: 'SOUND', data: error });
+
+      sound.onError = (error) => {
+        console.error(`Sound "${soundName}" failed to load:`, error);
       };
-      
-      // Check if sound is ready immediately after creation
-      setTimeout(() => {
-        logger.info(`Sound "${name}" ready status after 1s: ${sound.isReady()}`, { context: 'SOUND' });
-      }, 1000);
-      
-      // Store the sound
-      this.activeSounds.set(name, sound);
-      
-      logger.info(`Sound "${name}" created successfully with volume ${soundConfig.volume}`, { context: 'SOUND' });
+
+      // Sound is automatically added to scene when created (like playground)
+      console.log(`Sound "${soundName}" created and added to scene`);
+
+      this.activeSounds.set(soundName, sound);
+
       return sound;
     } catch (error) {
-      logger.error(`Failed to create sound "${name}":`, { context: 'SOUND', data: error });
+      console.error(`Failed to create sound "${soundName}":`, error);
       return null;
     }
   }
 
-  public static getSound(name: string): Sound | null {
-    return this.activeSounds.get(name) || null;
+  /**
+   * Gets a sound effect by name (like playground)
+   * @param soundName Name of the sound effect
+   * @returns The sound or null if not found
+   */
+  public static getSound(soundName: string): Sound | null {
+    return this.activeSounds.get(soundName) || null;
   }
 
   /**
-   * Plays a sound effect by name
+   * Plays a sound effect by name (like playground)
    * @param soundName Name of the sound effect to play
    */
   public static playSound(soundName: string): void {
@@ -152,7 +140,7 @@ export class EffectsManager {
   }
 
   /**
-   * Stops a sound effect by name
+   * Stops a sound effect by name (like playground)
    * @param soundName Name of the sound effect to stop
    */
   public static stopSound(soundName: string): void {
@@ -161,6 +149,7 @@ export class EffectsManager {
       sound.stop();
     }
   }
+
 
   public static getParticleSystem(name: string): IParticleSystem | null {
     return this.activeParticleSystems.get(name) || null;

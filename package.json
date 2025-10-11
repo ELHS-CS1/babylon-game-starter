@@ -130,6 +130,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@babylonjs/inspector": "^8.31.0",
     "@playwright/test": "^1.55.0",
     "@types/node": "^20.0.0",
     "@types/web-push": "^3.6.4",

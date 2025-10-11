@@ -442,23 +442,40 @@ export class CollectiblesManager {
     if (!this.scene) return;
 
     try {
-      // Use the same optimized particle system as the playground - THE WORD OF THE LORD!
-      const particleSystem = await ParticleHelper.ParseFromSnippetAsync("T54JV7", this.scene, false);
+      // Create particle effect exactly like the playground - THE WORD OF THE LORD!
+      const particleSystem = new ParticleSystem("Magic Sparkles_ITEMS", 50, this.scene);
+      particleSystem.particleTexture = new Texture("https://www.babylonjs-playground.com/textures/flare.png", this.scene);
+      particleSystem.emitter = position;
       
-      if (particleSystem) {
-        particleSystem.emitter = position;
-        
-        // Set the same updateSpeed as the playground - THE WORD OF THE LORD!
-        particleSystem.updateSpeed = 0.016;
-        
-        particleSystem.start();
-        
-        // Set particle system to stop automatically after 1 second
-        particleSystem.targetStopDuration = 1.0;
-        
-      }
+      // Use direct object creation for better performance (like playground)
+      particleSystem.minEmitBox = new Vector3(-0.5, -0.5, -0.5);
+      particleSystem.maxEmitBox = new Vector3(0.5, 0.5, 0.5);
+      particleSystem.color1 = new Color4(0.5, 0.8, 1, 1); // Baby blue
+      particleSystem.color2 = new Color4(0.2, 0.6, 0.9, 1); // Darker baby blue
+      particleSystem.colorDead = new Color4(0, 0.3, 0.6, 0); // Fade to dark blue
+      particleSystem.minSize = 0.1;
+      particleSystem.maxSize = 0.3;
+      particleSystem.minLifeTime = 0.3;
+      particleSystem.maxLifeTime = 0.8;
+      particleSystem.emitRate = 100;
+      particleSystem.blendMode = ParticleSystem.BLENDMODE_ONEONE;
+      particleSystem.gravity = new Vector3(0, -9.81, 0);
+      particleSystem.direction1 = new Vector3(-2, -2, -2);
+      particleSystem.direction2 = new Vector3(2, 2, 2);
+      particleSystem.minEmitPower = 1;
+      particleSystem.maxEmitPower = 3;
+      particleSystem.updateSpeed = 0.016;
+      
+      // Start the particle system
+      particleSystem.start();
+      
+      // Stop and dispose after a short duration
+      setTimeout(() => {
+        particleSystem.stop();
+        particleSystem.dispose();
+      }, 1000);
     } catch (error) {
-      // Failed to create particle system
+      console.warn("Failed to create collection particle effect:", error);
     }
   }
 

@@ -2,6 +2,7 @@
 // Only disable console if no logging scope is specified in URL
 const urlParams = new URLSearchParams(window.location.search);
 const loggingScope = urlParams.get('scope') ?? 'none';
+const inspectorEnabled = urlParams.get('inspector') === 'true';
 
 if (loggingScope === 'none') {
   // DISABLE ALL LOGGING FOR PERFORMANCE - THE WORD OF THE LORD!

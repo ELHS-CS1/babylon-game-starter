@@ -240,6 +240,7 @@ export class CharacterController {
     } else if (INPUT_KEYS.BOOST.includes(key)) {
       const now = Date.now();
       if (now - this.lastBoostToggle > this.boostDebounceDelay) {
+        console.log("SOUND DEBUG: Boost key pressed, setting boostActive to true");
         this.boostActive = true;
         this.lastBoostToggle = now;
         this.updateParticleSystem();
@@ -280,6 +281,7 @@ export class CharacterController {
     if (INPUT_KEYS.BOOST.includes(key)) {
       const now = Date.now();
       if (now - this.lastBoostToggle > this.boostDebounceDelay) {
+        console.log("SOUND DEBUG: Boost key released, setting boostActive to false");
         this.boostActive = false;
         this.lastBoostToggle = now;
         this.updateParticleSystem();
@@ -392,15 +394,11 @@ export class CharacterController {
           }
         }
 
-    // Update thruster sound (simplified - no logging spam)
+    // Update thruster sound (like playground - simple and direct)
     if (this.thrusterSound) {
       if (this.boostActive) {
         if (!this.thrusterSound.isPlaying) {
-          try {
-            this.thrusterSound.play();
-          } catch (error) {
-            // Silent error handling
-          }
+          this.thrusterSound.play();
         }
       } else {
         if (this.thrusterSound.isPlaying) {
@@ -417,6 +415,7 @@ export class CharacterController {
     this.updateRotation();
     this.updatePosition();
     this.updateAnimations();
+    this.updateParticleSystem();
     
     // Animation debugging removed to prevent spam
   };
@@ -793,25 +792,8 @@ export class CharacterController {
 
   public setThrusterSound(sound: Sound): void {
     this.thrusterSound = sound;
-    // Start with sound stopped
+    // Start with sound stopped (like playground)
     sound.stop();
-    
-    // Enable audio context on first user interaction
-    if (typeof window !== 'undefined' && window.AudioContext) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      if (audioContext.state === 'suspended') {
-        // Add click listener to enable audio context
-        const enableAudio = () => {
-          audioContext.resume().then(() => {
-            console.log("Audio context enabled after user interaction");
-            document.removeEventListener('click', enableAudio);
-            document.removeEventListener('keydown', enableAudio);
-          });
-        };
-        document.addEventListener('click', enableAudio);
-        document.addEventListener('keydown', enableAudio);
-      }
-    }
   }
 
 
@@ -892,5 +874,9 @@ export class CharacterController {
     // It will be automatically cleaned up when the scene is disposed
     
     logger.info("CharacterController disposed", { context: 'CharacterController', tag: 'disposal' });
+  }
+
+  public getThrusterSound(): Sound | null {
+    return this.thrusterSound;
   }
 }
