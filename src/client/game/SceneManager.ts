@@ -25,7 +25,6 @@ export class SceneManager {
 
     // Test PHYSICS logging
     console.log('DIRECT CONSOLE TEST - SceneManager constructor called');
-    alert('SceneManager constructor called!');
     logger.info('SceneManager constructor called - PHYSICS logging test', { context: 'PHYSICS' });
     
     this.initializeScene().catch(() => {
@@ -104,11 +103,16 @@ export class SceneManager {
       NodeMaterialManager.initialize(this.scene);
 
       // Create thruster sound
+      logger.info("Creating thruster sound...", { context: 'SOUND' });
+      console.log("DIRECT CONSOLE: About to create thruster sound");
       const thrusterSound = await EffectsManager.createSound("Thruster");
+      console.log("DIRECT CONSOLE: Thruster sound creation result:", thrusterSound);
       if (thrusterSound) {
-        // Sound created successfully
+        logger.info("Thruster sound created successfully", { context: 'SOUND' });
+        console.log("DIRECT CONSOLE: Thruster sound created successfully");
       } else {
-        // Sound creation failed
+        logger.warn("Thruster sound creation failed", { context: 'SOUND' });
+        console.log("DIRECT CONSOLE: Thruster sound creation failed");
       }
     } catch (error) {
       // Failed to setup effects
@@ -394,17 +398,20 @@ export class SceneManager {
           // Create particle system attached to player mesh
           const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
           if (playerParticleSystem && this.characterController) {
+            console.log("Particle system created and attached to character");
             this.characterController.setPlayerParticleSystem(playerParticleSystem);
+          } else {
+            console.log("Failed to create or attach particle system");
           }
 
           // Set up thruster sound for character controller
           const thrusterSound = EffectsManager.getSound("Thruster");
-          logger.info(`Retrieved thruster sound: ${thrusterSound ? 'SUCCESS' : 'FAILED'}`, 'SceneManager');
+          logger.info(`Retrieved thruster sound: ${thrusterSound ? 'SUCCESS' : 'FAILED'}`, { context: 'SOUND' });
           if (thrusterSound && this.characterController) {
-            logger.info("Setting thruster sound on character controller", 'SceneManager');
+            logger.info("Setting thruster sound on character controller", { context: 'SOUND' });
             this.characterController.setThrusterSound(thrusterSound);
           } else {
-            logger.warn("Failed to set thruster sound - sound or character controller missing", 'SceneManager');
+            logger.warn("Failed to set thruster sound - sound or character controller missing", { context: 'SOUND' });
           }
 
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');

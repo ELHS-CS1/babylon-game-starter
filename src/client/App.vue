@@ -191,7 +191,6 @@ const initGameEngine = (): void => {
   }
 
   try {
-    alert('About to create GameEngine!');
     gameEngine.value = new GameEngine(gameCanvas.value, selectedEnvironment.value);
     gameEngine.value.onPeerUpdate = () => {
       // Send peer update to server via DataStar signals

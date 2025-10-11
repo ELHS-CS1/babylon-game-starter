@@ -807,6 +807,7 @@ type CharacterState = typeof CHARACTER_STATES[keyof typeof CHARACTER_STATES];
 
 export default CONFIG;
 export { ASSETS, INPUT_KEYS, MOBILE_CONTROLS, CHARACTER_STATES, OBJECT_ROLE };
+export type { CharacterState };
 export type { 
     Character, 
     Environment, 

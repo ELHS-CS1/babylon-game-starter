@@ -5,6 +5,7 @@
 import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
 import CONFIG, { ASSETS, CHARACTER_STATES } from '../config/gameConfig';
+import type { CharacterState } from '../config/gameConfig';
 import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -50,8 +51,7 @@ const INPUT_KEYS = {
 
 // Character interface is imported from gameConfig - THE WORD OF GOD
 
-// Character state type
-type CharacterState = string;
+// Character state type is imported from gameConfig - THE WORD OF GOD
 
 export class CharacterController {
   private readonly scene: Scene;
@@ -59,13 +59,15 @@ export class CharacterController {
   private displayCapsule: Mesh;
   private playerMesh: AbstractMesh;
 
-  private state: string = CHARACTER_STATES.IN_AIR;
+  private state: CharacterState = CHARACTER_STATES.IN_AIR;
   private wantJump = false;
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
   private keysDown = new Set<string>();
   private cameraController: SmoothFollowCameraController | null = null;
   private boostActive = false;
+  private lastBoostToggle = 0;
+  private boostDebounceDelay = 100; // 100ms debounce
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
   public animationController: AnimationController | null = null;
@@ -120,6 +122,9 @@ export class CharacterController {
     this.animationController = new AnimationController(scene);
 
     this.initializeEventListeners();
+    
+    // Initialize HUD with default boost status - THE WORD OF THE LORD!
+    HUDEvents.boost('Ready');
   }
 
   private initializeEventListeners(): void {
@@ -201,10 +206,7 @@ export class CharacterController {
   private handleKeyboard = (kbInfo: KeyboardInfo): void => {
     const key = kbInfo.event.key.toLowerCase();
     
-    // Debug logging for key events
-    if (key === 'shift' || key === '0' || key === 'h' || key === 'p' || key === '1') {
-      logger.debug(`Key event: ${key}, type: ${kbInfo.type}`, 'CharacterController');
-    }
+    // Debug logging removed to prevent spam
 
     switch (kbInfo.type) {
       case KeyboardEventTypes.KEYDOWN:
@@ -236,9 +238,14 @@ export class CharacterController {
     } else if (INPUT_KEYS.JUMP.includes(key)) {
       this.wantJump = true;
     } else if (INPUT_KEYS.BOOST.includes(key)) {
-      logger.info("Boost key pressed!", 'CharacterController');
-      this.boostActive = true;
-      this.updateParticleSystem();
+      const now = Date.now();
+      if (now - this.lastBoostToggle > this.boostDebounceDelay) {
+        this.boostActive = true;
+        this.lastBoostToggle = now;
+        this.updateParticleSystem();
+        // Emit boost event to update HUD - THE WORD OF THE LORD!
+        HUDEvents.boost('ACTIVE');
+      }
     } else if (INPUT_KEYS.DEBUG.includes(key)) {
       logger.info("Debug key pressed!", 'CharacterController');
       this.toggleDebugDisplay();
@@ -271,9 +278,14 @@ export class CharacterController {
       this.wantJump = false;
     }
     if (INPUT_KEYS.BOOST.includes(key)) {
-      logger.info("Boost key released!", 'CharacterController');
-      this.boostActive = false;
-      this.updateParticleSystem();
+      const now = Date.now();
+      if (now - this.lastBoostToggle > this.boostDebounceDelay) {
+        this.boostActive = false;
+        this.lastBoostToggle = now;
+        this.updateParticleSystem();
+        // Emit boost event to update HUD - THE WORD OF THE LORD!
+        HUDEvents.boost('Inactive');
+      }
     }
 
     // Only update mobile input for iPads with keyboards, not for regular keyboard input
@@ -372,30 +384,28 @@ export class CharacterController {
   }
 
   private updateParticleSystem(): void {
-    if (this.playerParticleSystem) {
-      if (this.boostActive) {
-        this.playerParticleSystem.start();
-      } else {
-        this.playerParticleSystem.stop();
-      }
-    }
+        if (this.playerParticleSystem) {
+          if (this.boostActive) {
+            this.playerParticleSystem.start();
+          } else {
+            this.playerParticleSystem.stop();
+          }
+        }
 
-    // Update thruster sound
+    // Update thruster sound (simplified - no logging spam)
     if (this.thrusterSound) {
       if (this.boostActive) {
         if (!this.thrusterSound.isPlaying) {
-          logger.info("Playing thruster sound", 'CharacterController');
-          this.thrusterSound.play();
+          try {
+            this.thrusterSound.play();
+          } catch (error) {
+            // Silent error handling
+          }
         }
       } else {
         if (this.thrusterSound.isPlaying) {
-          logger.info("Stopping thruster sound", 'CharacterController');
           this.thrusterSound.stop();
         }
-      }
-    } else {
-      if (this.boostActive) {
-        logger.warn("No thruster sound available!", 'CharacterController');
       }
     }
   }
@@ -407,6 +417,8 @@ export class CharacterController {
     this.updateRotation();
     this.updatePosition();
     this.updateAnimations();
+    
+    // Animation debugging removed to prevent spam
   };
 
   private updateRotation(): void {
@@ -459,6 +471,15 @@ export class CharacterController {
   private updateAnimations(): void {
     const isMoving = this.isAnyMovementKeyPressed();
 
+    // Debug: Log what we're passing to animation system
+    if (this.keysDown.size > 0) {
+      console.log("ANIMATION INPUT DEBUG:", {
+        isMoving,
+        state: this.state,
+        keysDown: Array.from(this.keysDown)
+      });
+    }
+
     // Update animation controller with character state
     if (this.animationController) {
       this.animationController.updateAnimation(isMoving, this.state);
@@ -480,20 +501,13 @@ export class CharacterController {
       INPUT_KEYS.STRAFE_LEFT.some(key => this.keysDown.has(key)) ||
       INPUT_KEYS.STRAFE_RIGHT.some(key => this.keysDown.has(key));
 
-    // Check mobile input
-    if (this.isMobileDevice) {
-      // const mobileMoving = MobileInputManager.isMobileActive() &&
-      //   (MobileInputManager.getInputDirection().length() > 0.1);
-
-      // For iPads with keyboards, either input can trigger movement
-      if (this.isIPadWithKeyboard) {
-        return keyboardMoving; // || mobileMoving;
-      } else {
-        // For pure mobile, only mobile input matters
-        return false; // mobileMoving;
-      }
+    // Debug: Log keys and movement detection occasionally
+    if (this.keysDown.size > 0) { // Log every time when keys are pressed
+      console.log("DEBUG: keysDown:", Array.from(this.keysDown), "keyboardMoving:", keyboardMoving);
     }
 
+    // Always return keyboard input for movement detection
+    // Mobile input is handled separately in the mobile input system
     return keyboardMoving;
   }
 
@@ -515,16 +529,6 @@ export class CharacterController {
     this.characterController.setVelocity(desiredVelocity);
     this.characterController.integrate(deltaTime, support, CONFIG.PHYSICS.CHARACTER_GRAVITY);
     
-    // Log physics update for debugging
-    logger.debug('Character physics updated', { 
-      context: 'PHYSICS', 
-      data: { 
-        deltaTime, 
-        velocity: desiredVelocity, 
-        gravity: CONFIG.PHYSICS.CHARACTER_GRAVITY,
-        position: this.displayCapsule.position 
-      } 
-    });
   };
 
   private calculateDesiredVelocity(
@@ -785,9 +789,13 @@ export class CharacterController {
 
   public setPlayerParticleSystem(particleSystem: IParticleSystem | null): void {
     this.playerParticleSystem = particleSystem;
-    // Start with particle system stopped if it exists
+    // CRITICAL: Ensure particle system is stopped and invisible on startup
     if (particleSystem) {
       particleSystem.stop();
+      // Ensure emitter is properly set to the character mesh
+      if (this.playerMesh && this.playerMesh !== this.displayCapsule) {
+        particleSystem.emitter = this.playerMesh;
+      }
     }
   }
 
@@ -799,6 +807,23 @@ export class CharacterController {
     this.thrusterSound = sound;
     // Start with sound stopped
     sound.stop();
+    
+    // Enable audio context on first user interaction
+    if (typeof window !== 'undefined' && window.AudioContext) {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        // Add click listener to enable audio context
+        const enableAudio = () => {
+          audioContext.resume().then(() => {
+            console.log("Audio context enabled after user interaction");
+            document.removeEventListener('click', enableAudio);
+            document.removeEventListener('keydown', enableAudio);
+          });
+        };
+        document.addEventListener('click', enableAudio);
+        document.addEventListener('keydown', enableAudio);
+      }
+    }
   }
 
 

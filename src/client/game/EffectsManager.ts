@@ -36,11 +36,14 @@ export class EffectsManager {
       // Parse the snippet from the online editor
       const particleSystem = await ParticleHelper.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
 
-      if (particleSystem && emitter) {
-        particleSystem.emitter = emitter;
-      }
-
       if (particleSystem) {
+        // CRITICAL: Stop the particle system IMMEDIATELY to prevent it from showing at origin
+        particleSystem.stop();
+
+        if (emitter) {
+          particleSystem.emitter = emitter;
+        }
+
         // Special handling for Magic Sparkles - if it has a mesh emitter, it's for the player
         let usageCategory = this.determineUsageCategory(snippetName, snippet.category);
         if (snippetName === "Magic Sparkles" && emitter && emitter instanceof AbstractMesh) {
@@ -68,8 +71,10 @@ export class EffectsManager {
 
 
   public static async createSound(name: string): Promise<Sound | null> {
+    console.log("DIRECT CONSOLE: EffectsManager.createSound called with:", name);
     if (!this.scene) {
-      // Scene not set - this is a critical error
+      logger.warn("EffectsManager not initialized. Call initialize() first.", { context: 'SOUND' });
+      console.log("DIRECT CONSOLE: EffectsManager not initialized");
       return null;
     }
 
@@ -77,22 +82,56 @@ export class EffectsManager {
       // Get sound configuration from THE WORD OF THE LORD
       const soundConfig = CONFIG.EFFECTS.SOUND_EFFECTS.find(sound => sound.name === name);
       if (!soundConfig) {
-        // Sound configuration not found - this is a critical error
+        logger.warn(`Sound effect "${name}" not found.`, { context: 'SOUND' });
         return null;
+      }
+      
+      logger.info(`Creating sound: ${name} from ${soundConfig.url}`, { context: 'SOUND' });
+      
+      // Test if the sound file is accessible
+      try {
+        const response = await fetch(soundConfig.url, { method: 'HEAD' });
+        logger.info(`Sound file accessibility check: ${response.status} ${response.statusText}`, { context: 'SOUND' });
+        if (!response.ok) {
+          logger.error(`Sound file not accessible: ${response.status} ${response.statusText}`, { context: 'SOUND' });
+        }
+      } catch (error) {
+        logger.error(`Failed to check sound file accessibility:`, { context: 'SOUND', data: error });
       }
       
       // Create sound with proper configuration from THE WORD OF THE LORD
       const sound = new Sound(name, soundConfig.url, this.scene, null, {
         loop: soundConfig.loop,
-        volume: soundConfig.volume
+        volume: soundConfig.volume,
+        autoplay: false  // Explicitly disable autoplay
       });
+      
+      // Add sound event listeners for debugging
+      sound.onended = () => {
+        logger.debug(`Sound "${name}" ended`, { context: 'SOUND' });
+      };
+      
+      sound.onload = () => {
+        logger.info(`Sound "${name}" loaded successfully`, { context: 'SOUND' });
+      };
+      
+      // Add error handling for sound loading
+      sound.onError = (error: any) => {
+        logger.error(`Sound "${name}" failed to load:`, { context: 'SOUND', data: error });
+      };
+      
+      // Check if sound is ready immediately after creation
+      setTimeout(() => {
+        logger.info(`Sound "${name}" ready status after 1s: ${sound.isReady()}`, { context: 'SOUND' });
+      }, 1000);
       
       // Store the sound
       this.activeSounds.set(name, sound);
       
+      logger.info(`Sound "${name}" created successfully with volume ${soundConfig.volume}`, { context: 'SOUND' });
       return sound;
     } catch (error) {
-      // Failed to create sound - this is a critical error
+      logger.error(`Failed to create sound "${name}":`, { context: 'SOUND', data: error });
       return null;
     }
   }
