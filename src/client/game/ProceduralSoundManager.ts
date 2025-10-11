@@ -1,0 +1,285 @@
+// ============================================================================
+// PROCEDURAL SOUND MANAGER - INSPIRED BY V2 AUDIO ENGINE
+// ============================================================================
+
+import type { Sound, Scene } from '@babylonjs/core';
+import { logger } from '../utils/logger';
+import { AudioStateManager } from './AudioStateManager';
+
+export interface ProceduralSoundConfig {
+  name: string;
+  frequency: number;
+  duration: number;
+  volume?: number;
+  loop?: boolean;
+  type?: 'sine' | 'square' | 'sawtooth' | 'triangle';
+}
+
+export class ProceduralSoundManager {
+  private static scene: Scene | null = null;
+  private static audioContext: AudioContext | null = null;
+  private static activeSounds: Map<string, Sound> = new Map();
+  private static audioStateManager: AudioStateManager | null = null;
+
+  /**
+   * Initialize the procedural sound manager
+   * @param scene Babylon.js scene
+   */
+  public static initialize(scene: Scene): void {
+    this.scene = scene;
+    this.audioContext = new AudioContext();
+    this.audioStateManager = AudioStateManager.getInstance();
+    
+    console.log('ProceduralSoundManager initialized with AudioContext state:', this.audioContext.state);
+    logger.info('ProceduralSoundManager initialized', 'ProceduralSoundManager');
+  }
+
+  /**
+   * Generate a procedural sine wave buffer
+   * @param freq Frequency in Hz
+   * @param durationSeconds Duration in seconds
+   * @param type Wave type
+   * @returns AudioBuffer
+   */
+  private static createWaveBuffer(
+    freq: number, 
+    durationSeconds: number, 
+    type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine'
+  ): AudioBuffer | null {
+    if (!this.audioContext) {
+      logger.error('AudioContext not initialized', 'ProceduralSoundManager');
+      return null;
+    }
+
+    const sampleRate = this.audioContext.sampleRate;
+    const frameCount = sampleRate * durationSeconds;
+    const buffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < frameCount; i++) {
+      const t = i / sampleRate;
+      const angle = 2 * Math.PI * freq * t;
+      
+      switch (type) {
+        case 'sine':
+          data[i] = Math.sin(angle);
+          break;
+        case 'square':
+          data[i] = Math.sin(angle) > 0 ? 1 : -1;
+          break;
+        case 'sawtooth':
+          data[i] = 2 * (t * freq - Math.floor(t * freq + 0.5));
+          break;
+        case 'triangle':
+          data[i] = 2 * Math.abs(2 * (t * freq - Math.floor(t * freq + 0.5))) - 1;
+          break;
+      }
+    }
+
+    return buffer;
+  }
+
+  /**
+   * Create a procedural sound
+   * @param config Sound configuration
+   * @returns Created sound or null
+   */
+  public static async createProceduralSound(config: ProceduralSoundConfig): Promise<Sound | null> {
+    console.log('createProceduralSound called with config:', config);
+    
+    if (!this.scene || !this.audioContext) {
+      console.error('ProceduralSoundManager not initialized - scene:', !!this.scene, 'audioContext:', !!this.audioContext);
+      logger.error('ProceduralSoundManager not initialized', 'ProceduralSoundManager');
+      return null;
+    }
+
+    try {
+      console.log('Generating wave buffer...');
+      // Generate the wave buffer
+      const buffer = this.createWaveBuffer(
+        config.frequency, 
+        config.duration, 
+        config.type || 'sine'
+      );
+
+      if (!buffer) {
+        console.error('Failed to create wave buffer');
+        logger.error('Failed to create wave buffer', 'ProceduralSoundManager');
+        return null;
+      }
+
+      console.log('Wave buffer created successfully, length:', buffer.length, 'duration:', buffer.duration);
+
+      // Create direct Web Audio API sound (bypass Babylon.js Sound for now)
+      const bufferSource = this.audioContext.createBufferSource();
+      bufferSource.buffer = buffer;
+      bufferSource.loop = config.loop || false;
+      
+      // Create gain node for volume control
+      const gainNode = this.audioContext.createGain();
+      const baseVolume = config.volume || 0.5;
+      const effectiveVolume = this.audioStateManager ? 
+        baseVolume * this.audioStateManager.getEffectiveSFXVolume() : 
+        baseVolume;
+      gainNode.gain.value = effectiveVolume;
+      
+      console.log('Volume calculation:', {
+        baseVolume,
+        effectiveVolume,
+        audioState: this.audioStateManager?.getAudioState()
+      });
+      
+      // Connect: bufferSource -> gainNode -> destination
+      bufferSource.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      console.log('Audio graph connected for:', config.name);
+      
+      // Create a simple wrapper object that mimics Babylon.js Sound interface
+      const sound = {
+        name: config.name,
+        play: () => {
+          console.log('Starting buffer source for:', config.name);
+          bufferSource.start();
+        },
+        stop: () => {
+          console.log('Stopping buffer source for:', config.name);
+          bufferSource.stop();
+        },
+        dispose: () => {
+          console.log('Disposing buffer source for:', config.name);
+          bufferSource.disconnect();
+          gainNode.disconnect();
+        }
+      } as any;
+
+      this.activeSounds.set(config.name, sound);
+      console.log('Sound created and stored:', config.name);
+      logger.info(`Created procedural sound: ${config.name} (${config.frequency}Hz, ${config.type})`, 'ProceduralSoundManager');
+      
+      return sound;
+    } catch (error) {
+      console.error('Error creating procedural sound:', error);
+      logger.error(`Failed to create procedural sound: ${error}`, 'ProceduralSoundManager');
+      return null;
+    }
+  }
+
+  /**
+   * Play a procedural sound by name
+   * @param name Sound name
+   */
+  public static playProceduralSound(name: string): void {
+    const sound = this.activeSounds.get(name);
+    if (sound) {
+      sound.play();
+      logger.info(`Playing procedural sound: ${name}`, 'ProceduralSoundManager');
+    } else {
+      logger.warn(`Procedural sound not found: ${name}`, 'ProceduralSoundManager');
+    }
+  }
+
+  /**
+   * Stop a procedural sound by name
+   * @param name Sound name
+   */
+  public static stopProceduralSound(name: string): void {
+    const sound = this.activeSounds.get(name);
+    if (sound) {
+      sound.stop();
+      logger.info(`Stopped procedural sound: ${name}`, 'ProceduralSoundManager');
+    } else {
+      logger.warn(`Procedural sound not found: ${name}`, 'ProceduralSoundManager');
+    }
+  }
+
+  /**
+   * Create and play a test tone (440Hz A note)
+   */
+  public static async playTestTone(): Promise<void> {
+    console.log('ProceduralSoundManager.playTestTone called');
+    
+    if (!this.scene) {
+      console.error('ProceduralSoundManager not initialized - no scene');
+      return;
+    }
+    
+    if (!this.audioContext) {
+      console.error('ProceduralSoundManager not initialized - no audio context');
+      return;
+    }
+
+    // Ensure AudioContext is running (might be suspended)
+    if (this.audioContext.state === 'suspended') {
+      console.log('AudioContext is suspended, attempting to resume...');
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed successfully, state:', this.audioContext.state);
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+        return;
+      }
+    }
+
+    const testConfig: ProceduralSoundConfig = {
+      name: 'TestTone',
+      frequency: 440, // A4 note
+      duration: 2,
+      volume: 0.3,
+      type: 'sine'
+    };
+
+    console.log('Creating procedural sound with config:', testConfig);
+    const sound = await this.createProceduralSound(testConfig);
+    
+    if (sound) {
+      console.log('Sound created successfully, attempting to play...');
+      sound.play();
+      logger.info('Playing test tone (440Hz A note)', 'ProceduralSoundManager');
+    } else {
+      console.error('Failed to create procedural sound');
+    }
+  }
+
+  /**
+   * Create a chord progression
+   */
+  public static async playChordProgression(): Promise<void> {
+    const chordFrequencies = [261.63, 329.63, 392.00]; // C major chord (C4, E4, G4)
+    
+    for (let i = 0; i < chordFrequencies.length; i++) {
+      const config: ProceduralSoundConfig = {
+        name: `ChordNote${i}`,
+        frequency: chordFrequencies[i],
+        duration: 3,
+        volume: 0.2,
+        type: 'sine'
+      };
+
+      const sound = await this.createProceduralSound(config);
+      if (sound) {
+        // Stagger the notes slightly for a chord effect
+        setTimeout(() => {
+          sound.play();
+        }, i * 100);
+      }
+    }
+  }
+
+  /**
+   * Clean up all procedural sounds
+   */
+  public static dispose(): void {
+    this.activeSounds.forEach((sound) => {
+      sound.dispose();
+    });
+    this.activeSounds.clear();
+    
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    logger.info('ProceduralSoundManager disposed', 'ProceduralSoundManager');
+  }
+}
