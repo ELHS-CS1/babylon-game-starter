@@ -353,7 +353,7 @@ const ASSETS = {
             jumpHeight: 11, // Lower jumps
             rotationSpeed: 0.04, // Slower rotation
             rotationSmoothing: 0.01, // More smoothing for sluggish feel
-            animationBlend: 10,
+            animationBlend: 300,
             jumpDelay: 200
         }
     ],
@@ -833,7 +833,6 @@ export type {
     SkyConfig,
     EnvironmentParticle,
     CharacterAnims,
-    CharacterState,
     CharacterSpeed,
     ParticleSnippet,
     SoundEffect,
