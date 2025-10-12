@@ -3,6 +3,7 @@
 
 import { gameState } from './state';
 import { logger } from './utils/logger';
+import { remotePeerStateUpdateService } from './services/RemotePeerStateUpdateServiceProvider';
 
 export class DataStarIntegration {
   private isConnected = false;
@@ -194,20 +195,19 @@ export class DataStarIntegration {
     logger.info('👥 Received peer update:', { context: 'DataStar', tag: 'peer', data: peer });
     logger.info('👥 Current gameState.players before update:', { context: 'DataStar', tag: 'peer', count: gameState.players.length });
     
-    // Add or update the peer in the players list
-      const peerData = {
-        id: String(peer['id'] || ''),
-        name: String(peer['name'] || ''),
-        position: (peer['position'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
-        rotation: (peer['rotation'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
-        environment: String(peer['environment'] || 'Level Test'),
-        character: String(peer['character'] || 'Red'),
-        boostActive: Boolean(peer['boostActive'] ?? false),
-        state: String(peer['state'] || 'idle'),
-        lastUpdate: Number(peer['lastUpdate'] || Date.now())
-      };
+    const peerData = {
+      id: String(peer['id'] || ''),
+      name: String(peer['name'] || ''),
+      position: (peer['position'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
+      rotation: (peer['rotation'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
+      environment: String(peer['environment'] || 'Level Test'),
+      character: String(peer['character'] || 'Red'),
+      boostActive: Boolean(peer['boostActive'] ?? false),
+      state: String(peer['state'] || 'idle'),
+      lastUpdate: Number(peer['lastUpdate'] || Date.now())
+    };
     
-    // Find existing peer or add new one
+    // Update gameState (keep for backward compatibility)
     const existingIndex = gameState.players.findIndex(p => p.id === peerData.id);
     if (existingIndex >= 0) {
       gameState.players[existingIndex] = peerData;
@@ -216,6 +216,15 @@ export class DataStarIntegration {
       gameState.players.push(peerData);
       logger.info('👥 Added new peer:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
     }
+    
+    // Delegate to RemotePeerStateUpdateServiceProvider
+    remotePeerStateUpdateService.handlePeerUpdate(peerData).catch(error => {
+      logger.error('Failed to handle peer update in service:', { 
+        context: 'DataStar', 
+        tag: 'peer', 
+        error 
+      });
+    });
     
     logger.info('👥 Current gameState.players after update:', { context: 'DataStar', tag: 'peer', count: gameState.players.length });
   }

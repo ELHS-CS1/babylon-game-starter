@@ -898,4 +898,21 @@ export class CharacterController {
   public getThrusterSound(): Sound | null {
     return this.thrusterSound;
   }
+
+  public getCharacterState(): {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    state: string;
+    boostActive: boolean;
+  } {
+    const position = this.getPosition();
+    const rotation = this.displayCapsule.rotation;
+    
+    return {
+      position: { x: position.x, y: position.y, z: position.z },
+      rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+      state: this.state,
+      boostActive: this.boostActive
+    };
+  }
 }

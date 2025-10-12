@@ -8,6 +8,8 @@ import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { ProceduralSoundManager } from './ProceduralSoundManager';
 import { PeerRenderer } from './PeerRenderer';
+import { localPeerDataService } from '../services/LocalPeerDataServiceProvider';
+import { remotePeerStateUpdateService } from '../services/RemotePeerStateUpdateServiceProvider';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -46,10 +48,12 @@ export class SceneManager {
     this.setupInspector();
     
     // Initialize PeerRenderer for multiplayer character rendering
-    this.peerRenderer = new PeerRenderer(this.scene);
+    // DEPRECATED: Replaced by RemotePeerStateUpdateServiceProvider
+    // this.peerRenderer = new PeerRenderer(this.scene);
     
     // Setup peer rendering update loop
-    this.setupPeerRenderingLoop();
+    // DEPRECATED: Replaced by RemotePeerStateUpdateServiceProvider
+    // this.setupPeerRenderingLoop();
   }
 
   private async initializeScene(): Promise<void> {
@@ -60,6 +64,9 @@ export class SceneManager {
     await this.loadEnvironment("Level Test");
     this.setupCharacter();
     this.loadCharacterModel();
+
+    // Initialize RemotePeerStateUpdateServiceProvider
+    remotePeerStateUpdateService.initialize(this.scene);
 
     // Initialize collectibles system - THE WORD OF THE LORD!
     if (this.characterController) {
@@ -533,6 +540,9 @@ export class SceneManager {
             this.characterController.setThrusterSound(this.thrusterSound);
           }
 
+          // Initialize LocalPeerDataServiceProvider after character is fully loaded
+          this.initializePeerDataService(character);
+
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
         }
       })
@@ -603,33 +613,34 @@ export class SceneManager {
     }
   }
 
-  private setupPeerRenderingLoop(): void {
-    if (!this.peerRenderer) {
-      return;
-    }
+  // DEPRECATED: Replaced by RemotePeerStateUpdateServiceProvider
+  // private setupPeerRenderingLoop(): void {
+  //   if (!this.peerRenderer) {
+  //     return;
+  //   }
 
-    let lastPeerUpdate = 0;
-    const peerUpdateInterval = 100; // Update peers every 100ms
+  //   let lastPeerUpdate = 0;
+  //   const peerUpdateInterval = 100; // Update peers every 100ms
 
-    // Setup peer rendering update loop using onBeforeRenderObservable
-    this.scene.onBeforeRenderObservable.add(() => {
-      const now = Date.now();
+  //   // Setup peer rendering update loop using onBeforeRenderObservable
+  //   this.scene.onBeforeRenderObservable.add(() => {
+  //     const now = Date.now();
       
-      // Process peer updates at regular intervals
-      if (now - lastPeerUpdate >= peerUpdateInterval) {
-        this.processPeerUpdates().catch(error => {
-          logger.error('Failed to process peer updates:', { context: 'SceneManager', tag: 'peer', error });
-        });
-        lastPeerUpdate = now;
-      }
+  //     // Process peer updates at regular intervals
+  //     if (now - lastPeerUpdate >= peerUpdateInterval) {
+  //       this.processPeerUpdates().catch(error => {
+  //         logger.error('Failed to process peer updates:', { context: 'SceneManager', tag: 'peer', error });
+  //       });
+  //       lastPeerUpdate = now;
+  //     }
       
-      // Update peer interpolation every frame for smooth movement
-      const deltaTime = this.scene.getEngine().getDeltaTime() / 1000; // Convert to seconds
-      this.updatePeerInterpolation(deltaTime);
-    });
+  //     // Update peer interpolation every frame for smooth movement
+  //     const deltaTime = this.scene.getEngine().getDeltaTime() / 1000; // Convert to seconds
+  //     this.updatePeerInterpolation(deltaTime);
+  //   });
 
-    logger.info('Peer rendering loop setup complete', { context: 'SceneManager', tag: 'peer' });
-  }
+  //   logger.info('Peer rendering loop setup complete', { context: 'SceneManager', tag: 'peer' });
+  // }
 
 
   public getCharacterController(): CharacterController | null {
@@ -746,6 +757,9 @@ export class SceneManager {
     // Set up environment items for the new environment
     await this.setupEnvironmentItems();
 
+    // Notify LocalPeerDataServiceProvider of environment change
+    localPeerDataService.changeEnvironment(environmentName);
+
     // Reposition character to safe location in new environment
     this.repositionCharacter();
 
@@ -813,10 +827,46 @@ export class SceneManager {
     // Load the new character with preserved position
     this.loadCharacter(character, currentPosition);
     
+    // Notify LocalPeerDataServiceProvider of character change
+    localPeerDataService.changeCharacterModel(character.name);
+    
     logger.info(`Character changed to: ${character.name}`, 'SceneManager');
   }
 
+  private async initializePeerDataService(character: any): Promise<void> {
+    if (!this.characterController) {
+      logger.warn('Cannot initialize peer data service: character controller not available', 'SceneManager');
+      return;
+    }
+
+    try {
+      // Get peerId from dataStarIntegration or generate a temporary one
+      // For now, we'll use a placeholder - this should be replaced with actual peerId from the connection
+      const peerId = 'local-peer-' + Date.now();
+      const playerName = 'Player_' + Math.random().toString(36).substr(2, 9);
+      
+      localPeerDataService.initialize(
+        this.characterController,
+        peerId,
+        playerName,
+        this.currentEnvironment,
+        character.name
+      );
+      
+      logger.info('LocalPeerDataServiceProvider initialized successfully', 'SceneManager');
+    } catch (error) {
+      logger.error('Failed to initialize LocalPeerDataServiceProvider:', 'SceneManager');
+      logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`, 'SceneManager');
+    }
+  }
+
   public dispose(): void {
+    // Dispose LocalPeerDataServiceProvider
+    localPeerDataService.dispose();
+
+    // Dispose RemotePeerStateUpdateServiceProvider
+    remotePeerStateUpdateService.dispose();
+
     // Dispose character controller
     if (this.characterController) {
       this.characterController.dispose();

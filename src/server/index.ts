@@ -1,185 +1,23 @@
+// ============================================================================
+// MAIN SERVER - Modularized server with clean separation of concerns
+// ============================================================================
+
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createServer as createHttpServer } from 'http';
 import { join } from 'path';
-import { readFileSync } from 'fs';
 import config, { logConfig } from './config.js';
 import { GDCReportCollector } from './reports/GDCReportCollector.js';
 import { GDCReportManager } from './reports/GDCReportManager.js';
 import { GDCReportAPI } from './reports/GDCReportAPI.js';
 import { pushNotificationService } from './services/PushNotificationService.js';
+import { PeerDataManager } from './modules/PeerDataManager.js';
+import { SSEManager } from './modules/SSEManager.js';
+import { StaticFileServer } from './modules/StaticFileServer.js';
 
-// Note: __dirname is not used in this file as we use config paths
-
-// Types for our game state
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-interface Peer {
-  id: string;
-  name: string;
-  position: Vector3;
-  rotation: Vector3;
-  environment: string;
-  character: string;
-  boostActive: boolean;
-  state: string;
-  lastUpdate: number;
-}
-
-// Type guard functions for safe data validation
-function isVector3(obj: unknown): obj is Vector3 {
-  if (obj === null || obj === undefined || typeof obj !== 'object') {
-    return false;
-  }
-  
-  if (!('x' in obj) || !('y' in obj) || !('z' in obj)) {
-    return false;
-  }
-  
-  const xValue = obj['x'];
-  const yValue = obj['y'];
-  const zValue = obj['z'];
-  
-  return typeof xValue === 'number' && typeof yValue === 'number' && typeof zValue === 'number';
-}
-
-function isPeer(obj: unknown): obj is Peer {
-  if (obj === null || obj === undefined || typeof obj !== 'object') {
-    return false;
-  }
-  
-  return 'id' in obj && typeof obj['id'] === 'string' &&
-         'name' in obj && typeof obj['name'] === 'string' &&
-         'position' in obj && isVector3(obj['position']) &&
-         'rotation' in obj && isVector3(obj['rotation']) &&
-         'environment' in obj && typeof obj['environment'] === 'string' &&
-         'lastUpdate' in obj && typeof obj['lastUpdate'] === 'number';
-}
-
-function getPeerSafely(peers: Record<string, Peer>, id: string): Peer | undefined {
-  const peer = peers[id];
-  if (peer && isPeer(peer)) {
-    return peer;
-  }
-  return undefined;
-}
-
-
-interface GameState {
-  peers: Record<string, Peer>;
-  environments: string[];
-  currentEnvironment: string;
-}
-
-// Initialize game state
-const gameState: GameState = {
-  peers: {},
-  environments: ['levelTest', 'islandTown', 'joyTown', 'mansion', 'firefoxReality'],
-  currentEnvironment: 'levelTest'
-};
-
-// Store SSE connections for DataStar
-const sseConnections = new Set<ServerResponse>();
-
-// Map SSE connections to peer IDs for proper message routing
-const connectionToPeerMap = new Map<ServerResponse, string>();
-
-// SSE connection handler for DataStar
-function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
-  // Set SSE headers
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': config.corsOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
-  });
-
-  // Send initial connection event
-  res.write('data: {"type":"connected","timestamp":' + Date.now() + '}\n\n');
-
-  // Store connection
-  sseConnections.add(res);
-  console.log(`🔗 SSE connection established. Total connections: ${sseConnections.size}`);
-
-  // Send periodic heartbeat
-  const heartbeat = setInterval(() => {
-    if (sseConnections.has(res)) {
-      res.write('data: {"type":"heartbeat","timestamp":' + Date.now() + '}\n\n');
-    } else {
-      clearInterval(heartbeat);
-    }
-  }, 30000);
-
-  // Handle client disconnect
-  req.on('close', () => {
-    // Remove peer from game state if this connection was associated with a peer
-    const peerId = connectionToPeerMap.get(res);
-    if (peerId && gameState.peers[peerId]) {
-      delete gameState.peers[peerId];
-      console.log(`👋 Peer ${peerId} disconnected and removed from game state`);
-    }
-    
-    // Clean up connection mappings
-    connectionToPeerMap.delete(res);
-    sseConnections.delete(res);
-    clearInterval(heartbeat);
-    console.log(`🔌 SSE connection closed. Total connections: ${sseConnections.size}`);
-  });
-
-  req.on('error', (error) => {
-    // Remove peer from game state if this connection was associated with a peer
-    const peerId = connectionToPeerMap.get(res);
-    if (peerId && gameState.peers[peerId]) {
-      delete gameState.peers[peerId];
-      console.log(`👋 Peer ${peerId} disconnected due to error and removed from game state`);
-    }
-    
-    // Clean up connection mappings
-    connectionToPeerMap.delete(res);
-    sseConnections.delete(res);
-    clearInterval(heartbeat);
-    console.log(`❌ SSE connection error: ${error.message}. Total connections: ${sseConnections.size}`);
-  });
-}
-
-// Broadcast to all SSE connections
-function broadcastToSSE(data: unknown): void {
-  const message = 'data: ' + JSON.stringify(data) + '\n\n';
-  sseConnections.forEach(res => {
-    try {
-      res.write(message);
-    } catch {
-      sseConnections.delete(res);
-    }
-  });
-}
-
-// Broadcast to SSE connections in a specific environment
-function broadcastToEnvironment(environment: string, data: unknown): void {
-  const message = 'data: ' + JSON.stringify(data) + '\n\n';
-  let broadcastCount = 0;
-  
-  sseConnections.forEach(res => {
-    const peerId = connectionToPeerMap.get(res);
-    if (peerId && gameState.peers[peerId] && gameState.peers[peerId].environment === environment) {
-      try {
-        res.write(message);
-        broadcastCount++;
-      } catch {
-        sseConnections.delete(res);
-        connectionToPeerMap.delete(res);
-      }
-    }
-  });
-  
-  console.log(`📡 Broadcasted to ${broadcastCount} peers in environment: ${environment}`);
-}
-
+// Initialize modules
+const peerDataManager = new PeerDataManager();
+const sseManager = new SSEManager(peerDataManager, config.corsOrigin);
+const staticFileServer = new StaticFileServer(config.clientPath);
 
 // Initialize GDC reporting system
 const reportCollector = new GDCReportCollector();
@@ -190,25 +28,184 @@ const reportManager = new GDCReportManager({
 });
 const reportAPI = new GDCReportAPI(reportManager, reportCollector);
 
-// Serve static files
-const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: string, contentType: string) => {
-  try {
-    const content = readFileSync(filePath);
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
-  } catch (error) {
-    // File not found or error reading file
-    res.writeHead(404);
-    res.end('Not Found');
+// API request handler
+async function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  // Handle DataStar send endpoint
+  if (url.pathname === '/api/datastar/send' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        console.log('📤 Received DataStar send request:', data);
+        
+        // Handle different request types
+        if (data.type === 'requestPeers' && data.environment) {
+          handlePeerRequest(res, data.environment);
+        } else if (data.type === 'join' && data.playerName) {
+          handleJoinRequest(res, data);
+        } else if (data.type === 'positionUpdate') {
+          handlePositionUpdate(req, res, data);
+        } else if (data.type === 'peerDataUpdate') {
+          handlePeerDataUpdate(req, res, data);
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unknown request type' }));
+        }
+      } catch (error) {
+        console.error('❌ Error handling request:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request' }));
+      }
+    });
+    return;
   }
-};
+  
+  // Handle GDC reports API
+  if (url.pathname.startsWith('/api/gdc/')) {
+    await reportAPI.handleRequest(req, res);
+    return;
+  }
+  
+  // Handle push notification API
+  if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        JSON.parse(body); // Parse subscription data
+        // pushNotificationService.addSubscription(subscription);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (error) {
+        console.error('❌ Error handling push subscription:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid subscription' }));
+      }
+    });
+    return;
+  }
+  
+  // Handle push notification public key request
+  if (url.pathname === '/api/push/public-key' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      publicKey: pushNotificationService.getPublicKey() 
+    }));
+    return;
+  }
+  
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not Found' }));
+}
 
-// Create HTTP server like ScholarTrack - Render.com handles HTTPS at load balancer
-const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse) => {
+// Helper functions for API handlers
+function handlePeerRequest(res: ServerResponse, environment: string): void {
+  const environmentPeers = peerDataManager.getPeersByEnvironment(environment);
+  const response = {
+    type: 'peersResponse',
+    environment,
+    peers: environmentPeers,
+    timestamp: Date.now()
+  };
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response));
+}
+
+function handleJoinRequest(res: ServerResponse, data: any): void {
+  const newPlayer = peerDataManager.addPeer(data.playerName, data.character);
+  peerDataManager.associateConnectionWithPeer(res, newPlayer.id);
+  
+  const existingPeers = peerDataManager.getPeersByEnvironment(newPlayer.environment)
+    .filter(peer => peer.id !== newPlayer.id);
+  
+  const response = {
+    type: 'joinResponse',
+    success: true,
+    player: newPlayer,
+    existingPeers,
+    gameState: {
+      peers: peerDataManager.getPeersByEnvironment(newPlayer.environment).length,
+      environment: newPlayer.environment
+    },
+    timestamp: Date.now()
+  };
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response));
+  
+  // Broadcast to others
+  const peerUpdateMessage = {
+    type: 'peerUpdate',
+    peer: newPlayer,
+    gameState: {
+      peers: peerDataManager.getPeersByEnvironment(newPlayer.environment).length,
+      environment: newPlayer.environment
+    }
+  };
+  sseManager.broadcastToEnvironment(newPlayer.environment, peerUpdateMessage);
+}
+
+function handlePositionUpdate(_req: IncomingMessage, res: ServerResponse, data: any): void {
+  const peerId = peerDataManager.getPeerIdFromConnection(res);
+  
+  if (peerId && peerDataManager.updatePeerPosition(
+    peerId,
+    data.position,
+    data.rotation,
+    data.boostActive,
+    data.state
+  )) {
+    const peer = peerDataManager.getPeer(peerId);
+    if (peer) {
+      sseManager.broadcastToEnvironment(peer.environment, {
+        type: 'peerUpdate',
+        peer
+      });
+    }
+  }
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: true }));
+}
+
+function handlePeerDataUpdate(_req: IncomingMessage, res: ServerResponse, data: any): void {
+  // Handle differential peer data updates from LocalPeerDataServiceProvider
+  const peerId = data.data?.id;
+  
+  if (peerId) {
+    peerDataManager.updatePeerPosition(
+      peerId,
+      data.data.position,
+      data.data.rotation,
+      data.data.boostActive,
+      data.data.state
+    );
+    
+    const peer = peerDataManager.getPeer(peerId);
+    if (peer) {
+      sseManager.broadcastToEnvironment(peer.environment, {
+        type: 'peerUpdate',
+        peer: data.data  // Send only changed fields
+      });
+    }
+  }
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: true }));
+}
+
+// Create HTTP server
+const server = createHttpServer(async (req, res) => {
   const hostHeader = req.headers.host;
-  const host: string | undefined = Array.isArray(hostHeader) ? 
-    (typeof hostHeader[0] === 'string' ? hostHeader[0] : undefined) : 
-    hostHeader;
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
   const url = new URL(req.url ?? '/', `http://${host ?? 'localhost'}`);
   
   // CORS headers
@@ -222,13 +219,14 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
     return;
   }
   
-  // Health check endpoint
+  // Health check
   if (url.pathname === config.healthCheckPath) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'healthy', 
-      peers: Object.keys(gameState.peers).length,
-      environment: gameState.currentEnvironment,
+      peers: peerDataManager.getPeerCount(),
+      connections: sseManager.getConnectionCount(),
+      environment: peerDataManager.getGameState().currentEnvironment,
       protocol: 'http',
       config: {
         isProduction: config.isProduction,
@@ -241,683 +239,45 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
   
   // API endpoints
   if (url.pathname.startsWith('/api/')) {
-    // Handle SSE endpoint for DataStar
     if (url.pathname === '/api/datastar/sse') {
-      handleSSEConnection(req, res);
+      sseManager.handleSSEConnection(req, res);
+      return;
+    }
+    await handleApiRequest(req, res, url);
       return;
     }
     
-    // Handle DataStar send endpoint
-    if (url.pathname === '/api/datastar/send' && req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-      
-      req.on('end', () => {
-        try {
-          const data = JSON.parse(body);
-          
-          // Log the received data
-          console.log('📤 Received DataStar send request:', data);
-          console.log(`📊 Current SSE connections: ${sseConnections.size}`);
-          
-          // Log the peers map structure
-          console.log('🗺️ Current peers map:');
-          console.log(`   Total peers: ${Object.keys(gameState.peers).length}`);
-          Object.entries(gameState.peers).forEach(([peerId, peerData]) => {
-            console.log(`   Peer ${peerId}:`, {
-              name: peerData.name,
-              environment: peerData.environment,
-              position: peerData.position,
-              rotation: peerData.rotation,
-              character: peerData.character,
-              boostActive: peerData.boostActive,
-              state: peerData.state,
-              lastUpdate: peerData.lastUpdate
-            });
-          });
-          
-          // Log connection to peer mapping
-          console.log('🔗 Connection to peer mapping:');
-          connectionToPeerMap.forEach((peerId, _connection) => {
-            console.log(`   Connection -> Peer: ${peerId}`);
-          });
-          
-          // Handle peer requests
-          if (data.type === 'requestPeers' && data.environment) {
-            const environmentPeers = Object.values(gameState.peers)
-              .filter(peer => peer.environment === data.environment);
-            
-            console.log(`📋 Sending ${environmentPeers.length} peers for environment ${data.environment}`);
-            
-            const response = {
-              type: 'peersResponse',
-              environment: data.environment,
-              peers: environmentPeers,
-              timestamp: Date.now()
-            };
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
-          }
-          
-          // Handle join requests specifically
-          if (data.type === 'join' && data.playerName) {
-            const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            const newPlayer = {
-              id: playerId,
-              name: data.playerName,
-              position: { x: 0, y: 0, z: 0 },
-              rotation: { x: 0, y: 0, z: 0 },
-              environment: gameState.currentEnvironment,
-              character: data.character || 'Red', // Default character
-              boostActive: false,
-              state: 'idle',
-              lastUpdate: Date.now()
-            };
-            
-            gameState.peers[playerId] = newPlayer;
-            
-            // Associate this connection with the peer ID
-            connectionToPeerMap.set(res, playerId);
-            
-            console.log('✅ Player added to game state:', newPlayer);
-            console.log(`🔗 Associated connection with peer ID: ${playerId}`);
-            
-            // Log updated peers map after adding new player
-            console.log('🗺️ Updated peers map after join:');
-            console.log(`   Total peers: ${Object.keys(gameState.peers).length}`);
-            Object.entries(gameState.peers).forEach(([peerId, peerData]) => {
-              console.log(`   Peer ${peerId}:`, {
-                name: peerData.name,
-                environment: peerData.environment,
-                position: peerData.position,
-                rotation: peerData.rotation,
-                character: peerData.character,
-                boostActive: peerData.boostActive,
-                state: peerData.state,
-                lastUpdate: peerData.lastUpdate
-              });
-            });
-            
-            // Get existing peers in the same environment
-            const existingPeers = Object.values(gameState.peers)
-              .filter(peer => peer.environment === newPlayer.environment && peer.id !== newPlayer.id);
-            
-            // Send response back to the client with existing peers
-            const response = {
-              type: 'joinResponse',
-              success: true,
-              player: newPlayer,
-              existingPeers: existingPeers,
-              gameState: {
-                peers: Object.values(gameState.peers).filter(p => p.environment === newPlayer.environment).length,
-                environment: newPlayer.environment
-              },
-              timestamp: Date.now()
-            };
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            
-            // Broadcast player update to peers in the same environment
-            const peerUpdateMessage = {
-              type: 'peerUpdate',
-              peer: newPlayer,
-              gameState: {
-                peers: Object.values(gameState.peers).filter(p => p.environment === newPlayer.environment).length,
-                environment: newPlayer.environment
-              }
-            };
-            
-            broadcastToEnvironment(newPlayer.environment, peerUpdateMessage);
-            
-            return;
-          }
-          
-          // Handle position update requests
-          if (data.type === 'positionUpdate') {
-            const peerId = connectionToPeerMap.get(res);
-            console.log(`📍 Position update from peerId: ${peerId}`);
-            console.log(`📍 Peer exists in gameState: ${peerId && gameState.peers[peerId] ? 'YES' : 'NO'}`);
-            
-            if (peerId && gameState.peers[peerId] && data.position && data.rotation) {
-              // Log the peer data before update
-              console.log(`📍 Peer ${peerId} BEFORE update:`, {
-                name: gameState.peers[peerId].name,
-                environment: gameState.peers[peerId].environment,
-                position: gameState.peers[peerId].position,
-                rotation: gameState.peers[peerId].rotation,
-                character: gameState.peers[peerId].character,
-                boostActive: gameState.peers[peerId].boostActive,
-                state: gameState.peers[peerId].state,
-                lastUpdate: gameState.peers[peerId].lastUpdate
-              });
-              
-              // Update peer position and rotation
-              gameState.peers[peerId].position = data.position;
-              gameState.peers[peerId].rotation = data.rotation;
-              gameState.peers[peerId].lastUpdate = data.timestamp || Date.now();
-              
-              // Log the peer data after update
-              console.log(`📍 Peer ${peerId} AFTER update:`, {
-                name: gameState.peers[peerId].name,
-                environment: gameState.peers[peerId].environment,
-                position: gameState.peers[peerId].position,
-                rotation: gameState.peers[peerId].rotation,
-                character: gameState.peers[peerId].character,
-                boostActive: gameState.peers[peerId].boostActive,
-                state: gameState.peers[peerId].state,
-                lastUpdate: gameState.peers[peerId].lastUpdate
-              });
-              
-              // Broadcast position update to other peers in the same environment
-              const positionUpdateMessage = {
-                type: 'positionUpdate',
-                peerId: peerId,
-                position: data.position,
-                rotation: data.rotation,
-                state: data.state,
-                boostActive: data.boostActive,
-                timestamp: data.timestamp || Date.now()
-              };
-              
-              broadcastToEnvironment(gameState.peers[peerId].environment, positionUpdateMessage);
-              
-              return;
-            }
-          }
-          
-          // Handle request peers for environment
-          if (data.type === 'requestPeers' && data.environment) {
-            const peerId = connectionToPeerMap.get(res);
-            if (peerId && gameState.peers[peerId]) {
-              // Get peers in the requested environment
-              const environmentPeers = Object.values(gameState.peers)
-                .filter(peer => peer.environment === data.environment);
-              
-              console.log(`📋 Peer ${peerId} requested peers for environment: ${data.environment}`);
-              console.log(`📋 Found ${environmentPeers.length} peers in environment`);
-              
-              // Send response back to the client
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                type: 'peersResponse',
-                environment: data.environment,
-                peers: environmentPeers,
-                timestamp: Date.now()
-              }));
-              
-              return;
-            } else {
-              console.log('❌ Request peers from unknown peer');
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Peer not found' }));
-              return;
-            }
-          }
-          
-          // Handle environment change requests
-          if (data.type === 'environmentChange' && data.environment) {
-            const peerId = connectionToPeerMap.get(res);
-            if (peerId && gameState.peers[peerId]) {
-              const oldEnvironment = gameState.peers[peerId].environment;
-              gameState.peers[peerId].environment = data.environment;
-              gameState.peers[peerId].lastUpdate = Date.now();
-              
-              console.log(`🌍 Peer ${peerId} changed environment from ${oldEnvironment} to ${data.environment}`);
-              
-              // Broadcast environment change to peers in the new environment
-              const environmentChangeMessage = {
-                type: 'environmentChange',
-                peerId: peerId,
-                environment: data.environment,
-                timestamp: Date.now(),
-                gameState: {
-                  environment: data.environment,
-                  peers: Object.values(gameState.peers).filter(p => p.environment === data.environment).length
-                }
-              };
-              
-              broadcastToEnvironment(data.environment, environmentChangeMessage);
-              
-              // Send response back to the client
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                type: 'environmentChangeResponse',
-                success: true,
-                environment: data.environment,
-                timestamp: Date.now()
-              }));
-              
-              return;
-            } else {
-              console.log('❌ Environment change request from unknown peer');
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Peer not found' }));
-              return;
-            }
-          }
-          
-          // For other message types, broadcast to all SSE connections
-          const message = `data: ${JSON.stringify(data)}\n\n`;
-          sseConnections.forEach((connection) => {
-            try {
-              connection.write(message);
-            } catch (error) {
-              console.error('Error broadcasting to SSE connection:', error);
-            }
-          });
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, timestamp: Date.now() }));
-        } catch (error) {
-          console.error('Error processing DataStar send request:', error);
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        }
-      });
-      return;
-    }
-    
-            // Handle GDC report endpoints
-            if (url.pathname.startsWith('/api/reports')) {
-              await reportAPI.handleRequest(req, res);
-              return;
-            }
-
-            // Handle push notification endpoints
-            if (url.pathname === '/api/push/subscribe') {
-              await pushNotificationService.handleSubscriptionRequest(req, res);
-              return;
-            }
-
-            if (url.pathname === '/api/push/notify') {
-              await pushNotificationService.handleNotificationRequest(req, res);
-              return;
-            }
-
-            if (url.pathname === '/api/push/vapid-key') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ 
-                publicKey: pushNotificationService.getPublicKey() 
-              }));
-              return;
-            }
-    
-    handleApiRequest(req, res, url);
-    return;
-  }
-  
-  // Serve client files
-  if (url.pathname === '/' || url.pathname === '/index.html') {
-    // Read the index.html file and inject SSR data
-    try {
-      const indexPath = join(config.clientPath, 'index.html');
-      let htmlContent = readFileSync(indexPath, 'utf8');
-      
-      // Determine the base URL for SSR injection
-      // Render.com uses x-forwarded-proto and x-forwarded-host headers
-      const protocol = req.headers['x-forwarded-proto'] || 
-                      req.headers['x-forwarded-protocol'] || 
-                      'http';
-      
-      const host = req.headers['x-forwarded-host'] || 
-                   req.headers.host || 
-                   'localhost:10000';
-      
-      // Ensure protocol is https for production (Render.com requirement)
-      const finalProtocol = process.env['NODE_ENV'] === 'production' ? 'https' : protocol;
-      const baseUrl = `${finalProtocol}://${host}`;
-      
-      // Debug logging for URL detection (only in development)
-      if (process.env['NODE_ENV'] !== 'production') {
-        console.log('SSR URL Detection:', {
-          'x-forwarded-proto': req.headers['x-forwarded-proto'],
-          'x-forwarded-host': req.headers['x-forwarded-host'],
-          'host': req.headers.host,
-          'finalProtocol': finalProtocol,
-          'baseUrl': baseUrl
-        });
-      }
-      
-      // Replace SSR placeholders
-      htmlContent = htmlContent.replace(/%VITE_APP_BASE_URL%/g, baseUrl);
-      
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(htmlContent);
-    } catch (error) {
-      res.writeHead(500);
-      res.end('Internal Server Error');
-    }
-    return;
-  }
-  
-  // Serve service worker
+  // Static file serving
   if (url.pathname === '/sw.js') {
-    serveStatic(req, res, join(config.clientPath, 'sw.js'), 'application/javascript');
-    return;
-  }
-  
-  // Serve manifest
-  if (url.pathname === '/manifest.json') {
-    serveStatic(req, res, join(config.clientPath, 'manifest.json'), 'application/json');
-    return;
-  }
-  
-  // Serve favicon specifically
-  if (url.pathname === '/favicon.ico' || url.pathname === '/icons/favicon.png') {
-    const faviconPath = join(config.clientPath, 'icons', 'favicon.png');
-    serveStatic(req, res, faviconPath, 'image/png');
-    return;
-  }
-  
-  // Serve icons directory
-  if (url.pathname.startsWith('/icons/')) {
-    const iconPath = join(config.clientPath, url.pathname);
-    const ext = url.pathname.split('.').pop()?.toLowerCase();
-    const contentType = getContentType(ext);
-    serveStatic(req, res, iconPath, contentType);
-    return;
-  }
-  
-  // Serve assets directory
-  if (url.pathname.startsWith('/assets/')) {
-    const assetPath = join(config.clientPath, url.pathname);
-    const ext = url.pathname.split('.').pop()?.toLowerCase();
-    const contentType = getContentType(ext);
-    serveStatic(req, res, assetPath, contentType);
-    return;
-  }
-  
-  // Serve static assets
-  const assetPath = join(config.clientPath, url.pathname);
-  const ext = url.pathname.split('.').pop()?.toLowerCase();
-  const contentType = getContentType(ext);
-  
-  serveStatic(req, res, assetPath, contentType);
-});
-
-function getContentType(ext?: string): string {
-  switch (ext) {
-    case 'js': return 'application/javascript';
-    case 'css': return 'text/css';
-    case 'html': return 'text/html';
-    case 'json': return 'application/json';
-    case 'png': return 'image/png';
-    case 'jpg': case 'jpeg': return 'image/jpeg';
-    case 'gif': return 'image/gif';
-    case 'webp': return 'image/webp';
-    case 'svg': return 'image/svg+xml';
-    case 'woff': return 'font/woff';
-    case 'woff2': return 'font/woff2';
-    case 'ttf': return 'font/ttf';
-    case 'eot': return 'application/vnd.ms-fontobject';
-    case undefined: return 'application/octet-stream';
-    default: return 'application/octet-stream';
-  }
-}
-
-function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
-  res.setHeader('Content-Type', 'application/json');
-  
-  if (url.pathname === '/api/peers') {
-    if (req.method === 'GET') {
-      // Return peers in current environment only
-      const currentPeers = Object.values(gameState.peers)
-        .filter(peer => peer.environment === gameState.currentEnvironment);
-      
-      // Collect metrics
-      reportCollector.incrementRequestCount();
-      reportCollector.collectGameMetrics(
-        currentPeers.length,
-        Object.keys(gameState.peers).length,
-        gameState.currentEnvironment
-      );
-      
-      res.writeHead(200);
-      res.end(JSON.stringify(currentPeers));
-      return;
-    }
-    
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', (chunk: unknown) => {
-        body += String(chunk);
-      });
-      
-      req.on('end', async () => {
-        try {
-          const peerData: unknown = JSON.parse(body);
-          if (peerData === null || peerData === undefined || typeof peerData !== 'object') {
-            return;
-          }
-          const peerDataObj = peerData as Record<string, unknown>;
-          const peer: Peer = {
-            id: typeof peerDataObj['id'] === 'string' ? peerDataObj['id'] : '',
-            name: typeof peerDataObj['name'] === 'string' ? peerDataObj['name'] : 'Unknown',
-            position: isVector3(peerDataObj['position']) ? peerDataObj['position'] : { x: 0, y: 0, z: 0 },
-            rotation: isVector3(peerDataObj['rotation']) ? peerDataObj['rotation'] : { x: 0, y: 0, z: 0 },
-            environment: gameState.currentEnvironment,
-            character: typeof peerDataObj['character'] === 'string' ? peerDataObj['character'] : 'Red',
-            boostActive: typeof peerDataObj['boostActive'] === 'boolean' ? peerDataObj['boostActive'] : false,
-            state: typeof peerDataObj['state'] === 'string' ? peerDataObj['state'] : 'idle',
-            lastUpdate: Date.now()
-          };
-          
-                  if (peer.id !== '') {
-                    const isNewPeer = !gameState.peers[peer.id];
-                    gameState.peers[peer.id] = peer;
-
-                    // Collect peer metrics
-                    reportCollector.collectPeerMetrics(peer.id, peer as unknown as Record<string, unknown>);
-                    reportCollector.collectEnvironmentMetrics(gameState.currentEnvironment,
-                      Object.values(gameState.peers).filter(p => p.environment === gameState.currentEnvironment).length);
-
-                    // Broadcast peer update via SSE
-                    broadcastToSSE({
-                      type: 'peerUpdate',
-                      peer: peer,
-                      gameState: {
-                        peers: Object.keys(gameState.peers).length,
-                        environment: gameState.currentEnvironment
-                      }
-                    });
-
-                    // Send push notification if this is a new peer joining
-                    if (isNewPeer) {
-                      await pushNotificationService.sendNotificationToAll({
-                        title: '🎮 New Player Joined!',
-                        body: `${peer.name} joined the game in ${gameState.currentEnvironment}`,
-                        icon: '/icons/sigma-logo-192.png',
-                        badge: '/icons/sigma-logo-64.png',
-                        data: {
-                          type: 'player-joined',
-                          peerId: peer.id,
-                          peerName: peer.name,
-                          environment: gameState.currentEnvironment,
-                          timestamp: Date.now()
-                        },
-                        actions: [
-                          {
-                            action: 'join',
-                            title: 'Join Game',
-                            icon: '/icons/sigma-logo-192.png'
-                          }
-                        ]
-                      });
-                    }
-                  }
-          
-          res.writeHead(201);
-          res.end(JSON.stringify(peer));
-        } catch {
-          reportCollector.incrementErrorCount();
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        }
-      });
-      return;
-    }
-  }
-  
-  if (url.pathname === '/api/environments') {
-    if (req.method === 'GET') {
-      res.writeHead(200);
-      res.end(JSON.stringify({
-        environments: gameState.environments,
-        current: gameState.currentEnvironment
-      }));
-      return;
-    }
-  }
-  
-          if (url.pathname.startsWith('/api/peer/') && req.method === 'PUT') {
-            const peerId = url.pathname.split('/')[3];
-            if (peerId === null || peerId === undefined || peerId === '') {
-              res.writeHead(400);
-              res.end(JSON.stringify({ error: 'Peer ID is required' }));
+    staticFileServer.handleServiceWorker(req, res);
               return;
             }
-            let body = '';
-            
-            req.on('data', (chunk: unknown) => {
-              body += String(chunk);
-            });
-            
-            req.on('end', () => {
-              try {
-                const updateData: unknown = JSON.parse(body);
-                if (updateData === null || updateData === undefined || typeof updateData !== 'object') {
-                  return;
-                }
-                const updateDataObj = updateData as Record<string, unknown>;
-                
-                if (peerId !== '' && peerId in gameState.peers) {
-                  const existingPeer = getPeerSafely(gameState.peers, peerId);
-                  
-                  if (!existingPeer) {
-                    res.writeHead(404);
-                    res.end(JSON.stringify({ error: 'Peer not found' }));
-                    return;
-                  }
-                  
-                  const updatedPeer: Peer = {
-                    ...existingPeer,
-                    lastUpdate: Date.now()
-                  };
-                  
-                  // Safely update only known properties
-                  if (typeof updateDataObj['id'] === 'string') updatedPeer.id = updateDataObj['id'];
-                  if (typeof updateDataObj['name'] === 'string') updatedPeer.name = updateDataObj['name'];
-                  if (isVector3(updateDataObj['position'])) updatedPeer.position = updateDataObj['position'];
-                  if (isVector3(updateDataObj['rotation'])) updatedPeer.rotation = updateDataObj['rotation'];
-                  if (typeof updateDataObj['environment'] === 'string') updatedPeer.environment = updateDataObj['environment'];
-                  
-                  gameState.peers[peerId] = updatedPeer;
-                  
-                  // Collect peer metrics
-                  const peerMetrics: Record<string, unknown> = {
-                    id: updatedPeer.id,
-                    name: updatedPeer.name,
-                    position: updatedPeer.position,
-                    rotation: updatedPeer.rotation,
-                    environment: updatedPeer.environment,
-                    lastUpdate: updatedPeer.lastUpdate
-                  };
-                  if (peerId) {
-                    reportCollector.collectPeerMetrics(peerId, peerMetrics);
-                  }
-                  
-                  res.writeHead(200);
-                  res.end(JSON.stringify(updatedPeer));
-                } else {
-                  res.writeHead(404);
-                  res.end(JSON.stringify({ error: 'Peer not found' }));
-                }
-              } catch {
-                reportCollector.incrementErrorCount();
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'Invalid JSON' }));
-              }
-            });
-            return;
-          }
-          
-          if (url.pathname === '/api/logs' && req.method === 'POST') {
-            let body = '';
-            
-            req.on('data', (chunk: unknown) => {
-              body += String(chunk);
-            });
-            
-            req.on('end', () => {
-              try {
-                const logData: unknown = JSON.parse(body);
-                if (logData === null || logData === undefined || typeof logData !== 'object') {
-                  return;
-                }
-                const logDataObj = logData as Record<string, unknown>;
-                if (logDataObj['logs'] !== undefined && Array.isArray(logDataObj['logs'])) {
-                  // Browser logs processing disabled per TEN_COMMANDMENTS
-                  // All console statements must be removed
-                }
-                
-                res.writeHead(200);
-                res.end(JSON.stringify({ status: 'received' }));
-              } catch {
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'Invalid JSON' }));
-              }
-            });
-            return;
-          }
-  
-  res.writeHead(404);
-  res.end(JSON.stringify({ error: 'Not found' }));
-}
 
-// Clean up inactive peers every 30 seconds
-setInterval(() => {
-  const now = Date.now();
-  const timeout = 60000; // 1 minute timeout
-  
-  Object.keys(gameState.peers).forEach(peerId => {
-    const peer = gameState.peers[peerId];
-    if (peer && now - peer.lastUpdate > timeout) {
-      delete gameState.peers[peerId];
-    }
-  });
-}, 30000);
+  if (url.pathname === '/manifest.json') {
+    staticFileServer.handleManifest(req, res);
+              return;
+            }
 
+  if (url.pathname === '/favicon.ico' || url.pathname === '/icons/favicon.png') {
+    staticFileServer.handleFavicon(req, res);
+              return;
+            }
+
+  if (url.pathname.startsWith('/icons/')) {
+    staticFileServer.handleIcon(req, res, url.pathname);
+    return;
+  }
+  
+  if (url.pathname.startsWith('/assets/')) {
+    staticFileServer.handleAsset(req, res, url.pathname);
+    return;
+  }
+  
+  staticFileServer.handleStaticFile(req, res, url.pathname);
+});
 
 // Start server
-server.listen(config.port, config.host, () => {
+server.listen(config.port, () => {
   logConfig();
-  // Server startup logging disabled per TEN_COMMANDMENTS
-  // All console statements must be removed
-  // Protocol: http (Render.com handles HTTPS at load balancer)
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  // SIGTERM logging disabled per TEN_COMMANDMENTS
-  // All console statements must be removed
-  server.close(() => {
-    // Server close logging disabled per TEN_COMMANDMENTS
-    // All console statements must be removed
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  // SIGINT logging disabled per TEN_COMMANDMENTS
-  // All console statements must be removed
-  server.close(() => {
-    // Server close logging disabled per TEN_COMMANDMENTS
-    // All console statements must be removed
-    process.exit(0);
-  });
+  console.log(`✅ Server running on port ${config.port}`);
 });
