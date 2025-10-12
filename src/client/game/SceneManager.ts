@@ -23,6 +23,7 @@ export class SceneManager {
   private currentEnvironment: string = "Level Test";
   private gameStartTime: number = Date.now();
   private thrusterSound: any = null;
+  private isLoadingCharacter: boolean = false;
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     this.scene = new Scene(engine);
@@ -435,6 +436,17 @@ export class SceneManager {
     // Remove all animation groups from the scene before loading a new character
     this.scene.animationGroups.slice().forEach(group => { group.dispose(); });
 
+    // Debug: Log character loading
+    logger.info(`Loading character: ${character.name}`, 'SceneManager');
+
+    // Check if character is already loading to prevent duplicate loads
+    if (this.isLoadingCharacter) {
+      logger.warn(`Character ${character.name} is already loading, skipping duplicate load`, 'SceneManager');
+      return;
+    }
+    
+    this.isLoadingCharacter = true;
+
     ImportMeshAsync(character.model, this.scene)
       .then(async result => {
         // Process node materials for character meshes
@@ -450,14 +462,15 @@ export class SceneManager {
         }
 
         if (this.characterController && result.meshes[0]) {
-          // Apply character scale to all meshes
+          // Apply character scale to all meshes - CRITICAL for proper character size
           result.meshes.forEach(mesh => {
             mesh.scaling.setAll(character.scale);
           });
 
+          // Set the player mesh in the character controller
           this.characterController.setPlayerMesh(result.meshes[0]);
 
-          // Determine position for new character
+          // Determine position for new character - MUST obey spawn position
           let characterPosition: Vector3;
           if (preservedPosition) {
             // Use preserved position when switching characters
@@ -468,8 +481,11 @@ export class SceneManager {
             characterPosition = currentEnvironment ? currentEnvironment.spawnPoint : new Vector3(0, 0, 0);
           }
 
-          // Update character physics with determined position
+          // Update character physics with determined position - CRITICAL for proper positioning
           this.characterController.updateCharacterPhysics(character, characterPosition);
+
+          // Reset loading flag
+          this.isLoadingCharacter = false;
 
           // Setup animations using character's animation mapping with fallbacks - THE WORD OF THE LORD
           playerAnimations['walk'] = result.animationGroups.find(a => a.name === character.animations.walk) ||
@@ -516,6 +532,7 @@ export class SceneManager {
         logger.error(`Failed to load character (${character.name}):`, 'SceneManager');
         logger.error(`Error: ${error.message}`, 'SceneManager');
         logger.error(`Model URL: ${character.model}`, 'SceneManager');
+        this.isLoadingCharacter = false;
       });
   }
 
@@ -685,11 +702,33 @@ export class SceneManager {
       currentPosition = this.characterController.getPosition().clone();
     }
 
-    // Remove existing player mesh if it exists
+    // Remove ALL existing player meshes - dispose all meshes that might be part of the character
     const existingPlayer = this.scene.getMeshByName("player");
     if (existingPlayer) {
+      // Dispose all child meshes first
+      existingPlayer.getChildMeshes().forEach(child => child.dispose());
       existingPlayer.dispose();
     }
+
+    // Also dispose any meshes that might have been loaded but not properly named
+    // This is critical to prevent duplicate characters
+    const allMeshes = this.scene.meshes.slice();
+    allMeshes.forEach(mesh => {
+      if (mesh.name.includes('player') || mesh.name.includes('character') || 
+          (mesh.parent && mesh.parent.name === 'player')) {
+        mesh.dispose();
+      }
+    });
+
+    // Dispose any orphaned meshes that might be from previous character loads
+    const remainingMeshes = this.scene.meshes.slice();
+    remainingMeshes.forEach(mesh => {
+      // If mesh has no parent and is not an environment mesh, dispose it
+      if (!mesh.parent && !mesh.name.includes('environment') && !mesh.name.includes('ground') && 
+          !mesh.name.includes('sky') && !mesh.name.includes('light')) {
+        mesh.dispose();
+      }
+    });
 
     // Load the new character with preserved position
     this.loadCharacter(character, currentPosition);
