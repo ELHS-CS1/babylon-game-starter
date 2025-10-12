@@ -146,12 +146,13 @@ const reportManager = new GDCReportManager({
 const reportAPI = new GDCReportAPI(reportManager, reportCollector);
 
 // Serve static files
-const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: string, contentType: string) => {
+const serveStatic = (req: IncomingMessage, res: ServerResponse, filePath: string, contentType: string) => {
   try {
     const content = readFileSync(filePath);
     res.writeHead(200, { 'Content-Type': contentType });
     res.end(content);
-  } catch {
+  } catch (error) {
+    // File not found or error reading file
     res.writeHead(404);
     res.end('Not Found');
   }
@@ -353,6 +354,22 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
   // Serve manifest
   if (url.pathname === '/manifest.json') {
     serveStatic(req, res, join(config.clientPath, 'manifest.json'), 'application/json');
+    return;
+  }
+  
+  // Serve favicon specifically
+  if (url.pathname === '/favicon.ico' || url.pathname === '/icons/favicon.png') {
+    const faviconPath = join(config.clientPath, 'icons', 'favicon.png');
+    serveStatic(req, res, faviconPath, 'image/png');
+    return;
+  }
+  
+  // Serve icons directory
+  if (url.pathname.startsWith('/icons/')) {
+    const iconPath = join(config.clientPath, url.pathname);
+    const ext = url.pathname.split('.').pop()?.toLowerCase();
+    const contentType = getContentType(ext);
+    serveStatic(req, res, iconPath, contentType);
     return;
   }
   
