@@ -323,7 +323,7 @@ export class DataStarIntegration {
         // Access GameEngine instance to clear all peer characters
         if (typeof window !== 'undefined' && (window as any).gameEngine) {
           const gameEngine = (window as any).gameEngine;
-          if (gameEngine && gameEngine.clearAllPeers) {
+          if (gameEngine?.clearAllPeers) {
             gameEngine.clearAllPeers();
             logger.info('🧹 Cleared all peer character meshes from old environment', { context: 'DataStar', tag: 'environment' });
           } else {

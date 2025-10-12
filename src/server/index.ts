@@ -636,6 +636,9 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
             position: isVector3(peerDataObj['position']) ? peerDataObj['position'] : { x: 0, y: 0, z: 0 },
             rotation: isVector3(peerDataObj['rotation']) ? peerDataObj['rotation'] : { x: 0, y: 0, z: 0 },
             environment: gameState.currentEnvironment,
+            character: typeof peerDataObj['character'] === 'string' ? peerDataObj['character'] : 'Red',
+            boostActive: typeof peerDataObj['boostActive'] === 'boolean' ? peerDataObj['boostActive'] : false,
+            state: typeof peerDataObj['state'] === 'string' ? peerDataObj['state'] : 'idle',
             lastUpdate: Date.now()
           };
           

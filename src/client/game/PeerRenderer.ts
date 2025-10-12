@@ -2,8 +2,9 @@
 // PEER RENDERER - Handles rendering of remote peer characters
 // ============================================================================
 
-import { Scene, Vector3, Mesh, StandardMaterial, Color3, AnimationGroup, type IParticleSystem, Quaternion } from '@babylonjs/core';
-import { ImportMeshAsync } from '@babylonjs/core/Meshes/Loaders/OBJFileLoader';
+import type { Scene, Mesh, AnimationGroup} from '@babylonjs/core';
+import { Vector3, StandardMaterial, Color3, type IParticleSystem, Quaternion } from '@babylonjs/core';
+import { ImportMeshAsync } from '@babylonjs/core';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { EffectsManager } from './EffectsManager';
 import { logger } from '../utils/logger';
@@ -133,7 +134,7 @@ export class PeerRenderer {
 
   public updatePeerPosition(peerId: string, position: Vector3, rotation: Vector3, boostActive?: boolean, state?: string): void {
     const peerCharacter = this.peerCharacters.get(peerId);
-    if (!peerCharacter || !peerCharacter.mesh) {
+    if (!peerCharacter?.mesh) {
       return;
     }
 

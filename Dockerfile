@@ -29,7 +29,8 @@ COPY assets ./assets/
 COPY public ./public/
 
 # Build the application (skip linting in Docker to avoid ESLint config issues)
-RUN npx vite build && npx tsc -p src/server/tsconfig.json
+RUN npx vite build --mode production
+RUN npx tsc -p src/server/tsconfig.json --noEmitOnError false
 
 # Production stage
 FROM node:22-alpine AS production

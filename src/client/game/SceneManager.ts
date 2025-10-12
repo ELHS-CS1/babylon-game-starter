@@ -786,7 +786,7 @@ export class SceneManager {
     const existingPlayer = this.scene.getMeshByName("player");
     if (existingPlayer) {
       // Dispose all child meshes first
-      existingPlayer.getChildMeshes().forEach(child => child.dispose());
+      existingPlayer.getChildMeshes().forEach(child => { child.dispose(); });
       existingPlayer.dispose();
     }
 
