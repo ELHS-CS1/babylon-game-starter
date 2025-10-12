@@ -26,6 +26,7 @@ RUN npm ci --include=dev --ignore-scripts
 COPY src ./src/
 COPY index.html ./
 COPY assets ./assets/
+COPY public ./public/
 
 # Build the application (skip linting in Docker to avoid ESLint config issues)
 RUN npx vite build && npx tsc -p src/server/tsconfig.json
@@ -44,6 +45,7 @@ COPY --from=builder /app/dist ./dist/
 COPY --from=builder /app/src/server/dist ./dist/server/
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/assets ./assets/
+COPY --from=builder /app/public ./public/
 
 # Install only production dependencies with npm ci for faster builds
 # Skip postinstall script in Docker (no need for local SSL certs)
