@@ -249,6 +249,26 @@ export class DataStarIntegration {
     }
   }
 
+  private handlePeersResponse(data: any): void {
+    logger.info('👥 Handling peers response:', { context: 'DataStar', tag: 'peers', data });
+    
+    if (data.peers && Array.isArray(data.peers)) {
+      logger.info(`📋 Received ${data.peers.length} peers for environment ${data.environment}`, { context: 'DataStar', tag: 'peers' });
+      
+      // Import and update the peer manager
+      import('../game/Peer').then(({ PeerManager }) => {
+        // This would need to be passed from the game engine, but for now we'll log the peers
+        data.peers.forEach((peer: any) => {
+          logger.info(`👤 Found peer: ${peer.name} (${peer.id}) in ${peer.environment}`, { context: 'DataStar', tag: 'peers' });
+        });
+      }).catch(error => {
+        logger.error('Failed to import PeerManager:', { context: 'DataStar', tag: 'peers', error });
+      });
+    } else {
+      logger.warn('⚠️ Invalid peers response format:', { context: 'DataStar', tag: 'peers', data });
+    }
+  }
+
   public connect(): void {
     if (this.eventSource) {
       logger.info('🔗 SSE already connected', { context: 'DataStar', tag: 'connection' });
@@ -434,6 +454,9 @@ export class DataStarIntegration {
         } else if (data.type === 'joinResponse') {
           logger.info('🔍 Processing joinResponse', { context: 'DataStar', tag: 'join' });
           this.handleJoinResponse(data);
+        } else if (data.type === 'peersResponse') {
+          logger.info('🔍 Processing peersResponse', { context: 'DataStar', tag: 'peers' });
+          this.handlePeersResponse(data);
         } else if (data.isConnected !== undefined) {
           logger.info('🔍 Processing direct signals message', { context: 'DataStar', tag: 'message' });
           // Handle direct signal messages

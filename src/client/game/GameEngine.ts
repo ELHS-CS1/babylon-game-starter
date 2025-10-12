@@ -105,12 +105,33 @@ export class GameEngine {
       // 3. LOAD NEW ENVIRONMENT USING SCENEMANAGER
       this.sceneManager.changeEnvironment(environment);
       
-      // 4. UPDATE PEER ENVIRONMENT
+      // 4. UPDATE PEER ENVIRONMENT AND NOTIFY SERVER
       const localPeer = this.peerManager.getLocalPeer();
       if (localPeer) {
         localPeer.environment = environment;
+        
+        // Notify server about environment change
+        this.notifyEnvironmentChange(environment);
       }
+      
+      // 5. UPDATE PEER MANAGER (this will request peers from new environment)
+      this.peerManager.setCurrentEnvironment(environment);
     }
+  }
+
+  private notifyEnvironmentChange(environment: string): void {
+    logger.info(`🌍 Notifying server of environment change to: ${environment}`, { context: 'GameEngine', tag: 'environment' });
+    
+    // Import DataStar integration to send the environment change notification
+    import('../datastar-integration').then(({ dataStarIntegration }) => {
+      dataStarIntegration.send({
+        type: 'environmentChange',
+        environment: environment,
+        timestamp: Date.now()
+      });
+    }).catch(error => {
+      logger.error('Failed to import DataStar integration:', { context: 'GameEngine', tag: 'environment', error });
+    });
   }
 
   /**

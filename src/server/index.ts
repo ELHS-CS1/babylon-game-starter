@@ -212,6 +212,25 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
           // Log the received data
           console.log('📤 Received DataStar send request:', data);
           
+          // Handle peer requests
+          if (data.type === 'requestPeers' && data.environment) {
+            const environmentPeers = Object.values(gameState.peers)
+              .filter(peer => peer.environment === data.environment);
+            
+            console.log(`📋 Sending ${environmentPeers.length} peers for environment ${data.environment}`);
+            
+            const response = {
+              type: 'peersResponse',
+              environment: data.environment,
+              peers: environmentPeers,
+              timestamp: Date.now()
+            };
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response));
+            return;
+          }
+          
           // Handle join requests specifically
           if (data.type === 'join' && data.playerName) {
             const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

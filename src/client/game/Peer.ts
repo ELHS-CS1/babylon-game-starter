@@ -202,8 +202,44 @@ export class PeerManager {
 
   // Set current environment for filtering
   setCurrentEnvironment(environment: string): void {
+    const oldEnvironment = this.currentEnvironment;
     this.currentEnvironment = environment;
-    logger.info(`Current environment set to: ${environment}`, { context: 'PeerManager', tag: 'peer' });
+    logger.info(`Environment changed from ${oldEnvironment} to: ${environment}`, { context: 'PeerManager', tag: 'peer' });
+    
+    // Clear peers from old environment
+    this.clearPeersFromEnvironment(oldEnvironment);
+    
+    // Request peers from new environment
+    this.requestPeersFromEnvironment(environment);
+  }
+
+  private clearPeersFromEnvironment(environment: string): void {
+    const peersToRemove: string[] = [];
+    this.peers.forEach((peer, peerId) => {
+      if (peer.environment === environment) {
+        peersToRemove.push(peerId);
+      }
+    });
+    
+    peersToRemove.forEach(peerId => {
+      this.peers.delete(peerId);
+      logger.info(`Removed peer ${peerId} from environment ${environment}`, { context: 'PeerManager', tag: 'peer' });
+    });
+  }
+
+  private requestPeersFromEnvironment(environment: string): void {
+    logger.info(`Requesting peers from environment: ${environment}`, { context: 'PeerManager', tag: 'peer' });
+    
+    // Import DataStar integration to send the request
+    import('../datastar-integration').then(({ dataStarIntegration }) => {
+      dataStarIntegration.send({
+        type: 'requestPeers',
+        environment: environment,
+        timestamp: Date.now()
+      });
+    }).catch(error => {
+      logger.error('Failed to import DataStar integration:', { context: 'PeerManager', tag: 'peer', error });
+    });
   }
 
   // Get current environment
