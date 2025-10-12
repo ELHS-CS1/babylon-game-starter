@@ -146,7 +146,7 @@ const reportManager = new GDCReportManager({
 const reportAPI = new GDCReportAPI(reportManager, reportCollector);
 
 // Serve static files
-const serveStatic = (req: IncomingMessage, res: ServerResponse, filePath: string, contentType: string) => {
+const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: string, contentType: string) => {
   try {
     const content = readFileSync(filePath);
     res.writeHead(200, { 'Content-Type': contentType });
