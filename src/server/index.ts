@@ -234,35 +234,62 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
     }
     
     // Handle DataStar send endpoint
-    if (url.pathname === '/api/datastar/send') {
-      handleDataStarSend(req, res);
+    if (url.pathname === '/api/datastar/send' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          
+          // Broadcast to all SSE connections
+          const message = `data: ${JSON.stringify(data)}\n\n`;
+          sseConnections.forEach((connection, id) => {
+            if (connection !== res) {
+              try {
+                connection.write(message);
+              } catch (error) {
+                sseConnections.delete(id);
+              }
+            }
+          });
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, timestamp: Date.now() }));
+        } catch (error) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
       return;
     }
     
-            // Handle GDC report endpoints
-            if (url.pathname.startsWith('/api/reports')) {
-              await reportAPI.handleRequest(req, res);
-              return;
-            }
+    // Handle GDC report endpoints
+    if (url.pathname.startsWith('/api/reports')) {
+      await reportAPI.handleRequest(req, res);
+      return;
+    }
 
-            // Handle push notification endpoints
-            if (url.pathname === '/api/push/subscribe') {
-              await pushNotificationService.handleSubscriptionRequest(req, res);
-              return;
-            }
+    // Handle push notification endpoints
+    if (url.pathname === '/api/push/subscribe') {
+      await pushNotificationService.handleSubscriptionRequest(req, res);
+      return;
+    }
 
-            if (url.pathname === '/api/push/notify') {
-              await pushNotificationService.handleNotificationRequest(req, res);
-              return;
-            }
+    if (url.pathname === '/api/push/notify') {
+      await pushNotificationService.handleNotificationRequest(req, res);
+      return;
+    }
 
-            if (url.pathname === '/api/push/vapid-key') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ 
-                publicKey: pushNotificationService.getPublicKey() 
-              }));
-              return;
-            }
+    if (url.pathname === '/api/push/vapid-key') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        publicKey: pushNotificationService.getPublicKey() 
+      }));
+      return;
+    }
     
     handleApiRequest(req, res, url);
     return;
