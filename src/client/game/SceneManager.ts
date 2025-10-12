@@ -206,7 +206,6 @@ export class SceneManager {
 
   private async setupEffects(): Promise<void> {
     try {
-      console.log("Setting up effects...");
       EffectsManager.initialize(this.scene);
       NodeMaterialManager.initialize(this.scene);
       ProceduralSoundManager.initialize(this.scene);
@@ -266,12 +265,9 @@ export class SceneManager {
 
             // Set up environment-specific particles if configured
             if (environment.particles) {
-              console.log(`Setting up ${environment.particles.length} environment particles for ${environment.name}`);
               try {
                 for (const particle of environment.particles) {
-                  console.log(`Creating particle system: ${particle.name} at position:`, particle.position);
                   const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
-                  console.log(`Particle system creation result:`, particleSystem ? "SUCCESS" : "FAILED");
 
                   // Apply environment-specific settings if provided
                   if (particleSystem && particle.updateSpeed !== undefined) {
@@ -281,8 +277,6 @@ export class SceneManager {
               } catch (error) {
                 console.warn("Failed to create environment particles:", error);
               }
-            } else {
-              console.log(`No particles configured for environment: ${environment.name}`);
             }
 
             this.currentEnvironment = environmentName;
@@ -507,32 +501,12 @@ export class SceneManager {
           // Create particle system attached to player mesh
           const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
           if (playerParticleSystem && this.characterController) {
-            console.log("Particle system created and attached to character");
             this.characterController.setPlayerParticleSystem(playerParticleSystem);
-          } else {
-            console.log("Failed to create or attach particle system");
           }
 
           // Set up thruster sound for character controller
           if (this.thrusterSound && this.characterController) {
-            console.log("🎵 Setting thruster sound on character controller", this.thrusterSound);
             this.characterController.setThrusterSound(this.thrusterSound);
-            
-            // Verify the sound was set
-            const setSound = this.characterController.getThrusterSound();
-            console.log("🎵 Thruster sound verification:", setSound ? "SUCCESS" : "FAILED");
-            if (setSound) {
-              console.log("🎵 Sound details:", {
-                name: setSound.name,
-                isReady: setSound.isReady ? setSound.isReady() : 'N/A',
-                volume: setSound.getVolume(),
-                loop: setSound.loop
-              });
-            }
-          } else {
-            console.warn("❌ Failed to set thruster sound - sound or character controller missing");
-            console.log("🎵 Thruster sound exists:", !!this.thrusterSound);
-            console.log("🎵 Character controller exists:", !!this.characterController);
           }
 
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
