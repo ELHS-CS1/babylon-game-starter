@@ -1,7 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createServer as createHttpsServer } from 'https';
+import { createServer as createHttpServer } from 'http';
 import { join } from 'path';
-import { readFileSync } from 'fs';
 import config, { logConfig } from './config.js';
 import { GDCReportCollector } from './reports/GDCReportCollector.js';
 import { GDCReportManager } from './reports/GDCReportManager.js';
@@ -189,18 +188,13 @@ const serveStatic = (_req: IncomingMessage, res: ServerResponse, filePath: strin
   }
 };
 
-// HTTPS server for serving client and API with SSE support
-const httpsOptions = {
-  key: readFileSync('./certs/localhost-key.pem'),
-  cert: readFileSync('./certs/localhost.pem')
-};
-
-const server = createHttpsServer(httpsOptions, async (req: IncomingMessage, res: ServerResponse) => {
+// Create HTTP server like ScholarTrack - Render.com handles HTTPS at load balancer
+const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse) => {
   const hostHeader = req.headers.host;
   const host: string | undefined = Array.isArray(hostHeader) ? 
     (typeof hostHeader[0] === 'string' ? hostHeader[0] : undefined) : 
     hostHeader;
-  const url = new URL(req.url ?? '/', `https://${host ?? 'localhost'}`);
+  const url = new URL(req.url ?? '/', `http://${host ?? 'localhost'}`);
   
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', config.corsOrigin);
@@ -220,6 +214,7 @@ const server = createHttpsServer(httpsOptions, async (req: IncomingMessage, res:
       status: 'healthy', 
       peers: Object.keys(gameState.peers).length,
       environment: gameState.currentEnvironment,
+      protocol: 'http',
       config: {
         isProduction: config.isProduction,
         isDocker: config.isDocker,
@@ -519,7 +514,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
   
   res.writeHead(404);
   res.end(JSON.stringify({ error: 'Not found' }));
-}
+});
 
 // Clean up inactive peers every 30 seconds
 setInterval(() => {
@@ -534,11 +529,13 @@ setInterval(() => {
   });
 }, 30000);
 
+
 // Start server
 server.listen(config.port, config.host, () => {
   logConfig();
   // Server startup logging disabled per TEN_COMMANDMENTS
   // All console statements must be removed
+  // Protocol: http (Render.com handles HTTPS at load balancer)
 });
 
 // Graceful shutdown
