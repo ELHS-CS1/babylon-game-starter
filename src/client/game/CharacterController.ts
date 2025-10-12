@@ -241,7 +241,6 @@ export class CharacterController {
     } else if (INPUT_KEYS.BOOST.includes(key)) {
       const now = Date.now();
       if (now - this.lastBoostToggle > this.boostDebounceDelay) {
-        console.log("SOUND DEBUG: Boost key pressed, setting boostActive to true");
         this.boostActive = true;
         this.lastBoostToggle = now;
         this.updateParticleSystem();
@@ -282,7 +281,6 @@ export class CharacterController {
     if (INPUT_KEYS.BOOST.includes(key)) {
       const now = Date.now();
       if (now - this.lastBoostToggle > this.boostDebounceDelay) {
-        console.log("SOUND DEBUG: Boost key released, setting boostActive to false");
         this.boostActive = false;
         this.lastBoostToggle = now;
         this.updateParticleSystem();

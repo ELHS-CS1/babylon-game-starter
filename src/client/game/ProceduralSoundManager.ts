@@ -449,32 +449,24 @@ export class ProceduralSoundManager {
    * Quick attack and smooth decay envelope for satisfying "ping" sound
    */
   public static async playCollectSound(): Promise<void> {
-    console.log('ProceduralSoundManager.playCollectSound called');
-    
     if (!this.scene) {
-      console.error('ProceduralSoundManager not initialized - no scene');
       return;
     }
     
     if (!this.audioContext) {
-      console.error('ProceduralSoundManager not initialized - no audio context');
       return;
     }
 
     // Ensure AudioContext is running (might be suspended)
     if (this.audioContext.state === 'suspended') {
-      console.log('AudioContext is suspended, attempting to resume...');
       try {
         await this.audioContext.resume();
-        console.log('AudioContext resumed successfully, state:', this.audioContext.state);
       } catch (error) {
-        console.error('Failed to resume AudioContext:', error);
         return;
       }
     }
 
     try {
-      console.log('Creating collect effect sound with dual oscillators...');
       
       // Create triangle oscillator for bright melodic tone
       const triangleOsc = this.audioContext.createOscillator();
@@ -499,18 +491,10 @@ export class ProceduralSoundManager {
       gainNode.gain.linearRampToValueAtTime(effectiveVolume, now + 0.01); // Quick attack (10ms)
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3); // Smooth decay (300ms)
       
-      console.log('Collect sound volume calculation:', {
-        baseVolume,
-        effectiveVolume,
-        audioState: this.audioStateManager?.getAudioState()
-      });
-      
       // Connect oscillators to gain node
       triangleOsc.connect(gainNode);
       sineOsc.connect(gainNode);
       gainNode.connect(this.audioContext.destination);
-      
-      console.log('Collect sound audio graph connected');
       
       // Start both oscillators
       triangleOsc.start(now);
@@ -527,11 +511,9 @@ export class ProceduralSoundManager {
         gainNode.disconnect();
       }, 350); // Slightly longer than sound duration
       
-      console.log('Collect effect sound played successfully');
       logger.info('Playing collect effect sound (dual oscillators, 300ms)', 'ProceduralSoundManager');
       
     } catch (error) {
-      console.error('Error creating collect sound:', error);
       logger.error(`Failed to create collect sound: ${error}`, 'ProceduralSoundManager');
     }
   }

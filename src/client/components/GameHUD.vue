@@ -62,32 +62,17 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import CONFIG from '../config/gameConfig';
 import { HUDEventSystem, HUDEvents, type HUDEvent } from '../utils/hudEventSystem';
 import { Engine } from '@babylonjs/core/Engines/engine';
+import { useHUDSettings } from '../composables/useHUDSettings';
 
 // Props
 interface Props {
   position?: 'top' | 'bottom' | 'left' | 'right';
-  showCoordinates?: boolean;
-  showTime?: boolean;
-  showFPS?: boolean;
-  showState?: boolean;
-  showBoost?: boolean;
-  showCredits?: boolean;
-  showPlayers?: boolean;
-  showConnection?: boolean;
   peers?: Array<{ id: string; name: string; position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; environment: string; lastUpdate: number }>;
   activePeers?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   position: () => CONFIG.HUD.POSITION,
-  showCoordinates: () => CONFIG.HUD.SHOW_COORDINATES,
-  showTime: () => CONFIG.HUD.SHOW_TIME,
-  showFPS: () => false,
-  showState: () => CONFIG.HUD.SHOW_STATE,
-  showBoost: () => CONFIG.HUD.SHOW_BOOST_STATUS,
-  showCredits: () => CONFIG.HUD.SHOW_CREDITS,
-  showPlayers: () => true,
-  showConnection: () => true,
   peers: () => [],
   activePeers: () => 0
 });
@@ -99,6 +84,9 @@ const gameTime = ref('00:00:00');
 const fps = ref(60);
 const characterState = ref('Idle');
 const boostStatus = ref('Ready');
+
+// Force reactive FPS visibility
+const forceShowFPS = ref(true);
 
 
 
@@ -120,7 +108,15 @@ const isConnected = computed(() => {
   return connected;
 });
 
+// Use the HUD settings composable
+const { showFPS, showCoordinates, showTime, showState, showBoost, showCredits, showPlayers, showConnection } = useHUDSettings();
+
 // Computed properties
+const shouldShowFPS = computed(() => {
+  console.log('GameHUD: shouldShowFPS computed - showFPS.value:', showFPS.value);
+  return showFPS.value;
+});
+
 const hudPositionClass = computed(() => {
   const positionMap = {
     top: 'hud-top',
@@ -262,8 +258,10 @@ watch(() => CONFIG.HUD, () => {
 }, { deep: true });
 
 // Watch for showFPS prop changes to start/stop FPS tracking
-watch(() => props.showFPS, (newValue, oldValue) => {
-  console.log('GameHUD: showFPS prop changed from', oldValue, 'to:', newValue);
+// Watch for FPS setting changes to start/stop tracking
+watch(showFPS, (newValue, oldValue) => {
+  console.log('GameHUD: showFPS setting changed from', oldValue, 'to:', newValue);
+  
   if (newValue) {
     // Start FPS tracking if it's not already running
     if (fpsUpdateInterval === null) {
@@ -277,10 +275,6 @@ watch(() => props.showFPS, (newValue, oldValue) => {
   }
 }, { immediate: true });
 
-// Also watch all props to see what's changing
-watch(() => props, (newProps, oldProps) => {
-  console.log('GameHUD: All props changed from', oldProps, 'to:', newProps);
-}, { deep: true });
 
 // Event subscription cleanup functions
 let unsubscribeFunctions: (() => void)[] = [];

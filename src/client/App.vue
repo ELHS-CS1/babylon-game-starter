@@ -12,14 +12,6 @@
               <GameHUD
                 ref="gameHUD"
                 :position="hudPosition"
-                :show-coordinates="hudSettings.showCoordinates"
-                :show-time="hudSettings.showTime"
-                :show-fps="hudSettings.showFPS"
-                :show-state="hudSettings.showState"
-                :show-boost="hudSettings.showBoost"
-                :show-credits="hudSettings.showCredits"
-                :show-players="hudSettings.showPlayers"
-                :show-connection="hudSettings.showConnection"
                 :peers="peers"
                 :active-peers="activePeersCount"
               />
@@ -76,6 +68,7 @@ import { pwaManager } from './utils/pwa';
 import { pushNotificationClient } from './services/PushNotificationClient';
 import { logger } from './utils/logger';
 import { dataStarIntegration } from './datastar-integration';
+import { useHUDSettingsProvider } from './composables/useHUDSettings';
 
 // Interface for window object extensions
 interface WindowWithExtensions extends Window {
@@ -138,25 +131,8 @@ const inventoryPanel = ref<InstanceType<typeof InventoryPanel>>();
 // HUD and settings state
 const hudPosition = ref<'top' | 'bottom' | 'left' | 'right'>(CONFIG.HUD.POSITION);
 
-const hudSettings = reactive<{
-  showCoordinates: boolean;
-  showTime: boolean;
-  showFPS: boolean;
-  showState: boolean;
-  showBoost: boolean;
-  showCredits: boolean;
-  showPlayers: boolean;
-  showConnection: boolean;
-}>({
-  showCoordinates: CONFIG.HUD.SHOW_COORDINATES,
-  showTime: CONFIG.HUD.SHOW_TIME,
-  showFPS: CONFIG.HUD.SHOW_FPS,
-  showState: CONFIG.HUD.SHOW_STATE,
-  showBoost: CONFIG.HUD.SHOW_BOOST_STATUS,
-  showCredits: CONFIG.HUD.SHOW_CREDITS,
-  showPlayers: true,
-  showConnection: true
-});
+// Use the HUD settings composable provider
+const { settings: hudSettings, updateSettings: updateHUDSettings } = useHUDSettingsProvider();
 
 const inventoryItems = ref<Array<{ name: string; count: number; itemEffectKind: string; thumbnail: string }>>([...CONFIG.INVENTORY.TILES]);
 
@@ -326,15 +302,21 @@ const onEnvironmentChange = (environment: string) => {
 
 const onHUDSettingsChange = (settings: Record<string, unknown>) => {
   console.log('App.vue: onHUDSettingsChange called with:', settings);
-  // Type-safe assignment of HUD settings
-  if (typeof settings['showCoordinates'] === 'boolean') hudSettings.showCoordinates = settings['showCoordinates'];
-  if (typeof settings['showTime'] === 'boolean') hudSettings.showTime = settings['showTime'];
-  if (typeof settings['showFPS'] === 'boolean') hudSettings.showFPS = settings['showFPS'];
-  if (typeof settings['showState'] === 'boolean') hudSettings.showState = settings['showState'];
-  if (typeof settings['showBoost'] === 'boolean') hudSettings.showBoost = settings['showBoost'];
-  if (typeof settings['showCredits'] === 'boolean') hudSettings.showCredits = settings['showCredits'];
-  if (typeof settings['showPlayers'] === 'boolean') hudSettings.showPlayers = settings['showPlayers'];
-  if (typeof settings['showConnection'] === 'boolean') hudSettings.showConnection = settings['showConnection'];
+  
+  // Use the composable's updateSettings method
+  const typedSettings: Partial<typeof hudSettings> = {};
+  
+  if (typeof settings['showCoordinates'] === 'boolean') typedSettings.showCoordinates = settings['showCoordinates'];
+  if (typeof settings['showTime'] === 'boolean') typedSettings.showTime = settings['showTime'];
+  if (typeof settings['showFPS'] === 'boolean') typedSettings.showFPS = settings['showFPS'];
+  if (typeof settings['showState'] === 'boolean') typedSettings.showState = settings['showState'];
+  if (typeof settings['showBoost'] === 'boolean') typedSettings.showBoost = settings['showBoost'];
+  if (typeof settings['showCredits'] === 'boolean') typedSettings.showCredits = settings['showCredits'];
+  if (typeof settings['showPlayers'] === 'boolean') typedSettings.showPlayers = settings['showPlayers'];
+  if (typeof settings['showConnection'] === 'boolean') typedSettings.showConnection = settings['showConnection'];
+  
+  // Update settings using the composable
+  updateHUDSettings(typedSettings);
   
   console.log('App.vue: hudSettings after update:', hudSettings);
   console.log('App.vue: hudSettings.showFPS specifically:', hudSettings.showFPS);
