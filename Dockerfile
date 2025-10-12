@@ -13,6 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
+COPY eslint.config.js ./
 
 # Copy scripts directory for postinstall
 COPY scripts ./scripts/
@@ -27,7 +28,7 @@ COPY index.html ./
 COPY assets ./assets/
 
 # Build the application (skip linting in Docker to avoid ESLint config issues)
-RUN npm run build:client && npm run build:server
+RUN npx vite build && npx tsc -p src/server/tsconfig.json
 
 # Production stage
 FROM node:22-alpine AS production
