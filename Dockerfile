@@ -14,8 +14,12 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
 
+# Copy scripts directory for postinstall
+COPY scripts ./scripts/
+
 # Install dependencies with npm ci for faster, reliable builds
-RUN npm ci --only=production=false
+# Skip postinstall script in Docker (no need for local SSL certs)
+RUN npm ci --include=dev --ignore-scripts
 
 # Copy source code
 COPY src ./src/
@@ -41,7 +45,8 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/assets ./assets/
 
 # Install only production dependencies with npm ci for faster builds
-RUN npm ci --only=production
+# Skip postinstall script in Docker (no need for local SSL certs)
+RUN npm ci --omit=dev --ignore-scripts
 
 # Set production environment variables for Node 22 optimization
 ENV NODE_ENV=production
