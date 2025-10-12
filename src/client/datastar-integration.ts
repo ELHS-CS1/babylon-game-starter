@@ -199,6 +199,7 @@ export class DataStarIntegration {
 
   private handlePeerUpdate(peer: Record<string, unknown>): void {
     logger.info('👥 Received peer update:', { context: 'DataStar', tag: 'peer', data: peer });
+    logger.info('👥 Current gameState.players before update:', { context: 'DataStar', tag: 'peer', count: gameState.players.length });
     
     // Add or update the peer in the players list
       const peerData = {
@@ -216,9 +217,13 @@ export class DataStarIntegration {
     const existingIndex = gameState.players.findIndex(p => p.id === peerData.id);
     if (existingIndex >= 0) {
       gameState.players[existingIndex] = peerData;
+      logger.info('👥 Updated existing peer:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
     } else {
       gameState.players.push(peerData);
+      logger.info('👥 Added new peer:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
     }
+    
+    logger.info('👥 Current gameState.players after update:', { context: 'DataStar', tag: 'peer', count: gameState.players.length });
   }
 
   private handleMessage(messageData: Record<string, unknown>): void {
@@ -446,6 +451,7 @@ export class DataStarIntegration {
         logger.info('📡 Raw SSE message received:', { context: 'DataStar', tag: 'raw', data: event.data });
         const data = JSON.parse(event.data);
         logger.info('📡 Parsed SSE data:', { context: 'DataStar', tag: 'data', data });
+        logger.info('📡 Processing message type:', { context: 'DataStar', tag: 'data', type: data.type });
 
         // Handle different message types from the server
         if (data.type === 'signals') {

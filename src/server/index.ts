@@ -113,11 +113,13 @@ function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
   req.on('close', () => {
     sseConnections.delete(res);
     clearInterval(heartbeat);
+    console.log(`🔌 SSE connection closed. Total connections: ${sseConnections.size}`);
   });
 
-  req.on('error', () => {
+  req.on('error', (error) => {
     sseConnections.delete(res);
     clearInterval(heartbeat);
+    console.log(`❌ SSE connection error: ${error.message}. Total connections: ${sseConnections.size}`);
   });
 }
 
@@ -212,6 +214,7 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
           
           // Log the received data
           console.log('📤 Received DataStar send request:', data);
+          console.log(`📊 Current SSE connections: ${sseConnections.size}`);
           
           // Handle peer requests
           if (data.type === 'requestPeers' && data.environment) {
