@@ -132,41 +132,6 @@ function broadcastToSSE(data: unknown): void {
   });
 }
 
-// Handle DataStar send requests
-function handleDataStarSend(req: IncomingMessage, res: ServerResponse): void {
-  if (req.method !== 'POST') {
-    res.writeHead(405);
-    res.end(JSON.stringify({ error: 'Method not allowed' }));
-    return;
-  }
-
-  let body = '';
-  req.on('data', (chunk) => {
-    body += String(chunk);
-  });
-
-  req.on('end', () => {
-    try {
-      const data: unknown = JSON.parse(body);
-      if (data === null || data === undefined || typeof data !== 'object') {
-        return;
-      }
-      
-      // Broadcast the message to all SSE connections
-      broadcastToSSE({
-        type: 'message',
-        data: data,
-        timestamp: Date.now()
-      });
-      
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true }));
-    } catch {
-      res.writeHead(400);
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
-    }
-  });
-}
 
 // Initialize GDC reporting system
 const reportCollector = new GDCReportCollector();
@@ -542,7 +507,7 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL) {
   
   res.writeHead(404);
   res.end(JSON.stringify({ error: 'Not found' }));
-});
+}
 
 // Clean up inactive peers every 30 seconds
 setInterval(() => {
