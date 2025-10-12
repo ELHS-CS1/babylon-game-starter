@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createServer as createHttpServer } from 'http';
 import { join } from 'path';
+import { readFileSync } from 'fs';
 import config, { logConfig } from './config.js';
 import { GDCReportCollector } from './reports/GDCReportCollector.js';
 import { GDCReportManager } from './reports/GDCReportManager.js';
