@@ -262,6 +262,28 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
           console.log('📤 Received DataStar send request:', data);
           console.log(`📊 Current SSE connections: ${sseConnections.size}`);
           
+          // Log the peers map structure
+          console.log('🗺️ Current peers map:');
+          console.log(`   Total peers: ${Object.keys(gameState.peers).length}`);
+          Object.entries(gameState.peers).forEach(([peerId, peerData]) => {
+            console.log(`   Peer ${peerId}:`, {
+              name: peerData.name,
+              environment: peerData.environment,
+              position: peerData.position,
+              rotation: peerData.rotation,
+              character: peerData.character,
+              boostActive: peerData.boostActive,
+              state: peerData.state,
+              lastUpdate: peerData.lastUpdate
+            });
+          });
+          
+          // Log connection to peer mapping
+          console.log('🔗 Connection to peer mapping:');
+          connectionToPeerMap.forEach((peerId, connection) => {
+            console.log(`   Connection -> Peer: ${peerId}`);
+          });
+          
           // Handle peer requests
           if (data.type === 'requestPeers' && data.environment) {
             const environmentPeers = Object.values(gameState.peers)
@@ -304,6 +326,22 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
             console.log('✅ Player added to game state:', newPlayer);
             console.log(`🔗 Associated connection with peer ID: ${playerId}`);
             
+            // Log updated peers map after adding new player
+            console.log('🗺️ Updated peers map after join:');
+            console.log(`   Total peers: ${Object.keys(gameState.peers).length}`);
+            Object.entries(gameState.peers).forEach(([peerId, peerData]) => {
+              console.log(`   Peer ${peerId}:`, {
+                name: peerData.name,
+                environment: peerData.environment,
+                position: peerData.position,
+                rotation: peerData.rotation,
+                character: peerData.character,
+                boostActive: peerData.boostActive,
+                state: peerData.state,
+                lastUpdate: peerData.lastUpdate
+              });
+            });
+            
             // Get existing peers in the same environment
             const existingPeers = Object.values(gameState.peers)
               .filter(peer => peer.environment === newPlayer.environment && peer.id !== newPlayer.id);
@@ -342,11 +380,38 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
           // Handle position update requests
           if (data.type === 'positionUpdate') {
             const peerId = connectionToPeerMap.get(res);
+            console.log(`📍 Position update from peerId: ${peerId}`);
+            console.log(`📍 Peer exists in gameState: ${peerId && gameState.peers[peerId] ? 'YES' : 'NO'}`);
+            
             if (peerId && gameState.peers[peerId] && data.position && data.rotation) {
+              // Log the peer data before update
+              console.log(`📍 Peer ${peerId} BEFORE update:`, {
+                name: gameState.peers[peerId].name,
+                environment: gameState.peers[peerId].environment,
+                position: gameState.peers[peerId].position,
+                rotation: gameState.peers[peerId].rotation,
+                character: gameState.peers[peerId].character,
+                boostActive: gameState.peers[peerId].boostActive,
+                state: gameState.peers[peerId].state,
+                lastUpdate: gameState.peers[peerId].lastUpdate
+              });
+              
               // Update peer position and rotation
               gameState.peers[peerId].position = data.position;
               gameState.peers[peerId].rotation = data.rotation;
               gameState.peers[peerId].lastUpdate = data.timestamp || Date.now();
+              
+              // Log the peer data after update
+              console.log(`📍 Peer ${peerId} AFTER update:`, {
+                name: gameState.peers[peerId].name,
+                environment: gameState.peers[peerId].environment,
+                position: gameState.peers[peerId].position,
+                rotation: gameState.peers[peerId].rotation,
+                character: gameState.peers[peerId].character,
+                boostActive: gameState.peers[peerId].boostActive,
+                state: gameState.peers[peerId].state,
+                lastUpdate: gameState.peers[peerId].lastUpdate
+              });
               
               // Broadcast position update to other peers in the same environment
               const positionUpdateMessage = {
