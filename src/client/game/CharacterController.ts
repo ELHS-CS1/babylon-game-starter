@@ -4,7 +4,7 @@
 
 import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
-import CONFIG, { ASSETS, CHARACTER_STATES } from '../config/gameConfig';
+import CONFIG, { ASSETS, CHARACTER_STATES, INPUT_KEYS, type InputKey } from '../config/gameConfig';
 import type { CharacterState } from '../config/gameConfig';
 import { AnimationController } from './AnimationController';
 import type { Character } from '../config/gameConfig';
@@ -33,21 +33,17 @@ function isCameraControllerInterface(obj: unknown): obj is CameraControllerInter
 
 // Character states are imported from gameConfig - THE WORD OF GOD
 
-// Input keys from THE WORD OF GOD
-const INPUT_KEYS = {
-  FORWARD: ['w', 'arrowup'],
-  BACKWARD: ['s', 'arrowdown'],
-  LEFT: ['a', 'arrowleft'],
-  RIGHT: ['d', 'arrowright'],
-  STRAFE_LEFT: ['q'],
-  STRAFE_RIGHT: ['e'],
-  JUMP: [' '],
-  BOOST: ['shift'],
-  DEBUG: ['0'],
-  HUD_TOGGLE: ['h'],
-  HUD_POSITION: ['p'],
-  RESET_CAMERA: ['1']
-} as const;
+// Input keys are now imported from gameConfig
+
+// Type guard to check if a string is a valid InputKey
+function isValidInputKey(key: string): key is InputKey {
+  return Object.values(INPUT_KEYS).flat().includes(key as InputKey);
+}
+
+// Helper function to safely check if a key is in an INPUT_KEYS array
+function isKeyInArray(key: string, keyArray: readonly string[]): boolean {
+  return keyArray.includes(key);
+}
 
 // Character interface is imported from gameConfig - THE WORD OF GOD
 
@@ -63,11 +59,9 @@ export class CharacterController {
   private wantJump = false;
   private inputDirection = new Vector3(0, 0, 0);
   private targetRotationY = 0;
-  private keysDown = new Set<string>();
+  private keysDown = new Set<InputKey>();
   private cameraController: SmoothFollowCameraController | null = null;
   private boostActive = false;
-  private lastBoostToggle = 0;
-  private boostDebounceDelay = 100; // 100ms debounce
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
   private thrusterSoundAttempted: boolean = false;
@@ -211,50 +205,52 @@ export class CharacterController {
 
     switch (kbInfo.type) {
       case KeyboardEventTypes.KEYDOWN:
-        this.keysDown.add(key);
+        this.keysDown.add(key as InputKey);
         this.handleKeyDown(key);
         break;
 
       case KeyboardEventTypes.KEYUP:
-        this.keysDown.delete(key);
+        this.keysDown.delete(key as InputKey);
         this.handleKeyUp(key);
         break;
     }
   };
 
   private handleKeyDown(key: string): void {
+    // Add key to keysDown set if it's a valid input key
+    if (isValidInputKey(key)) {
+      this.keysDown.add(key);
+    }
+    
     // Movement input
-    if (INPUT_KEYS.FORWARD.includes(key)) {
+    if (isKeyInArray(key, INPUT_KEYS.FORWARD)) {
       this.inputDirection.z = 1;
 
-    } else if (INPUT_KEYS.BACKWARD.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.BACKWARD)) {
       this.inputDirection.z = -1;
 
-    } else if (INPUT_KEYS.STRAFE_LEFT.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.STRAFE_LEFT)) {
       this.inputDirection.x = -1;
 
-    } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.STRAFE_RIGHT)) {
       this.inputDirection.x = 1;
 
-    } else if (INPUT_KEYS.JUMP.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.JUMP)) {
       this.wantJump = true;
-    } else if (INPUT_KEYS.BOOST.includes(key)) {
-      const now = Date.now();
-      if (now - this.lastBoostToggle > this.boostDebounceDelay) {
-        this.boostActive = true;
-        this.lastBoostToggle = now;
-        this.updateParticleSystem();
-        // Emit boost event to update HUD - THE WORD OF THE LORD!
-        HUDEvents.boost('ACTIVE');
-      }
-    } else if (INPUT_KEYS.DEBUG.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.BOOST)) {
+      // Boost should be active while key is held down
+      this.boostActive = true;
+      this.updateParticleSystem();
+      // Emit boost event to update HUD - THE WORD OF THE LORD!
+      HUDEvents.boost('ACTIVE');
+    } else if (isKeyInArray(key, INPUT_KEYS.DEBUG)) {
       logger.info("Debug key pressed!", 'CharacterController');
       this.toggleDebugDisplay();
-    } else if (INPUT_KEYS.HUD_TOGGLE.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.HUD_TOGGLE)) {
       this.toggleHUD();
-    } else if (INPUT_KEYS.HUD_POSITION.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.HUD_POSITION)) {
       this.cycleHUDPosition();
-    } else if (INPUT_KEYS.RESET_CAMERA.includes(key)) {
+    } else if (isKeyInArray(key, INPUT_KEYS.RESET_CAMERA)) {
       this.resetCameraToDefaultOffset();
     }
 
@@ -265,28 +261,30 @@ export class CharacterController {
   }
 
   private handleKeyUp(key: string): void {
+    // Remove key from keysDown set if it's a valid input key
+    if (isValidInputKey(key)) {
+      this.keysDown.delete(key);
+    }
+    
     // Reset movement input
-    if (INPUT_KEYS.FORWARD.includes(key) || INPUT_KEYS.BACKWARD.includes(key)) {
+    if (isKeyInArray(key, INPUT_KEYS.FORWARD) || isKeyInArray(key, INPUT_KEYS.BACKWARD)) {
       this.inputDirection.z = 0;
     }
-    if (INPUT_KEYS.LEFT.includes(key) || INPUT_KEYS.RIGHT.includes(key)) {
+    if (isKeyInArray(key, INPUT_KEYS.LEFT) || isKeyInArray(key, INPUT_KEYS.RIGHT)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.STRAFE_LEFT.includes(key) || INPUT_KEYS.STRAFE_RIGHT.includes(key)) {
+    if (isKeyInArray(key, INPUT_KEYS.STRAFE_LEFT) || isKeyInArray(key, INPUT_KEYS.STRAFE_RIGHT)) {
       this.inputDirection.x = 0;
     }
-    if (INPUT_KEYS.JUMP.includes(key)) {
+    if (isKeyInArray(key, INPUT_KEYS.JUMP)) {
       this.wantJump = false;
     }
-    if (INPUT_KEYS.BOOST.includes(key)) {
-      const now = Date.now();
-      if (now - this.lastBoostToggle > this.boostDebounceDelay) {
-        this.boostActive = false;
-        this.lastBoostToggle = now;
-        this.updateParticleSystem();
-        // Emit boost event to update HUD - THE WORD OF THE LORD!
-        HUDEvents.boost('Inactive');
-      }
+    if (isKeyInArray(key, INPUT_KEYS.BOOST)) {
+      // Boost should be inactive when key is released
+      this.boostActive = false;
+      this.updateParticleSystem();
+      // Emit boost event to update HUD - THE WORD OF THE LORD!
+      HUDEvents.boost('Inactive');
     }
 
     // Only update mobile input for iPads with keyboards, not for regular keyboard input
@@ -452,10 +450,10 @@ export class CharacterController {
     const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
     const rotationSmoothing = this.currentCharacter?.rotationSmoothing ?? 0.2;
 
-    if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
+    if (this.keysDown.has('a' as InputKey) || this.keysDown.has('arrowleft' as InputKey)) {
       this.targetRotationY -= rotationSpeed;
     }
-    if (this.keysDown.has('d') || this.keysDown.has('arrowright')) {
+    if (this.keysDown.has('d' as InputKey) || this.keysDown.has('arrowright' as InputKey)) {
       this.targetRotationY += rotationSpeed;
     }
 
@@ -505,6 +503,13 @@ export class CharacterController {
       INPUT_KEYS.STRAFE_LEFT.some(key => this.keysDown.has(key)) ||
       INPUT_KEYS.STRAFE_RIGHT.some(key => this.keysDown.has(key));
 
+    // Safety check: Turn off boost if no boost keys are down
+    const boostKeyDown = INPUT_KEYS.BOOST.some(key => this.keysDown.has(key));
+    if (!boostKeyDown && this.boostActive) {
+      this.boostActive = false;
+      this.updateParticleSystem();
+      HUDEvents.boost('Inactive');
+    }
 
     // Always return keyboard input for movement detection
     // Mobile input is handled separately in the mobile input system

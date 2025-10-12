@@ -10,7 +10,7 @@ import { ProceduralSoundManager } from './ProceduralSoundManager';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
-import { HUDEventSystem, HUDEvents } from '../utils/hudEventSystem';
+import { HUDEvents } from '../utils/hudEventSystem';
 
 // Animation Groups - THE WORD OF THE LORD FROM PLAYGROUND!
 const playerAnimations: Record<string, any> = {};
@@ -76,7 +76,7 @@ export class SceneManager {
       
       // Wait for Havok to be initialized - THE WORD OF THE LORD!
       const windowObj = window as unknown as Record<string, unknown>;
-      const isHavokReady = (window as any).isHavokReady;
+      const isHavokReady = windowObj['isHavokReady'] as (() => boolean) | undefined;
       
       // Wait for Havok to be ready
       if (isHavokReady && !isHavokReady()) {
@@ -676,9 +676,8 @@ export class SceneManager {
 
   private setupInspector(): void {
     // Expose inspector functions globally for manual debugging
-    const windowObj = window as any;
     
-    windowObj.showBabylonInspector = () => {
+    (window as any).showBabylonInspector = () => {
       console.clear();
       console.log('🔍 BABYLON.JS SCENE INSPECTOR');
       console.log('=====================================');
@@ -739,17 +738,17 @@ export class SceneManager {
       console.log('💡 Use characterController.getThrusterSound() to debug thruster');
     };
     
-    windowObj.hideBabylonInspector = () => {
+    (window as any).hideBabylonInspector = () => {
       if (this.scene.debugLayer.isVisible()) {
         this.scene.debugLayer.hide();
       }
     };
     
-    windowObj.toggleBabylonInspector = async () => {
+    (window as any).toggleBabylonInspector = async () => {
       if (this.scene.debugLayer.isVisible()) {
-        windowObj.hideBabylonInspector();
+        (window as any).hideBabylonInspector();
       } else {
-        await windowObj.showBabylonInspector();
+        await (window as any).showBabylonInspector();
       }
     };
     
@@ -759,7 +758,7 @@ export class SceneManager {
         if (this.scene.debugLayer.isVisible()) {
           this.scene.debugLayer.hide();
         } else {
-          windowObj.showBabylonInspector();
+          (window as any).showBabylonInspector();
         }
       }
     });
@@ -771,7 +770,7 @@ export class SceneManager {
     if (inspectorEnabled) {
       // Delay inspector loading to avoid startup errors
       setTimeout(() => {
-        windowObj.showBabylonInspector();
+        (window as any).showBabylonInspector();
       }, 2000);
     }
   }

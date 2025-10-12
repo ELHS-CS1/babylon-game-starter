@@ -758,6 +758,9 @@ const INPUT_KEYS = {
     RESET_CAMERA: ['1']
 } as const;
 
+// Union type for all possible input keys
+type InputKey = typeof INPUT_KEYS[keyof typeof INPUT_KEYS][number];
+
 // Mobile Touch Controls Configuration
 const MOBILE_CONTROLS = {
     JOYSTICK_RADIUS: 60,
@@ -806,8 +809,7 @@ type CharacterState = typeof CHARACTER_STATES[keyof typeof CHARACTER_STATES];
 // const playerAnimations: Record<string, any> = {};
 
 export default CONFIG;
-export { ASSETS, INPUT_KEYS, MOBILE_CONTROLS, CHARACTER_STATES, OBJECT_ROLE };
-export type { CharacterState };
+export { ASSETS, INPUT_KEYS, MOBILE_CONTROLS, CHARACTER_STATES, OBJECT_ROLE, type InputKey, type CharacterState };
 export type { 
     Character, 
     Environment, 
