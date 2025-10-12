@@ -522,30 +522,30 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
       return;
     }
     
-    // Handle GDC report endpoints
-    if (url.pathname.startsWith('/api/reports')) {
-      await reportAPI.handleRequest(req, res);
-      return;
-    }
+            // Handle GDC report endpoints
+            if (url.pathname.startsWith('/api/reports')) {
+              await reportAPI.handleRequest(req, res);
+              return;
+            }
 
-    // Handle push notification endpoints
-    if (url.pathname === '/api/push/subscribe') {
-      await pushNotificationService.handleSubscriptionRequest(req, res);
-      return;
-    }
+            // Handle push notification endpoints
+            if (url.pathname === '/api/push/subscribe') {
+              await pushNotificationService.handleSubscriptionRequest(req, res);
+              return;
+            }
 
-    if (url.pathname === '/api/push/notify') {
-      await pushNotificationService.handleNotificationRequest(req, res);
-      return;
-    }
+            if (url.pathname === '/api/push/notify') {
+              await pushNotificationService.handleNotificationRequest(req, res);
+              return;
+            }
 
-    if (url.pathname === '/api/push/vapid-key') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        publicKey: pushNotificationService.getPublicKey() 
-      }));
-      return;
-    }
+            if (url.pathname === '/api/push/vapid-key') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                publicKey: pushNotificationService.getPublicKey() 
+              }));
+              return;
+            }
     
     handleApiRequest(req, res, url);
     return;
