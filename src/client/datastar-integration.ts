@@ -255,15 +255,24 @@ export class DataStarIntegration {
     if (data.peers && Array.isArray(data.peers)) {
       logger.info(`📋 Received ${data.peers.length} peers for environment ${data.environment}`, { context: 'DataStar', tag: 'peers' });
       
-      // Import and update the peer manager
-      import('../game/Peer').then(({ PeerManager }) => {
-        // This would need to be passed from the game engine, but for now we'll log the peers
-        data.peers.forEach((peer: any) => {
-          logger.info(`👤 Found peer: ${peer.name} (${peer.id}) in ${peer.environment}`, { context: 'DataStar', tag: 'peers' });
-        });
-      }).catch(error => {
-        logger.error('Failed to import PeerManager:', { context: 'DataStar', tag: 'peers', error });
+      // Log the discovered peers
+      data.peers.forEach((peer: any) => {
+        logger.info(`👤 Found peer: ${peer.name} (${peer.id}) in ${peer.environment}`, { context: 'DataStar', tag: 'peers' });
       });
+      
+      // Update game state with the discovered peers
+      gameState.players = data.peers.map((peer: any) => ({
+        id: String(peer.id || ''),
+        name: String(peer.name || ''),
+        position: peer.position || { x: 0, y: 0, z: 0 },
+        rotation: peer.rotation || { x: 0, y: 0, z: 0 },
+        health: Number(peer.health || 100),
+        isAlive: Boolean(peer.isAlive ?? true),
+        environment: String(peer.environment || 'Level Test'),
+        lastUpdate: Number(peer.lastUpdate || Date.now())
+      }));
+      
+      logger.info(`✅ Updated gameState.players with ${gameState.players.length} peers`, { context: 'DataStar', tag: 'peers' });
     } else {
       logger.warn('⚠️ Invalid peers response format:', { context: 'DataStar', tag: 'peers', data });
     }
