@@ -98,6 +98,7 @@ function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
 
   // Store connection
   sseConnections.add(res);
+  console.log(`🔗 SSE connection established. Total connections: ${sseConnections.size}`);
 
   // Send periodic heartbeat
   const heartbeat = setInterval(() => {
@@ -271,11 +272,13 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
               }
             })}\n\n`;
             
+            console.log(`📡 Broadcasting to ${sseConnections.size} SSE connections:`, broadcastMessage);
             sseConnections.forEach((connection) => {
               try {
                 connection.write(broadcastMessage);
+                console.log('✅ Successfully broadcasted to SSE connection');
               } catch (error) {
-                console.error('Error broadcasting to SSE connection:', error);
+                console.error('❌ Error broadcasting to SSE connection:', error);
               }
             });
             
