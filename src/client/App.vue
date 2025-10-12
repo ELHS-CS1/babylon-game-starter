@@ -75,6 +75,7 @@ import { gameState } from './state';
 import { pwaManager } from './utils/pwa';
 import { pushNotificationClient } from './services/PushNotificationClient';
 import { logger } from './utils/logger';
+import { dataStarIntegration } from './datastar-integration';
 
 // Interface for window object extensions
 interface WindowWithExtensions extends Window {
@@ -248,6 +249,9 @@ const joinGame = async (): Promise<void> => {
   try {
     const playerName = `Player_${Math.random().toString(36).substr(2, 9)}`;
     logger.info(`👤 Creating player with name: ${playerName}`, { context: 'App', tag: 'multiplayer' });
+    
+    // Join game via SSE
+    dataStarIntegration.joinGame(playerName);
     
     const playerPeer = gameEngine.value.createPlayer(playerName);
     if (playerPeer === null || playerPeer === undefined) {
@@ -428,8 +432,8 @@ onMounted(async () => {
   await pwaManager.registerServiceWorker();
   await pwaManager.requestNotificationPermission();
   
-  // Initialize push notifications
-  await pushNotificationClient.initialize();
+  // Initialize push notifications - DISABLED FOR TESTING
+  // await pushNotificationClient.initialize();
   
   // No intervals allowed - THE WORD OF THE LORD!
 });

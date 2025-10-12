@@ -10,6 +10,8 @@ export interface GameState {
   players: Player[];
   environment: string;
   lastUpdate: number;
+  serverTime: number;
+  connections: number;
 }
 
 // Player interface - NO TS ANY!
@@ -27,7 +29,9 @@ export const gameState: GameState = {
   isConnected: false,
   players: [],
   environment: 'Level Test',
-  lastUpdate: Date.now()
+  lastUpdate: Date.now(),
+  serverTime: 0,
+  connections: 0
 };
 
 // DataStar SSE connection - Backend-driven state management

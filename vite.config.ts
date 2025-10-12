@@ -19,9 +19,7 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       port: 3002
     },
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin'
-    }
+    headers: {}
   },
   preview: {
     port: 3001,

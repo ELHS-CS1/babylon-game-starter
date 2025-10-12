@@ -195,7 +195,7 @@ data: {"type": "connected", "timestamp": 1234567890}
 ## DataStar Integration Requirements
 
 ### 1. Client-Side Requirements
-- DataStar script loaded from CDN
+- DataStar script ESM version only
 - DataStar integration initialized
 - SSE connection established
 - DOM patching event listeners
@@ -275,7 +275,6 @@ npx playwright test tests/datastar-multiplayer.spec.ts -g "should establish Data
 ## Maintenance
 
 ### 1. Regular Updates
-- Update DataStar CDN version
 - Update test patterns for new DataStar features
 - Maintain compatibility with DataStar documentation
 - Update test scenarios for new multiplayer features

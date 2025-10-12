@@ -112,7 +112,13 @@ const reactiveCredits = ref(0);
 
 // Import game state for connection status
 import { gameState } from '../state';
-const isConnected = computed(() => gameState.isConnected);
+import { logger } from '../utils/logger';
+
+const isConnected = computed(() => {
+  const connected = gameState.isConnected;
+  logger.info('🔍 HUD checking connection status:', { context: 'GameHUD', tag: 'connection', isConnected: connected });
+  return connected;
+});
 
 // Computed properties
 const hudPositionClass = computed(() => {
