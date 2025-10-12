@@ -10,6 +10,22 @@ export class DataStarIntegration {
   private dataStarClient: any = null;
   private isInitialized = false;
 
+  private getServerUrl(): string {
+    if (typeof window === 'undefined') {
+      return 'http://localhost:10000';
+    }
+    
+    const { protocol, hostname, port } = window.location;
+    
+    // For production (Render.com), use the current host
+    if (hostname.includes('onrender.com')) {
+      return `${protocol}//${hostname}`;
+    }
+    
+    // For local development, use localhost:10000
+    return 'http://localhost:10000';
+  }
+
   constructor() {
     logger.info('🚀 DataStarIntegration constructor called', { context: 'init' });
     this.initializeSSE();
@@ -66,13 +82,16 @@ export class DataStarIntegration {
       // Use DataStar's proper client API
       const dataStar = (window as any).DataStar;
       
-      // Initialize DataStar client with proper configuration
-      this.dataStarClient = dataStar.createClient({
-        url: 'https://localhost:10000/api/datastar/sse',
+        // Get server URL from current location
+        const serverUrl = this.getServerUrl();
+        
+        // Initialize DataStar client with proper configuration
+        this.dataStarClient = dataStar.createClient({
+          url: `${serverUrl}/api/datastar/sse`,
         onConnect: () => {
           logger.info('✅ DataStar client connected', { context: 'connection' });
-          this.isConnected = true;
-          gameState.isConnected = true;
+            this.isConnected = true;
+            gameState.isConnected = true;
         },
         onDisconnect: () => {
           logger.warn('⚠️ DataStar client disconnected', { context: 'connection' });
@@ -81,8 +100,8 @@ export class DataStarIntegration {
         },
         onError: (error: any) => {
           logger.error('❌ DataStar client error:', { context: 'connection', data: error });
-          this.isConnected = false;
-          gameState.isConnected = false;
+            this.isConnected = false;
+            gameState.isConnected = false;
         },
         onMessage: (data: any) => {
           this.handleDataStarMessage(data);
@@ -101,7 +120,8 @@ export class DataStarIntegration {
   private initializeEventSource(): void {
     try {
       logger.info('🚀 Creating EventSource...', { context: 'connection' });
-      this.eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
+      const serverUrl = this.getServerUrl();
+      this.eventSource = new EventSource(`${serverUrl}/api/datastar/sse`);
       logger.info('✅ EventSource created successfully', { context: 'connection' });
       
       this.eventSource.onopen = () => {
@@ -224,8 +244,8 @@ export class DataStarIntegration {
       logger.info('🔌 Disconnecting SSE...', { context: 'DataStar', tag: 'connection' });
       this.eventSource.close();
       this.eventSource = null;
-      this.isConnected = false;
-      gameState.isConnected = false;
+    this.isConnected = false;
+    gameState.isConnected = false;
     }
   }
 
@@ -238,12 +258,13 @@ export class DataStarIntegration {
   public send(data: Record<string, unknown>): void {
     logger.info('📤 ===== SENDING DATA =====', { context: 'send' });
     logger.info('📤 Sending data via fetch:', { context: 'send', data });
-    logger.info('📤 URL: https://localhost:10000/api/datastar/send', { context: 'send' });
+    const serverUrl = this.getServerUrl();
+    logger.info(`📤 URL: ${serverUrl}/api/datastar/send`, { context: 'send' });
     logger.info('📤 Method: POST', { context: 'send' });
     logger.info('📤 Headers: Content-Type: application/json', { context: 'send' });
     
     // Send via fetch to the server's send endpoint
-    fetch('https://localhost:10000/api/datastar/send', {
+    fetch(`${serverUrl}/api/datastar/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
