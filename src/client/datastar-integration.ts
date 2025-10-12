@@ -251,15 +251,18 @@ export class DataStarIntegration {
       body: JSON.stringify(data),
     })
     .then(response => {
-      logger.info('📤 Fetch response received:', { context: 'send', status: response.status, ok: response.ok });
+      logger.info('📤 Fetch response received:', { context: 'send', status: response.status, ok: response.ok, statusText: response.statusText });
       if (!response.ok) {
         logger.error('❌ Fetch response not OK:', { context: 'send', status: response.status, statusText: response.statusText });
+      } else {
+        logger.info('✅ Fetch request successful!', { context: 'send' });
       }
       return response;
     })
     .catch(error => {
       logger.error('❌ Failed to send data:', { context: 'send', data: error });
       logger.error('❌ Error details:', { context: 'send', message: error.message, stack: error.stack });
+      logger.error('❌ Error type:', { context: 'send', type: error.constructor.name });
     });
   }
 
