@@ -560,7 +560,7 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
   
   // Serve assets directory
   if (url.pathname.startsWith('/assets/')) {
-    const assetPath = join(process.cwd(), url.pathname);
+    const assetPath = join(config.clientPath, url.pathname);
     const ext = url.pathname.split('.').pop()?.toLowerCase();
     const contentType = getContentType(ext);
     serveStatic(req, res, assetPath, contentType);

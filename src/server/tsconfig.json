@@ -37,7 +37,7 @@
     "verbatimModuleSyntax": true,
     
     // === EMIT ===
-    "noEmitOnError": true,
+    "noEmitOnError": false,
     "preserveConstEnums": true,
     "inlineSourceMap": false,
     "inlineSources": false,

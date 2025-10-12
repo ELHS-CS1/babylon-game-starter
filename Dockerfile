@@ -30,7 +30,7 @@ COPY public ./public/
 
 # Build the application (skip linting in Docker to avoid ESLint config issues)
 RUN npx vite build --mode production
-RUN npx tsc -p src/server/tsconfig.json --noEmitOnError false
+RUN npx tsc -p src/server/tsconfig.json
 
 # Production stage
 FROM node:22-alpine AS production
@@ -43,7 +43,7 @@ RUN apk add --no-cache dumb-init
 
 # Copy built application
 COPY --from=builder /app/dist ./dist/
-COPY --from=builder /app/src/server/dist ./dist/server/
+COPY --from=builder /app/src/server/dist ./src/server/dist/
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/assets ./assets/
 COPY --from=builder /app/public ./public/
@@ -82,4 +82,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Start the application with dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "src/server/dist/index.js"]
