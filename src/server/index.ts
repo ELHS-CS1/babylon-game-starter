@@ -350,7 +350,7 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
       // Render.com uses x-forwarded-proto and x-forwarded-host headers
       const protocol = req.headers['x-forwarded-proto'] || 
                       req.headers['x-forwarded-protocol'] || 
-                      (req.connection.encrypted ? 'https' : 'http');
+                      'http';
       
       const host = req.headers['x-forwarded-host'] || 
                    req.headers.host || 
