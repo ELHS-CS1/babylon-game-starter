@@ -9,20 +9,11 @@ export class DataStarIntegration {
   private eventSource: EventSource | null = null;
   private isInitialized = false;
 
-  private getServerUrl(): string {
-    if (typeof window === 'undefined') {
-      return 'http://localhost:10000';
-    }
-    
-    const { protocol, hostname } = window.location;
-    
-    // For production (Render.com), use the current host
-    if (hostname.includes('onrender.com')) {
-      return `${protocol}//${hostname}`;
-    }
-    
-    // For local development, use localhost:10000 with HTTPS
-    return 'https://localhost:10000';
+  private async getServerUrl(): Promise<string> {
+    // Use the centralized server URL utility
+    // Import dynamically to avoid circular dependencies
+    const { getServerUrl } = await import('./utils/serverUrl');
+    return getServerUrl();
   }
 
   constructor() {
@@ -82,7 +73,7 @@ export class DataStarIntegration {
       const dataStar = (window as any).DataStar;
       
         // Get server URL from current location
-        const serverUrl = this.getServerUrl();
+        const serverUrl = await this.getServerUrl();
         
         // Initialize DataStar client with proper configuration
         dataStar.createClient({
@@ -116,10 +107,10 @@ export class DataStarIntegration {
     }
   }
 
-  private initializeEventSource(): void {
+  private async initializeEventSource(): Promise<void> {
     try {
       logger.info('🚀 Creating EventSource...', { context: 'connection' });
-      const serverUrl = this.getServerUrl();
+      const serverUrl = await this.getServerUrl();
       this.eventSource = new EventSource(`${serverUrl}/api/datastar/sse`);
       logger.info('✅ EventSource created successfully', { context: 'connection' });
       
@@ -310,7 +301,7 @@ export class DataStarIntegration {
     if (data.environment) {
       // Update the current environment in game state
       gameState.environment = String(data.environment);
-      gameState.lastUpdate = Date.now();
+          gameState.lastUpdate = Date.now();
       
       logger.info('🌍 Environment updated in gameState:', { context: 'DataStar', tag: 'environment', environment: gameState.environment });
       
@@ -406,20 +397,20 @@ export class DataStarIntegration {
 
 
   // Send data to server
-  public send(data: Record<string, unknown>): void {
+  public async send(data: Record<string, unknown>): Promise<void> {
     logger.info('📤 ===== SENDING DATA =====', { context: 'send' });
     logger.info('📤 Sending data via fetch:', { context: 'send', data });
-    const serverUrl = this.getServerUrl();
+    const serverUrl = await this.getServerUrl();
     logger.info(`📤 URL: ${serverUrl}/api/datastar/send`, { context: 'send' });
     logger.info('📤 Method: POST', { context: 'send' });
     logger.info('📤 Headers: Content-Type: application/json', { context: 'send' });
-    
-    // Send via fetch to the server's send endpoint
+      
+      // Send via fetch to the server's send endpoint
     fetch(`${serverUrl}/api/datastar/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       body: JSON.stringify(data),
     })
     .then(response => {

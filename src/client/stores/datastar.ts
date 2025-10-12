@@ -73,15 +73,26 @@ export class DataStarConnection {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
-  connect(_url: string = 'https://localhost:10000/api/datastar/sse'): void {
-    try {
-      // DataStar handles SSE internally - we just need to listen for DOM changes
-      setConnected(true);
-      this.reconnectAttempts = 0;
-      logger.info('✅ DataStar connection established via client library', { context: 'DataStar', tag: 'connection' });
-    } catch {
+  connect(_url: string = ''): void {
+    const getUrl = async () => {
+      if (_url) return _url;
+      const { getSSEUrl } = await import('../utils/serverUrl');
+      return getSSEUrl();
+    };
+    
+    getUrl().then(url => {
+      try {
+        // DataStar handles SSE internally - we just need to listen for DOM changes
+        setConnected(true);
+        this.reconnectAttempts = 0;
+        logger.info('✅ DataStar connection established via client library', { context: 'DataStar', tag: 'connection' });
+      } catch {
+        this.handleReconnect();
+      }
+    }).catch(error => {
+      logger.error('Failed to get server URL:', { context: 'DataStar', tag: 'connection', error });
       this.handleReconnect();
-    }
+    });
   }
 
   // DataStar handles message processing internally via DOM changes
@@ -102,14 +113,18 @@ export class DataStarConnection {
   }
 
   send(data: Record<string, unknown>): void {
-    fetch('https://localhost:10000/api/datastar/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    }).catch(() => {
-      // Error sending DataStar message
+    import('../utils/serverUrl').then(({ getSendUrl }) => {
+      fetch(getSendUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      }).catch(() => {
+        // Error sending DataStar message
+      });
+    }).catch(error => {
+      logger.error('Failed to get send URL:', { context: 'DataStar', tag: 'send', error });
     });
   }
 }

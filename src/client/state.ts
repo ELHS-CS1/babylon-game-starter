@@ -40,7 +40,11 @@ export const gameState: GameState = {
 // DataStar SSE connection - Backend-driven state management
 logger.info('🚀 Initializing DataStar SSE connection', { context: 'State', tag: 'connection' });
 logger.info('🔍 Testing logger import...', { context: 'State', tag: 'connection' });
-logger.info('🚀 Attempting SSE connection to: https://localhost:10000/api/datastar/sse', { context: 'State', tag: 'connection' });
+import { getSSEUrl, getSendUrl, logServerConfig } from './utils/serverUrl';
+
+// Log server configuration for debugging
+logServerConfig();
+logger.info(`🚀 Attempting SSE connection to: ${getSSEUrl()}`, { context: 'State', tag: 'connection' });
 logger.info('🔍 Logger call completed', { context: 'State', tag: 'connection' });
 
 // Initialize DataStar integration for real-time updates
@@ -83,7 +87,7 @@ export function isValidPeer(peer: unknown): peer is Player {
 // DataStar SSE send function - Backend communication
 export async function sendToServer(data: unknown): Promise<void> {
   try {
-      const response = await fetch('https://localhost:10000/api/datastar/send', {
+    const response = await fetch(getSendUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

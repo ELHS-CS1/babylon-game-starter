@@ -173,7 +173,8 @@ const initGameEngine = (): void => {
     gameEngine.value.onPeerUpdate = () => {
       // Send peer update to server via DataStar signals
       if (isConnected.value) {
-        fetch('https://localhost:10000/api/datastar/send', {
+        import('./utils/serverUrl').then(({ getSendUrl }) => {
+          fetch(getSendUrl(), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -239,7 +240,8 @@ const joinGame = async (): Promise<void> => {
     logger.info(`📊 Player data: ${JSON.stringify(playerPeer)}`, { context: 'App', tag: 'multiplayer' });
     
     logger.info('📡 Sending peer update to server...', { context: 'App', tag: 'multiplayer' });
-    const response = await fetch('https://localhost:10000/api/datastar/send', {
+    const { getSendUrl } = await import('./utils/serverUrl');
+    const response = await fetch(getSendUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
