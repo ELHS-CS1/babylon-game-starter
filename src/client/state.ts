@@ -21,6 +21,9 @@ export interface Player {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   environment: string;
+  character: string;
+  boostActive: boolean;
+  state: string;
   lastUpdate: number;
 }
 

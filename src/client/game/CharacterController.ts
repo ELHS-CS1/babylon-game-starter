@@ -2,7 +2,7 @@
 // CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
 // ============================================================================
 
-import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
+import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, type KeyboardInfo } from '@babylonjs/core';
 import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
 import CONFIG, { ASSETS, CHARACTER_STATES, INPUT_KEYS, type InputKey } from '../config/gameConfig';
 import type { CharacterState } from '../config/gameConfig';
@@ -66,6 +66,10 @@ export class CharacterController {
   private thrusterSound: Sound | null = null;
   private thrusterSoundAttempted: boolean = false;
   public animationController: AnimationController | null = null;
+  
+  // Position update system
+  private lastPositionUpdate = 0;
+  private positionUpdateInterval = 100; // Update every 100ms
 
   // Mobile device detection - computed once at initialization
   private readonly isMobileDevice: boolean;
@@ -425,8 +429,10 @@ export class CharacterController {
 
     this.updateRotation();
     this.updatePosition();
-    this.updateAnimations();
-    this.updateParticleSystem();
+    
+    // Call the main update method for position broadcasting
+    const deltaTime = this.scene.getEngine().getDeltaTime() / 1000; // Convert to seconds
+    this.update(deltaTime);
     
     // Animation debugging removed to prevent spam
   };
@@ -713,12 +719,12 @@ export class CharacterController {
   private getNextState(supportInfo: CharacterSurfaceInfo): CharacterState {
     switch (this.state) {
       case CHARACTER_STATES.IN_AIR:
-        return supportInfo.supportedState === CharacterSupportedState.SUPPORTED
+        return supportInfo.isSupported === true
           ? CHARACTER_STATES.ON_GROUND
           : CHARACTER_STATES.IN_AIR;
 
       case CHARACTER_STATES.ON_GROUND:
-        if (supportInfo.supportedState !== CharacterSupportedState.SUPPORTED) {
+        if (supportInfo.isSupported !== true) {
           return CHARACTER_STATES.IN_AIR;
         }
         return this.wantJump ? CHARACTER_STATES.START_JUMP : CHARACTER_STATES.ON_GROUND;
@@ -759,6 +765,55 @@ export class CharacterController {
 
   public getState(): string {
     return this.state;
+  }
+
+  public update(_deltaTime: number): void {
+    if (!this.playerMesh || !this.characterController) {
+      return;
+    }
+
+    // Send position updates to server
+    this.sendPositionUpdate();
+  }
+
+
+  private sendPositionUpdate(): void {
+    const now = Date.now();
+    if (now - this.lastPositionUpdate < this.positionUpdateInterval) {
+      return;
+    }
+
+    if (!this.playerMesh) {
+      return;
+    }
+
+    // Get current position and rotation
+    const position = this.playerMesh.position;
+    const rotation = this.playerMesh.rotation;
+
+    // Send position update to server
+    import('../datastar-integration').then(({ dataStarIntegration }) => {
+      dataStarIntegration.send({
+        type: 'positionUpdate',
+        position: {
+          x: position.x,
+          y: position.y,
+          z: position.z
+        },
+        rotation: {
+          x: rotation.x,
+          y: rotation.y,
+          z: rotation.z
+        },
+        state: this.state,
+        boostActive: this.boostActive,
+        timestamp: now
+      });
+    }).catch(error => {
+      logger.error('Failed to send position update:', { context: 'CharacterController', tag: 'position', error });
+    });
+
+    this.lastPositionUpdate = now;
   }
 
   public updateCharacterPhysics(character: Character, spawnPosition: Vector3): void {

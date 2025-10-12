@@ -7,6 +7,7 @@ import { CollectiblesManager } from './CollectiblesManager';
 import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { ProceduralSoundManager } from './ProceduralSoundManager';
+import { PeerRenderer } from './PeerRenderer';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -24,6 +25,7 @@ export class SceneManager {
   private gameStartTime: number = Date.now();
   private thrusterSound: any = null;
   private isLoadingCharacter: boolean = false;
+  private peerRenderer: PeerRenderer | null = null;
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     this.scene = new Scene(engine);
@@ -42,6 +44,12 @@ export class SceneManager {
     
     // Add Babylon.js inspector if enabled
     this.setupInspector();
+    
+    // Initialize PeerRenderer for multiplayer character rendering
+    this.peerRenderer = new PeerRenderer(this.scene);
+    
+    // Setup peer rendering update loop
+    this.setupPeerRenderingLoop();
   }
 
   private async initializeScene(): Promise<void> {
@@ -549,6 +557,78 @@ export class SceneManager {
 
   public getScene(): Scene {
     return this.scene;
+  }
+
+  // ============================================================================
+  // PEER RENDERING - DataStar Best Practices Integration
+  // ============================================================================
+  
+  public async processPeerUpdates(): Promise<void> {
+    if (!this.peerRenderer) {
+      return;
+    }
+
+    // Import gameState to get current peer data
+    const { gameState } = await import('../state');
+    
+    // Process each peer in the game state
+    for (const peer of gameState.players) {
+      try {
+        // Check if peer character exists, if not create it
+        await this.peerRenderer.createPeerCharacter(peer);
+        
+        // Update peer position and rotation with boost state and character state
+        this.peerRenderer.updatePeerPosition(
+          peer.id,
+          new Vector3(peer.position.x, peer.position.y, peer.position.z),
+          new Vector3(peer.rotation.x, peer.rotation.y, peer.rotation.z),
+          peer.boostActive,
+          peer.state
+        );
+      } catch (error) {
+        logger.error(`Failed to process peer ${peer.id}:`, { context: 'SceneManager', tag: 'peer', error });
+      }
+    }
+  }
+
+  public updatePeerInterpolation(deltaTime: number): void {
+    if (this.peerRenderer) {
+      this.peerRenderer.updatePeerInterpolation(deltaTime);
+    }
+  }
+
+  public clearAllPeers(): void {
+    if (this.peerRenderer) {
+      this.peerRenderer.clearAllPeerCharacters();
+    }
+  }
+
+  private setupPeerRenderingLoop(): void {
+    if (!this.peerRenderer) {
+      return;
+    }
+
+    let lastPeerUpdate = 0;
+    const peerUpdateInterval = 100; // Update peers every 100ms
+
+    // Setup peer rendering update loop using onBeforeRenderObservable
+    this.scene.onBeforeRenderObservable.add(() => {
+      const now = Date.now();
+      
+      // Process peer updates at regular intervals
+      if (now - lastPeerUpdate >= peerUpdateInterval) {
+        this.processPeerUpdates().catch(error => {
+          logger.error('Failed to process peer updates:', { context: 'SceneManager', tag: 'peer', error });
+        });
+        lastPeerUpdate = now;
+      }
+      
+      // Update peer interpolation every frame for smooth movement
+      const deltaTime = this.scene.getEngine().getDeltaTime() / 1000; // Convert to seconds
+      this.updatePeerInterpolation(deltaTime);
+    });
+
+    logger.info('Peer rendering loop setup complete', { context: 'SceneManager', tag: 'peer' });
   }
 
 

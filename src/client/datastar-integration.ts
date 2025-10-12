@@ -7,7 +7,6 @@ import { logger } from './utils/logger';
 export class DataStarIntegration {
   private isConnected = false;
   private eventSource: EventSource | null = null;
-  private dataStarClient: any = null;
   private isInitialized = false;
 
   private getServerUrl(): string {
@@ -15,7 +14,7 @@ export class DataStarIntegration {
       return 'http://localhost:10000';
     }
     
-    const { protocol, hostname, port } = window.location;
+    const { protocol, hostname } = window.location;
     
     // For production (Render.com), use the current host
     if (hostname.includes('onrender.com')) {
@@ -86,7 +85,7 @@ export class DataStarIntegration {
         const serverUrl = this.getServerUrl();
         
         // Initialize DataStar client with proper configuration
-        this.dataStarClient = dataStar.createClient({
+        dataStar.createClient({
           url: `${serverUrl}/api/datastar/sse`,
         onConnect: () => {
           logger.info('✅ DataStar client connected', { context: 'connection' });
@@ -187,9 +186,10 @@ export class DataStarIntegration {
         name: String(peer['name'] || ''),
         position: peer['position'] || { x: 0, y: 0, z: 0 },
         rotation: peer['rotation'] || { x: 0, y: 0, z: 0 },
-        health: Number(peer['health'] || 100),
-        isAlive: Boolean(peer['isAlive'] ?? true),
         environment: String(peer['environment'] || 'Level Test'),
+        character: String(peer['character'] || 'Red'),
+        boostActive: Boolean(peer['boostActive'] ?? false),
+        state: String(peer['state'] || 'idle'),
         lastUpdate: Number(peer['lastUpdate'] || Date.now())
       }));
       
@@ -207,9 +207,10 @@ export class DataStarIntegration {
         name: String(peer['name'] || ''),
         position: (peer['position'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
         rotation: (peer['rotation'] as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
-        health: Number(peer['health'] || 100),
-        isAlive: Boolean(peer['isAlive'] ?? true),
         environment: String(peer['environment'] || 'Level Test'),
+        character: String(peer['character'] || 'Red'),
+        boostActive: Boolean(peer['boostActive'] ?? false),
+        state: String(peer['state'] || 'idle'),
         lastUpdate: Number(peer['lastUpdate'] || Date.now())
       };
     
@@ -244,6 +245,25 @@ export class DataStarIntegration {
       logger.info('👤 Player info:', { context: 'DataStar', tag: 'join', player: data.player });
       logger.info('🎯 Game state:', { context: 'DataStar', tag: 'join', gameState: data.gameState });
       
+      // Add existing peers to game state
+      if (data.existingPeers && Array.isArray(data.existingPeers)) {
+        logger.info(`👥 Received ${data.existingPeers.length} existing peers`, { context: 'DataStar', tag: 'join' });
+        
+        gameState.players = data.existingPeers.map((peer: any) => ({
+          id: String(peer.id || ''),
+          name: String(peer.name || ''),
+          position: peer.position || { x: 0, y: 0, z: 0 },
+          rotation: peer.rotation || { x: 0, y: 0, z: 0 },
+          environment: String(peer.environment || 'Level Test'),
+          character: String(peer.character || 'Red'),
+          boostActive: Boolean(peer.boostActive ?? false),
+          state: String(peer.state || 'idle'),
+          lastUpdate: Number(peer.lastUpdate || Date.now())
+        }));
+        
+        logger.info(`✅ Added ${gameState.players.length} existing peers to game state`, { context: 'DataStar', tag: 'join' });
+      }
+      
       // Update the game state with the new player info
       if (data.gameState) {
         // The game state will be updated via the peerUpdate message
@@ -271,15 +291,94 @@ export class DataStarIntegration {
         name: String(peer.name || ''),
         position: peer.position || { x: 0, y: 0, z: 0 },
         rotation: peer.rotation || { x: 0, y: 0, z: 0 },
-        health: Number(peer.health || 100),
-        isAlive: Boolean(peer.isAlive ?? true),
         environment: String(peer.environment || 'Level Test'),
+        character: String(peer.character || 'Red'),
+        boostActive: Boolean(peer.boostActive ?? false),
+        state: String(peer.state || 'idle'),
         lastUpdate: Number(peer.lastUpdate || Date.now())
       }));
       
       logger.info(`✅ Updated gameState.players with ${gameState.players.length} peers`, { context: 'DataStar', tag: 'peers' });
     } else {
       logger.warn('⚠️ Invalid peers response format:', { context: 'DataStar', tag: 'peers', data });
+    }
+  }
+
+  private handleEnvironmentChange(data: any): void {
+    logger.info('🌍 Handling environment change:', { context: 'DataStar', tag: 'environment', data });
+    
+    if (data.environment) {
+      // Update the current environment in game state
+      gameState.environment = String(data.environment);
+      gameState.lastUpdate = Date.now();
+      
+      logger.info('🌍 Environment updated in gameState:', { context: 'DataStar', tag: 'environment', environment: gameState.environment });
+      
+      // Clear peers from old environment and request new ones for this environment
+      const oldEnvironment = gameState.players.find(p => p.environment !== data.environment)?.environment;
+      if (oldEnvironment) {
+        logger.info(`🧹 Clearing peers from old environment: ${oldEnvironment}`, { context: 'DataStar', tag: 'environment' });
+        
+        // Clear peer character meshes from old environment
+        // Access GameEngine instance to clear all peer characters
+        if (typeof window !== 'undefined' && (window as any).gameEngine) {
+          const gameEngine = (window as any).gameEngine;
+          if (gameEngine && gameEngine.clearAllPeers) {
+            gameEngine.clearAllPeers();
+            logger.info('🧹 Cleared all peer character meshes from old environment', { context: 'DataStar', tag: 'environment' });
+          } else {
+            logger.warn('⚠️ GameEngine or clearAllPeers method not available for peer cleanup', { context: 'DataStar', tag: 'environment' });
+          }
+        } else {
+          logger.warn('⚠️ Window or GameEngine not available for peer cleanup', { context: 'DataStar', tag: 'environment' });
+        }
+        
+        gameState.players = gameState.players.filter(p => p.environment === data.environment);
+      }
+      
+      this.requestPeersForEnvironment(data.environment);
+      
+      // Log the game state update
+      if (data.gameState) {
+        logger.info('🌍 Game state from server:', { context: 'DataStar', tag: 'environment', gameState: data.gameState });
+      }
+    }
+  }
+
+  private requestPeersForEnvironment(environment: string): void {
+    logger.info(`📋 Requesting peers for environment: ${environment}`, { context: 'DataStar', tag: 'peers' });
+    
+    this.send({
+      type: 'requestPeers',
+      environment: environment,
+      timestamp: Date.now()
+    });
+  }
+
+  private handlePositionUpdate(data: any): void {
+    logger.info('📍 Handling position update:', { context: 'DataStar', tag: 'position', data });
+    
+    if (data.peerId && data.position && data.rotation) {
+      // Update the peer's position in gameState
+      const peerIndex = gameState.players.findIndex(p => p.id === data.peerId);
+      if (peerIndex >= 0 && gameState.players[peerIndex]) {
+        gameState.players[peerIndex].position = data.position;
+        gameState.players[peerIndex].rotation = data.rotation;
+        gameState.players[peerIndex].lastUpdate = data.timestamp || Date.now();
+        
+        // Process boost state and character state
+        if (typeof data.boostActive === 'boolean') {
+          gameState.players[peerIndex].boostActive = data.boostActive;
+          logger.info(`📍 Updated peer ${data.peerId} boost state:`, { context: 'DataStar', tag: 'position', boostActive: data.boostActive });
+        }
+        
+        if (typeof data.state === 'string') {
+          gameState.players[peerIndex].state = data.state;
+          logger.info(`📍 Updated peer ${data.peerId} character state:`, { context: 'DataStar', tag: 'position', state: data.state });
+        }
+        
+        logger.info(`📍 Updated peer ${data.peerId} position:`, { context: 'DataStar', tag: 'position', position: data.position });
+      }
     }
   }
 
@@ -472,6 +571,12 @@ export class DataStarIntegration {
         } else if (data.type === 'peersResponse') {
           logger.info('🔍 Processing peersResponse', { context: 'DataStar', tag: 'peers' });
           this.handlePeersResponse(data);
+        } else if (data.type === 'environmentChange') {
+          logger.info('🔍 Processing environmentChange', { context: 'DataStar', tag: 'environment' });
+          this.handleEnvironmentChange(data);
+        } else if (data.type === 'positionUpdate') {
+          logger.info('🔍 Processing positionUpdate', { context: 'DataStar', tag: 'position' });
+          this.handlePositionUpdate(data);
         } else if (data.isConnected !== undefined) {
           logger.info('🔍 Processing direct signals message', { context: 'DataStar', tag: 'message' });
           // Handle direct signal messages

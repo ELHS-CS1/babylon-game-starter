@@ -712,7 +712,16 @@ const CONFIG = {
                 options: ASSETS.ENVIRONMENTS.map((environment) => environment.name),
                 onChange: async (value: boolean | string) => {
                     if (typeof value === 'string') {
+                        // Handle local environment change
                         await SettingsUI.changeEnvironment(value);
+                        
+                        // Notify server about environment change
+                        const { dataStarIntegration } = await import('../datastar-integration');
+                        dataStarIntegration.send({
+                            type: 'environmentChange',
+                            environment: value,
+                            timestamp: Date.now()
+                        });
                     }
                 }
             }

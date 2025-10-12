@@ -237,6 +237,12 @@ export class GameEngine {
     }
   }
 
+  public clearAllPeers(): void {
+    if (this.sceneManager) {
+      this.sceneManager.clearAllPeers();
+    }
+  }
+
   public dispose(): void {
     // Dispose SceneManager from THE WORD OF THE LORD
     if (this.sceneManager) {

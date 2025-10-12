@@ -23,6 +23,9 @@ interface Peer {
   position: Vector3;
   rotation: Vector3;
   environment: string;
+  character: string;
+  boostActive: boolean;
+  state: string;
   lastUpdate: number;
 }
 
@@ -81,6 +84,9 @@ const gameState: GameState = {
 // Store SSE connections for DataStar
 const sseConnections = new Set<ServerResponse>();
 
+// Map SSE connections to peer IDs for proper message routing
+const connectionToPeerMap = new Map<ServerResponse, string>();
+
 // SSE connection handler for DataStar
 function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
   // Set SSE headers
@@ -111,12 +117,30 @@ function handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
 
   // Handle client disconnect
   req.on('close', () => {
+    // Remove peer from game state if this connection was associated with a peer
+    const peerId = connectionToPeerMap.get(res);
+    if (peerId && gameState.peers[peerId]) {
+      delete gameState.peers[peerId];
+      console.log(`👋 Peer ${peerId} disconnected and removed from game state`);
+    }
+    
+    // Clean up connection mappings
+    connectionToPeerMap.delete(res);
     sseConnections.delete(res);
     clearInterval(heartbeat);
     console.log(`🔌 SSE connection closed. Total connections: ${sseConnections.size}`);
   });
 
   req.on('error', (error) => {
+    // Remove peer from game state if this connection was associated with a peer
+    const peerId = connectionToPeerMap.get(res);
+    if (peerId && gameState.peers[peerId]) {
+      delete gameState.peers[peerId];
+      console.log(`👋 Peer ${peerId} disconnected due to error and removed from game state`);
+    }
+    
+    // Clean up connection mappings
+    connectionToPeerMap.delete(res);
     sseConnections.delete(res);
     clearInterval(heartbeat);
     console.log(`❌ SSE connection error: ${error.message}. Total connections: ${sseConnections.size}`);
@@ -133,6 +157,27 @@ function broadcastToSSE(data: unknown): void {
       sseConnections.delete(res);
     }
   });
+}
+
+// Broadcast to SSE connections in a specific environment
+function broadcastToEnvironment(environment: string, data: unknown): void {
+  const message = 'data: ' + JSON.stringify(data) + '\n\n';
+  let broadcastCount = 0;
+  
+  sseConnections.forEach(res => {
+    const peerId = connectionToPeerMap.get(res);
+    if (peerId && gameState.peers[peerId] && gameState.peers[peerId].environment === environment) {
+      try {
+        res.write(message);
+        broadcastCount++;
+      } catch {
+        sseConnections.delete(res);
+        connectionToPeerMap.delete(res);
+      }
+    }
+  });
+  
+  console.log(`📡 Broadcasted to ${broadcastCount} peers in environment: ${environment}`);
 }
 
 
@@ -245,20 +290,33 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
               position: { x: 0, y: 0, z: 0 },
               rotation: { x: 0, y: 0, z: 0 },
               environment: gameState.currentEnvironment,
+              character: data.character || 'Red', // Default character
+              boostActive: false,
+              state: 'idle',
               lastUpdate: Date.now()
             };
             
             gameState.peers[playerId] = newPlayer;
-            console.log('✅ Player added to game state:', newPlayer);
             
-            // Send response back to the client
+            // Associate this connection with the peer ID
+            connectionToPeerMap.set(res, playerId);
+            
+            console.log('✅ Player added to game state:', newPlayer);
+            console.log(`🔗 Associated connection with peer ID: ${playerId}`);
+            
+            // Get existing peers in the same environment
+            const existingPeers = Object.values(gameState.peers)
+              .filter(peer => peer.environment === newPlayer.environment && peer.id !== newPlayer.id);
+            
+            // Send response back to the client with existing peers
             const response = {
               type: 'joinResponse',
               success: true,
               player: newPlayer,
+              existingPeers: existingPeers,
               gameState: {
-                peers: Object.keys(gameState.peers).length,
-                environment: gameState.currentEnvironment
+                peers: Object.values(gameState.peers).filter(p => p.environment === newPlayer.environment).length,
+                environment: newPlayer.environment
               },
               timestamp: Date.now()
             };
@@ -266,27 +324,116 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(response));
             
-            // Broadcast player update to all SSE connections
-            const broadcastMessage = `data: ${JSON.stringify({
+            // Broadcast player update to peers in the same environment
+            const peerUpdateMessage = {
               type: 'peerUpdate',
               peer: newPlayer,
               gameState: {
-                peers: Object.keys(gameState.peers).length,
-                environment: gameState.currentEnvironment
+                peers: Object.values(gameState.peers).filter(p => p.environment === newPlayer.environment).length,
+                environment: newPlayer.environment
               }
-            })}\n\n`;
+            };
             
-            console.log(`📡 Broadcasting to ${sseConnections.size} SSE connections:`, broadcastMessage);
-            sseConnections.forEach((connection) => {
-              try {
-                connection.write(broadcastMessage);
-                console.log('✅ Successfully broadcasted to SSE connection');
-              } catch (error) {
-                console.error('❌ Error broadcasting to SSE connection:', error);
-              }
-            });
+            broadcastToEnvironment(newPlayer.environment, peerUpdateMessage);
             
             return;
+          }
+          
+          // Handle position update requests
+          if (data.type === 'positionUpdate') {
+            const peerId = connectionToPeerMap.get(res);
+            if (peerId && gameState.peers[peerId] && data.position && data.rotation) {
+              // Update peer position and rotation
+              gameState.peers[peerId].position = data.position;
+              gameState.peers[peerId].rotation = data.rotation;
+              gameState.peers[peerId].lastUpdate = data.timestamp || Date.now();
+              
+              // Broadcast position update to other peers in the same environment
+              const positionUpdateMessage = {
+                type: 'positionUpdate',
+                peerId: peerId,
+                position: data.position,
+                rotation: data.rotation,
+                state: data.state,
+                boostActive: data.boostActive,
+                timestamp: data.timestamp || Date.now()
+              };
+              
+              broadcastToEnvironment(gameState.peers[peerId].environment, positionUpdateMessage);
+              
+              return;
+            }
+          }
+          
+          // Handle request peers for environment
+          if (data.type === 'requestPeers' && data.environment) {
+            const peerId = connectionToPeerMap.get(res);
+            if (peerId && gameState.peers[peerId]) {
+              // Get peers in the requested environment
+              const environmentPeers = Object.values(gameState.peers)
+                .filter(peer => peer.environment === data.environment);
+              
+              console.log(`📋 Peer ${peerId} requested peers for environment: ${data.environment}`);
+              console.log(`📋 Found ${environmentPeers.length} peers in environment`);
+              
+              // Send response back to the client
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                type: 'peersResponse',
+                environment: data.environment,
+                peers: environmentPeers,
+                timestamp: Date.now()
+              }));
+              
+              return;
+            } else {
+              console.log('❌ Request peers from unknown peer');
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Peer not found' }));
+              return;
+            }
+          }
+          
+          // Handle environment change requests
+          if (data.type === 'environmentChange' && data.environment) {
+            const peerId = connectionToPeerMap.get(res);
+            if (peerId && gameState.peers[peerId]) {
+              const oldEnvironment = gameState.peers[peerId].environment;
+              gameState.peers[peerId].environment = data.environment;
+              gameState.peers[peerId].lastUpdate = Date.now();
+              
+              console.log(`🌍 Peer ${peerId} changed environment from ${oldEnvironment} to ${data.environment}`);
+              
+              // Broadcast environment change to peers in the new environment
+              const environmentChangeMessage = {
+                type: 'environmentChange',
+                peerId: peerId,
+                environment: data.environment,
+                timestamp: Date.now(),
+                gameState: {
+                  environment: data.environment,
+                  peers: Object.values(gameState.peers).filter(p => p.environment === data.environment).length
+                }
+              };
+              
+              broadcastToEnvironment(data.environment, environmentChangeMessage);
+              
+              // Send response back to the client
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                type: 'environmentChangeResponse',
+                success: true,
+                environment: data.environment,
+                timestamp: Date.now()
+              }));
+              
+              return;
+            } else {
+              console.log('❌ Environment change request from unknown peer');
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Peer not found' }));
+              return;
+            }
           }
           
           // For other message types, broadcast to all SSE connections
