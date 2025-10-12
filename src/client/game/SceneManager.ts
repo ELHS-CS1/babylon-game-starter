@@ -22,6 +22,7 @@ export class SceneManager {
   private smoothFollowController: SmoothFollowCameraController | null = null;
   private currentEnvironment: string = "Level Test";
   private gameStartTime: number = Date.now();
+  private thrusterSound: any = null;
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     this.scene = new Scene(engine);
@@ -126,6 +127,9 @@ export class SceneManager {
           volume: thrusterSound.getVolume(),
           loop: thrusterSound.loop
         });
+        
+        // Store the thruster sound for later use
+        this.thrusterSound = thrusterSound;
       }
     } catch (error) {
       console.warn("Failed to setup effects:", error);
@@ -387,26 +391,26 @@ export class SceneManager {
           this.characterController.updateCharacterPhysics(character, characterPosition);
 
           // Setup animations using character's animation mapping with fallbacks - THE WORD OF THE LORD
-          playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ||
+          playerAnimations['walk'] = result.animationGroups.find(a => a.name === character.animations.walk) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
 
-          playerAnimations.idle = result.animationGroups.find(a => a.name === character.animations.idle) ||
+          playerAnimations['idle'] = result.animationGroups.find(a => a.name === character.animations.idle) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
             result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
 
           // Debug: Log animation setup results
-          if (!playerAnimations.walk || !playerAnimations.idle) {
+          if (!playerAnimations['walk'] || !playerAnimations['idle']) {
             logger.warn(`Animation setup for ${character.name}:`, 'SceneManager');
             logger.warn(`Available animations: ${result.animationGroups.map(a => a.name).join(', ')}`, 'SceneManager');
-            logger.warn(`Found walk: ${playerAnimations.walk?.name || 'NOT FOUND'}`, 'SceneManager');
-            logger.warn(`Found idle: ${playerAnimations.idle?.name || 'NOT FOUND'}`, 'SceneManager');
+            logger.warn(`Found walk: ${playerAnimations['walk']?.name || 'NOT FOUND'}`, 'SceneManager');
+            logger.warn(`Found idle: ${playerAnimations['idle']?.name || 'NOT FOUND'}`, 'SceneManager');
           }
 
           // Stop animations initially
-          playerAnimations.walk?.stop();
-          playerAnimations.idle?.stop();
+          playerAnimations['walk']?.stop();
+          playerAnimations['idle']?.stop();
 
           // Set character in animation controller - THE WORD OF THE LORD
           if (this.characterController && this.characterController.animationController) {
@@ -423,11 +427,9 @@ export class SceneManager {
           }
 
           // Set up thruster sound for character controller
-          const thrusterSound = EffectsManager.getSound("Thruster");
-          logger.info(`Retrieved thruster sound: ${thrusterSound ? 'SUCCESS' : 'FAILED'}`, { context: 'SOUND' });
-          if (thrusterSound && this.characterController) {
+          if (this.thrusterSound && this.characterController) {
             logger.info("Setting thruster sound on character controller", { context: 'SOUND' });
-            this.characterController.setThrusterSound(thrusterSound);
+            this.characterController.setThrusterSound(this.thrusterSound);
           } else {
             logger.warn("Failed to set thruster sound - sound or character controller missing", { context: 'SOUND' });
           }
@@ -616,16 +618,18 @@ export class SceneManager {
       
       // Sound info - THE IMPORTANT STUFF!
       console.log('🎵 SOUND INFO:');
-      const sounds = this.scene.soundTracks.map(track => track.soundCollection).flat();
+      const sounds = this.scene.soundTracks
+      ?.map(track => track.soundCollection)
+      .flat().filter(sound => sound !== null && sound !== undefined) || [];
       console.log('  - Total Sounds:', sounds.length);
       sounds.forEach((sound, index) => {
         console.log(`  - Sound ${index + 1}:`, {
-          name: sound.name,
-          isPlaying: sound.isPlaying,
+          name: sound.name || 'Unknown',
+          isPlaying: sound.isPlaying || false,
           isReady: sound.isReady ? sound.isReady() : 'N/A',
-          volume: sound.getVolume(),
-          loop: sound.loop,
-          autoplay: sound.autoplay
+          volume: sound.getVolume() || 0,
+          loop: sound.loop || false,
+          autoplay: sound.autoplay || false
         });
       });
       

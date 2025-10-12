@@ -43,7 +43,7 @@ export class DataStarIntegration {
       // Wait for DOM to be ready
       if (document.readyState === 'loading') {
         logger.info('⏳ DOM still loading, waiting for DOMContentLoaded...', { context: 'connection' });
-        document.addEventListener('DOMContentLoaded', () => this.createSSEConnection());
+        document.addEventListener('DOMContentLoaded', () => { this.createSSEConnection(); });
       } else {
         logger.info('✅ DOM ready, creating SSE connection immediately', { context: 'connection' });
         this.createSSEConnection();
