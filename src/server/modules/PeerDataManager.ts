@@ -2,7 +2,7 @@
 // PEER DATA MANAGER - Centralized peer state and operations management
 // ============================================================================
 
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 
 export interface Vector3 {
   x: number;
