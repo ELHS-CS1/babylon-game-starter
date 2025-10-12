@@ -341,7 +341,45 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
   
   // Serve client files
   if (url.pathname === '/' || url.pathname === '/index.html') {
-    serveStatic(req, res, join(config.clientPath, 'index.html'), 'text/html');
+    // Read the index.html file and inject SSR data
+    try {
+      const indexPath = join(config.clientPath, 'index.html');
+      let htmlContent = readFileSync(indexPath, 'utf8');
+      
+      // Determine the base URL for SSR injection
+      // Render.com uses x-forwarded-proto and x-forwarded-host headers
+      const protocol = req.headers['x-forwarded-proto'] || 
+                      req.headers['x-forwarded-protocol'] || 
+                      (req.connection.encrypted ? 'https' : 'http');
+      
+      const host = req.headers['x-forwarded-host'] || 
+                   req.headers.host || 
+                   'localhost:10000';
+      
+      // Ensure protocol is https for production (Render.com requirement)
+      const finalProtocol = process.env['NODE_ENV'] === 'production' ? 'https' : protocol;
+      const baseUrl = `${finalProtocol}://${host}`;
+      
+      // Debug logging for URL detection (only in development)
+      if (process.env['NODE_ENV'] !== 'production') {
+        console.log('SSR URL Detection:', {
+          'x-forwarded-proto': req.headers['x-forwarded-proto'],
+          'x-forwarded-host': req.headers['x-forwarded-host'],
+          'host': req.headers.host,
+          'finalProtocol': finalProtocol,
+          'baseUrl': baseUrl
+        });
+      }
+      
+      // Replace SSR placeholders
+      htmlContent = htmlContent.replace(/%VITE_APP_BASE_URL%/g, baseUrl);
+      
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(htmlContent);
+    } catch (error) {
+      res.writeHead(500);
+      res.end('Internal Server Error');
+    }
     return;
   }
   
