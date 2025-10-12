@@ -659,6 +659,44 @@ export class SceneManager {
     this.resumePhysics();
   }
 
+  public changeCharacter(characterIndexOrName: number | string): void {
+    let character: any;
+
+    if (typeof characterIndexOrName === 'number') {
+      // Handle numeric index
+      if (characterIndexOrName < 0 || characterIndexOrName >= ASSETS.CHARACTERS.length) {
+        logger.error(`Invalid character index: ${characterIndexOrName}`, 'SceneManager');
+        return;
+      }
+      character = ASSETS.CHARACTERS[characterIndexOrName];
+    } else {
+      // Handle character name
+      character = ASSETS.CHARACTERS.find(char => char.name === characterIndexOrName);
+    }
+
+    if (!character) {
+      logger.error(`Character not found: ${characterIndexOrName}`, 'SceneManager');
+      return;
+    }
+
+    // Save current character position before switching
+    let currentPosition: Vector3 | null = null;
+    if (this.characterController) {
+      currentPosition = this.characterController.getPosition().clone();
+    }
+
+    // Remove existing player mesh if it exists
+    const existingPlayer = this.scene.getMeshByName("player");
+    if (existingPlayer) {
+      existingPlayer.dispose();
+    }
+
+    // Load the new character with preserved position
+    this.loadCharacter(character, currentPosition);
+    
+    logger.info(`Character changed to: ${character.name}`, 'SceneManager');
+  }
+
   public dispose(): void {
     // Dispose character controller
     if (this.characterController) {

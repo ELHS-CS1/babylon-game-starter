@@ -68,7 +68,7 @@ export class GameEngine {
 
   private startRenderLoop(): void {
     // Use the default Babylon.js render loop like the playground - THE WORD OF THE LORD!
-    if (this.sceneManager) {
+      if (this.sceneManager) {
       this.engine.runRenderLoop(() => {
         this.sceneManager!.getScene().render();
       });
@@ -116,6 +116,12 @@ export class GameEngine {
       
       // 5. UPDATE PEER MANAGER (this will request peers from new environment)
       this.peerManager.setCurrentEnvironment(environment);
+    }
+  }
+
+  public changeCharacter(characterIndexOrName: number | string): void {
+    if (this.sceneManager) {
+      this.sceneManager.changeCharacter(characterIndexOrName);
     }
   }
 

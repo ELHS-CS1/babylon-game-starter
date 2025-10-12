@@ -291,8 +291,10 @@ const leaveGame = (): void => {
 // Event handlers for components
 const onCharacterChange = (character: string) => {
   selectedCharacter.value = character;
-  // Character changed
-  // Update game engine character if needed
+  // Character changed - call GameEngine to handle the change
+  if (gameEngine.value) {
+    gameEngine.value.changeCharacter(character);
+  }
 };
 
 const onEnvironmentChange = (environment: string) => {

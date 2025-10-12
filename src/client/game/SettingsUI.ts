@@ -9,8 +9,10 @@ export class SettingsUI {
     }
 
   public static async changeCharacter(characterIndexOrName: number | string): Promise<void> {
-    // Character change logic would go here
-    logger.info(`Character change requested: ${characterIndexOrName}`, { context: 'SettingsUI', tag: 'character' });
+    if (this.sceneManager) {
+      this.sceneManager.changeCharacter(characterIndexOrName);
+      logger.info(`Character change requested: ${characterIndexOrName}`, { context: 'SettingsUI', tag: 'character' });
+    }
   }
 
     public static async changeEnvironment(environmentName: string): Promise<void> {
