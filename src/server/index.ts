@@ -411,6 +411,15 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
     return;
   }
   
+  // Serve assets directory
+  if (url.pathname.startsWith('/assets/')) {
+    const assetPath = join(process.cwd(), url.pathname);
+    const ext = url.pathname.split('.').pop()?.toLowerCase();
+    const contentType = getContentType(ext);
+    serveStatic(req, res, assetPath, contentType);
+    return;
+  }
+  
   // Serve static assets
   const assetPath = join(config.clientPath, url.pathname);
   const ext = url.pathname.split('.').pop()?.toLowerCase();
@@ -428,6 +437,7 @@ function getContentType(ext?: string): string {
     case 'png': return 'image/png';
     case 'jpg': case 'jpeg': return 'image/jpeg';
     case 'gif': return 'image/gif';
+    case 'webp': return 'image/webp';
     case 'svg': return 'image/svg+xml';
     case 'woff': return 'font/woff';
     case 'woff2': return 'font/woff2';
