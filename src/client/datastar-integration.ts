@@ -7,47 +7,102 @@ import { logger } from './utils/logger';
 export class DataStarIntegration {
   private isConnected = false;
   private eventSource: EventSource | null = null;
+  private dataStarClient: any = null;
   private isInitialized = false;
 
   constructor() {
-    logger.info('🚀 DataStarIntegration constructor called', { context: 'DataStar', tag: 'init' });
+    logger.info('🚀 DataStarIntegration constructor called', { context: 'init' });
     this.initializeSSE();
   }
 
   private initializeSSE(): void {
     if (this.isInitialized) {
-      logger.info('📊 SSE already initialized, skipping', { context: 'DataStar', tag: 'connection' });
+      logger.info('📊 SSE already initialized, skipping', { context: 'connection' });
       return;
     }
 
     try {
-      logger.info('🚀 Initializing pure SSE connection...', { context: 'DataStar', tag: 'connection' });
+      logger.info('🚀 Initializing pure SSE connection...', { context: 'connection' });
       
       // Wait for DOM to be ready
       if (document.readyState === 'loading') {
-        logger.info('⏳ DOM still loading, waiting for DOMContentLoaded...', { context: 'DataStar', tag: 'connection' });
+        logger.info('⏳ DOM still loading, waiting for DOMContentLoaded...', { context: 'connection' });
         document.addEventListener('DOMContentLoaded', () => this.createSSEConnection());
       } else {
-        logger.info('✅ DOM ready, creating SSE connection immediately', { context: 'DataStar', tag: 'connection' });
+        logger.info('✅ DOM ready, creating SSE connection immediately', { context: 'connection' });
         this.createSSEConnection();
       }
       
     } catch (error) {
-      logger.error('❌ Failed to initialize SSE:', { context: 'DataStar', tag: 'connection', data: error });
+      logger.error('❌ Failed to initialize SSE:', { context: 'connection', data: error });
     }
   }
 
   private createSSEConnection(): void {
     try {
-      logger.info('🔗 Creating SSE connection to: https://localhost:10000/api/datastar/sse', { context: 'DataStar', tag: 'connection' });
+      logger.info('🔗 Creating DataStar SSE connection...', { context: 'connection' });
       
       // Log DataStar DOM elements before connection
       this.logDataStarElements();
       
-      // Create EventSource for SSE connection
-      logger.info('🚀 Creating EventSource...', { context: 'DataStar', tag: 'connection' });
+      // Check if DataStar is available globally
+      if (typeof window !== 'undefined' && (window as any).DataStar) {
+        logger.info('🚀 DataStar client found, using DataStar API...', { context: 'connection' });
+        this.initializeDataStarClient();
+      } else {
+        logger.warn('⚠️ DataStar client not found, falling back to EventSource...', { context: 'connection' });
+        this.initializeEventSource();
+      }
+      
+    } catch (error) {
+      logger.error('❌ Failed to create SSE connection:', { context: 'connection', data: error });
+    }
+  }
+
+  private initializeDataStarClient(): void {
+    try {
+      logger.info('🚀 Initializing DataStar client...', { context: 'connection' });
+      
+      // Use DataStar's proper client API
+      const dataStar = (window as any).DataStar;
+      
+      // Initialize DataStar client with proper configuration
+      this.dataStarClient = dataStar.createClient({
+        url: 'https://localhost:10000/api/datastar/sse',
+        onConnect: () => {
+          logger.info('✅ DataStar client connected', { context: 'connection' });
+          this.isConnected = true;
+          gameState.isConnected = true;
+        },
+        onDisconnect: () => {
+          logger.warn('⚠️ DataStar client disconnected', { context: 'connection' });
+          this.isConnected = false;
+          gameState.isConnected = false;
+        },
+        onError: (error: any) => {
+          logger.error('❌ DataStar client error:', { context: 'connection', data: error });
+          this.isConnected = false;
+          gameState.isConnected = false;
+        },
+        onMessage: (data: any) => {
+          this.handleDataStarMessage(data);
+        }
+      });
+      
+      logger.info('✅ DataStar client initialized successfully', { context: 'connection' });
+      
+    } catch (error) {
+      logger.error('❌ Failed to initialize DataStar client:', { context: 'connection', data: error });
+      // Fallback to EventSource
+      this.initializeEventSource();
+    }
+  }
+
+  private initializeEventSource(): void {
+    try {
+      logger.info('🚀 Creating EventSource...', { context: 'connection' });
       this.eventSource = new EventSource('https://localhost:10000/api/datastar/sse');
-      logger.info('✅ EventSource created successfully', { context: 'DataStar', tag: 'connection' });
+      logger.info('✅ EventSource created successfully', { context: 'connection' });
       
       this.eventSource.onopen = () => {
         logger.info('✅ SSE connection established', { context: 'DataStar', tag: 'connection' });
@@ -181,7 +236,11 @@ export class DataStarIntegration {
 
   // Send data to server
   public send(data: Record<string, unknown>): void {
-    logger.info('📤 Sending data via fetch:', { context: 'DataStar', tag: 'send', data });
+    logger.info('📤 ===== SENDING DATA =====', { context: 'send' });
+    logger.info('📤 Sending data via fetch:', { context: 'send', data });
+    logger.info('📤 URL: https://localhost:10000/api/datastar/send', { context: 'send' });
+    logger.info('📤 Method: POST', { context: 'send' });
+    logger.info('📤 Headers: Content-Type: application/json', { context: 'send' });
     
     // Send via fetch to the server's send endpoint
     fetch('https://localhost:10000/api/datastar/send', {
@@ -190,30 +249,55 @@ export class DataStarIntegration {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
-    }).catch(error => {
-      logger.error('❌ Failed to send data:', { context: 'DataStar', tag: 'send', data: error });
+    })
+    .then(response => {
+      logger.info('📤 Fetch response received:', { context: 'send', status: response.status, ok: response.ok });
+      if (!response.ok) {
+        logger.error('❌ Fetch response not OK:', { context: 'send', status: response.status, statusText: response.statusText });
+      }
+      return response;
+    })
+    .catch(error => {
+      logger.error('❌ Failed to send data:', { context: 'send', data: error });
+      logger.error('❌ Error details:', { context: 'send', message: error.message, stack: error.stack });
     });
   }
 
   // Join game functionality
   public joinGame(playerName: string): void {
-    logger.info('🎮 Joining game via SSE...', { context: 'DataStar', tag: 'join' });
+    logger.info('🎮 ===== JOIN GAME CALLED =====', { context: 'join' });
+    logger.info(`🎮 Player name: ${playerName}`, { context: 'join' });
+    logger.info('🎮 Joining game via SSE...', { context: 'join' });
     
     // Check if SSE connection is established
+    logger.info(`🔍 EventSource exists: ${!!this.eventSource}`, { context: 'join' });
+    if (this.eventSource) {
+      logger.info(`🔍 EventSource readyState: ${this.eventSource.readyState}`, { context: 'join' });
+      logger.info(`🔍 EventSource URL: ${this.eventSource.url}`, { context: 'join' });
+    }
+    
     if (!this.eventSource || this.eventSource.readyState !== EventSource.OPEN) {
-      logger.warn('⚠️ SSE connection not ready, attempting to reconnect...', { context: 'DataStar', tag: 'join' });
+      logger.warn('⚠️ SSE connection not ready, attempting to reconnect...', { context: 'join' });
+      logger.warn(`⚠️ Current connection status: ${this.getConnectionStatus()}`, { context: 'join' });
       this.initializeSSE();
       return;
     }
     
-    logger.info(`🔍 SSE connection state: ${this.eventSource.readyState}`, { context: 'DataStar', tag: 'join' });
-    logger.info(`🔍 Game state connection: ${gameState.isConnected}`, { context: 'DataStar', tag: 'join' });
+    logger.info(`🔍 SSE connection state: ${this.eventSource.readyState}`, { context: 'join' });
+    logger.info(`🔍 Game state connection: ${gameState.isConnected}`, { context: 'join' });
+    logger.info(`🔍 Current players count: ${gameState.players.length}`, { context: 'join' });
     
-    this.send({
+    const joinData = {
       type: 'join',
       playerName: playerName,
       timestamp: Date.now()
-    });
+    };
+    
+    logger.info('📤 Sending join data:', { context: 'join', data: joinData });
+    
+    this.send(joinData);
+    
+    logger.info('✅ Join request sent successfully', { context: 'join' });
   }
 
   // Leave game functionality
@@ -317,12 +401,36 @@ export class DataStarIntegration {
     };
   }
 
+  // Handle DataStar client messages
+  private handleDataStarMessage(data: any): void {
+    logger.info('📡 Received DataStar message:', { context: 'connection', data });
+    
+    try {
+      // Handle different message types from DataStar
+      if (data.type === 'signals') {
+        this.handleSignals(data.payload);
+      } else if (data.type === 'elements') {
+        this.handleElements(data.payload);
+      } else if (data.type === 'peerUpdate') {
+        this.handlePeerUpdate(data.peer);
+      } else if (data.type === 'message') {
+        this.handleMessage(data.data);
+      } else if (data.isConnected !== undefined) {
+        this.handleSignals(data);
+      } else {
+        logger.warn('⚠️ Unknown DataStar message type:', { context: 'connection', type: data.type });
+      }
+    } catch (error) {
+      logger.error('❌ Failed to handle DataStar message:', { context: 'connection', data: error });
+    }
+  }
+
   // Log DataStar DOM elements
   private logDataStarElements(): void {
     logger.info('🔍 Scanning for DataStar DOM elements...', { context: 'DataStar', tag: 'elements' });
     
     // Look for DataStar elements in the DOM
-    const dataStarElements = document.querySelectorAll('[data-star], [data-datastar], [data-star-*]');
+    const dataStarElements = document.querySelectorAll('[data-star], [data-datastar]');
     logger.info(`📋 Found ${dataStarElements.length} DataStar DOM elements`, { context: 'DataStar', tag: 'elements' });
     
     dataStarElements.forEach((element, index) => {
