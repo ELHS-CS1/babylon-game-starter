@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 3001,
     host: true,
-    ...(process.env['DOCKER'] !== 'true' && {
+    ...(process.env['DOCKER'] !== 'true' && existsSync('./certs/localhost+2-key.pem') && {
       https: {
         key: readFileSync('./certs/localhost+2-key.pem'),
         cert: readFileSync('./certs/localhost+2.pem')
