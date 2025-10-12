@@ -266,6 +266,18 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
     return;
   }
   
+  // Serve service worker
+  if (url.pathname === '/sw.js') {
+    serveStatic(req, res, join(config.clientPath, 'sw.js'), 'application/javascript');
+    return;
+  }
+  
+  // Serve manifest
+  if (url.pathname === '/manifest.json') {
+    serveStatic(req, res, join(config.clientPath, 'manifest.json'), 'application/json');
+    return;
+  }
+  
   // Serve static assets
   const assetPath = join(config.clientPath, url.pathname);
   const ext = url.pathname.split('.').pop()?.toLowerCase();
