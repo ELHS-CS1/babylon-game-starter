@@ -288,9 +288,29 @@
                 color="green-lighten-2"
                 variant="outlined"
                 prepend-icon="mdi-music"
+                class="mb-3"
                 @click="testChordProgression"
               >
                 Test Chord (C Major)
+              </v-btn>
+              
+              <v-btn
+                color="green-lighten-2"
+                variant="outlined"
+                prepend-icon="mdi-volume-high"
+                class="mb-3"
+                @click="testWhiteNoise"
+              >
+                Test White Noise (3s)
+              </v-btn>
+              
+              <v-btn
+                color="green-lighten-2"
+                variant="outlined"
+                prepend-icon="mdi-waveform"
+                @click="testBrownNoise"
+              >
+                Test Brown Noise (3s)
               </v-btn>
             </div>
           </div>
@@ -598,6 +618,28 @@ const testChordProgression = async () => {
   } catch (error) {
     console.error('Failed to play chord progression:', error);
     logger.error(`Chord progression test failed: ${error}`, 'SettingsPanel');
+  }
+};
+
+const testWhiteNoise = async () => {
+  try {
+    console.log('Testing white noise (3 seconds)...');
+    await ProceduralSoundManager.playWhiteNoise();
+    logger.info('White noise test completed', 'SettingsPanel');
+  } catch (error) {
+    console.error('Failed to play white noise:', error);
+    logger.error(`White noise test failed: ${error}`, 'SettingsPanel');
+  }
+};
+
+const testBrownNoise = async () => {
+  try {
+    console.log('Testing brown noise (3 seconds)...');
+    await ProceduralSoundManager.playBrownNoise();
+    logger.info('Brown noise test completed', 'SettingsPanel');
+  } catch (error) {
+    console.error('Failed to play brown noise:', error);
+    logger.error(`Brown noise test failed: ${error}`, 'SettingsPanel');
   }
 };
 

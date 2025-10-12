@@ -108,6 +108,102 @@ export class SceneManager {
     // Sky will be set up when environment is loaded
   }
 
+  /**
+   * Create a procedural brown noise thruster sound
+   * @returns Procedural thruster sound or null
+   */
+  private async createProceduralThrusterSound(): Promise<any> {
+    try {
+      // Create a longer brown noise buffer for continuous thruster sound (generate once)
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const sampleRate = audioContext.sampleRate;
+      const durationSeconds = 10; // 10 seconds of brown noise
+      const frameCount = sampleRate * durationSeconds;
+      const baseBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+      const data = baseBuffer.getChannelData(0);
+
+      // Generate brown noise using random walk algorithm (once)
+      let lastValue = 0;
+      const smoothingFactor = 0.03; // Slightly more aggressive smoothing for thruster effect
+      
+      for (let i = 0; i < frameCount; i++) {
+        // Generate random step
+        const randomStep = (Math.random() - 0.5) * 2; // -1 to 1
+        
+        // Apply random walk with smoothing
+        lastValue += randomStep * smoothingFactor;
+        
+        // Apply exponential decay to prevent drift
+        lastValue *= 0.998;
+        
+        // Clamp to prevent clipping and apply volume
+        data[i] = Math.max(-1, Math.min(1, lastValue * 0.4)); // 40% volume for thruster
+      }
+
+      // Create gain node for volume control (persistent)
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.4; // 40% volume for thruster
+      gainNode.connect(audioContext.destination);
+      
+      // Create a wrapper object that mimics Babylon.js Sound interface
+      const thrusterSound = {
+        name: 'ProceduralThruster',
+        isPlaying: false,
+        loop: true,
+        currentBufferSource: null as AudioBufferSourceNode | null,
+        audioContext: audioContext,
+        baseBuffer: baseBuffer, // Store the base buffer for cloning
+        gainNode: gainNode,
+        getVolume: () => gainNode.gain.value,
+        setVolume: (volume: number) => {
+          gainNode.gain.value = volume;
+        },
+        isReady: () => true, // Always ready since we create it procedurally
+        play: () => {
+          if (!thrusterSound.isPlaying) {
+            // Create a new buffer source each time (required for AudioBufferSourceNode)
+            const bufferSource = audioContext.createBufferSource();
+            bufferSource.buffer = baseBuffer; // Use the pre-generated base buffer
+            bufferSource.loop = true; // Loop the thruster sound
+            
+            // Connect to gain node
+            bufferSource.connect(gainNode);
+            
+            // Start playing
+            bufferSource.start();
+            
+            // Store reference for stopping
+            thrusterSound.currentBufferSource = bufferSource;
+            thrusterSound.isPlaying = true;
+          }
+        },
+        stop: () => {
+          if (thrusterSound.isPlaying && thrusterSound.currentBufferSource) {
+            try {
+              thrusterSound.currentBufferSource.stop();
+            } catch (error) {
+              // Ignore errors if already stopped
+            }
+            thrusterSound.currentBufferSource.disconnect();
+            thrusterSound.currentBufferSource = null;
+            thrusterSound.isPlaying = false;
+          }
+        },
+        dispose: () => {
+          if (thrusterSound.currentBufferSource) {
+            thrusterSound.currentBufferSource.disconnect();
+          }
+          gainNode.disconnect();
+        }
+      };
+
+      return thrusterSound;
+      
+    } catch (error) {
+      return null;
+    }
+  }
+
   private async setupEffects(): Promise<void> {
     try {
       console.log("Setting up effects...");
@@ -115,19 +211,10 @@ export class SceneManager {
       NodeMaterialManager.initialize(this.scene);
       ProceduralSoundManager.initialize(this.scene);
 
-      // Create thruster sound (like playground)
-      console.log("Creating thruster sound...");
-      const thrusterSound = await EffectsManager.createSound("Thruster");
-      console.log("Thruster sound creation result:", thrusterSound ? "SUCCESS" : "FAILED");
+      // Create procedural brown noise thruster sound
+      const thrusterSound = await this.createProceduralThrusterSound();
       
       if (thrusterSound) {
-        console.log("Thruster sound details:", {
-          name: thrusterSound.name,
-          isReady: thrusterSound.isReady ? thrusterSound.isReady() : 'N/A',
-          volume: thrusterSound.getVolume(),
-          loop: thrusterSound.loop
-        });
-        
         // Store the thruster sound for later use
         this.thrusterSound = thrusterSound;
       }
@@ -428,10 +515,24 @@ export class SceneManager {
 
           // Set up thruster sound for character controller
           if (this.thrusterSound && this.characterController) {
-            logger.info("Setting thruster sound on character controller", { context: 'SOUND' });
+            console.log("🎵 Setting thruster sound on character controller", this.thrusterSound);
             this.characterController.setThrusterSound(this.thrusterSound);
+            
+            // Verify the sound was set
+            const setSound = this.characterController.getThrusterSound();
+            console.log("🎵 Thruster sound verification:", setSound ? "SUCCESS" : "FAILED");
+            if (setSound) {
+              console.log("🎵 Sound details:", {
+                name: setSound.name,
+                isReady: setSound.isReady ? setSound.isReady() : 'N/A',
+                volume: setSound.getVolume(),
+                loop: setSound.loop
+              });
+            }
           } else {
-            logger.warn("Failed to set thruster sound - sound or character controller missing", { context: 'SOUND' });
+            console.warn("❌ Failed to set thruster sound - sound or character controller missing");
+            console.log("🎵 Thruster sound exists:", !!this.thrusterSound);
+            console.log("🎵 Character controller exists:", !!this.characterController);
           }
 
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');

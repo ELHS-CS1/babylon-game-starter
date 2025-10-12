@@ -80,6 +80,85 @@ export class ProceduralSoundManager {
   }
 
   /**
+   * Generate a white noise buffer using proper audio engine v2 techniques
+   * @param durationSeconds Duration in seconds
+   * @param volume Volume level (0.0 to 1.0)
+   * @returns AudioBuffer
+   */
+  private static createWhiteNoiseBuffer(
+    durationSeconds: number,
+    volume: number = 0.3
+  ): AudioBuffer | null {
+    if (!this.audioContext) {
+      logger.error('AudioContext not initialized', 'ProceduralSoundManager');
+      return null;
+    }
+
+    const sampleRate = this.audioContext.sampleRate;
+    const frameCount = sampleRate * durationSeconds;
+    const buffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Generate white noise using proper random distribution
+    // White noise has equal energy at all frequencies
+    for (let i = 0; i < frameCount; i++) {
+      // Generate random values between -1 and 1
+      // Using Box-Muller transform for better distribution
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      
+      // Clamp to prevent clipping and apply volume
+      data[i] = Math.max(-1, Math.min(1, z0 * volume));
+    }
+
+    return buffer;
+  }
+
+  /**
+   * Generate a smoothed brown noise buffer using proper audio engine v2 techniques
+   * Brown noise has more energy in lower frequencies, creating a smoother sound
+   * @param durationSeconds Duration in seconds
+   * @param volume Volume level (0.0 to 1.0)
+   * @returns AudioBuffer
+   */
+  private static createBrownNoiseBuffer(
+    durationSeconds: number,
+    volume: number = 0.3
+  ): AudioBuffer | null {
+    if (!this.audioContext) {
+      logger.error('AudioContext not initialized', 'ProceduralSoundManager');
+      return null;
+    }
+
+    const sampleRate = this.audioContext.sampleRate;
+    const frameCount = sampleRate * durationSeconds;
+    const buffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Generate brown noise using random walk (integrated white noise)
+    // Brown noise has energy proportional to 1/f^2
+    let lastValue = 0;
+    const smoothingFactor = 0.02; // Controls the smoothness (lower = smoother)
+    
+    for (let i = 0; i < frameCount; i++) {
+      // Generate random step
+      const randomStep = (Math.random() - 0.5) * 2; // -1 to 1
+      
+      // Apply random walk with smoothing
+      lastValue += randomStep * smoothingFactor;
+      
+      // Apply exponential decay to prevent drift
+      lastValue *= 0.995;
+      
+      // Clamp to prevent clipping and apply volume
+      data[i] = Math.max(-1, Math.min(1, lastValue * volume));
+    }
+
+    return buffer;
+  }
+
+  /**
    * Create a procedural sound
    * @param config Sound configuration
    * @returns Created sound or null
@@ -263,6 +342,202 @@ export class ProceduralSoundManager {
           sound.play();
         }, i * 100);
       }
+    }
+  }
+
+  /**
+   * Create and play white noise using proper audio engine v2 techniques
+   */
+  public static async playWhiteNoise(): Promise<void> {
+    console.log('ProceduralSoundManager.playWhiteNoise called');
+    
+    if (!this.scene) {
+      console.error('ProceduralSoundManager not initialized - no scene');
+      return;
+    }
+    
+    if (!this.audioContext) {
+      console.error('ProceduralSoundManager not initialized - no audio context');
+      return;
+    }
+
+    // Ensure AudioContext is running (might be suspended)
+    if (this.audioContext.state === 'suspended') {
+      console.log('AudioContext is suspended, attempting to resume...');
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed successfully, state:', this.audioContext.state);
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+        return;
+      }
+    }
+
+    try {
+      console.log('Generating white noise buffer...');
+      // Generate the white noise buffer
+      const buffer = this.createWhiteNoiseBuffer(3, 0.2); // 3 seconds, 20% volume
+
+      if (!buffer) {
+        console.error('Failed to create white noise buffer');
+        logger.error('Failed to create white noise buffer', 'ProceduralSoundManager');
+        return;
+      }
+
+      console.log('White noise buffer created successfully, length:', buffer.length, 'duration:', buffer.duration);
+
+      // Create direct Web Audio API sound (bypass Babylon.js Sound for now)
+      const bufferSource = this.audioContext.createBufferSource();
+      bufferSource.buffer = buffer;
+      bufferSource.loop = false; // Don't loop white noise
+      
+      // Create gain node for volume control
+      const gainNode = this.audioContext.createGain();
+      const baseVolume = 0.2; // 20% volume for white noise
+      const effectiveVolume = this.audioStateManager ? 
+        baseVolume * this.audioStateManager.getEffectiveSFXVolume() : 
+        baseVolume;
+      gainNode.gain.value = effectiveVolume;
+      
+      console.log('White noise volume calculation:', {
+        baseVolume,
+        effectiveVolume,
+        audioState: this.audioStateManager?.getAudioState()
+      });
+      
+      // Connect: bufferSource -> gainNode -> destination
+      bufferSource.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      console.log('White noise audio graph connected');
+      
+      // Create a simple wrapper object that mimics Babylon.js Sound interface
+      const sound = {
+        name: 'WhiteNoise',
+        play: () => {
+          console.log('Starting white noise buffer source');
+          bufferSource.start();
+        },
+        stop: () => {
+          console.log('Stopping white noise buffer source');
+          bufferSource.stop();
+        },
+        dispose: () => {
+          console.log('Disposing white noise buffer source');
+          bufferSource.disconnect();
+          gainNode.disconnect();
+        }
+      } as any;
+
+      this.activeSounds.set('WhiteNoise', sound);
+      console.log('White noise sound created and stored');
+      logger.info('Created white noise sound (3s, 20% volume)', 'ProceduralSoundManager');
+      
+      // Play the white noise
+      sound.play();
+      logger.info('Playing white noise test', 'ProceduralSoundManager');
+      
+    } catch (error) {
+      console.error('Error creating white noise:', error);
+      logger.error(`Failed to create white noise: ${error}`, 'ProceduralSoundManager');
+    }
+  }
+
+  /**
+   * Create and play smoothed brown noise using proper audio engine v2 techniques
+   */
+  public static async playBrownNoise(): Promise<void> {
+    console.log('ProceduralSoundManager.playBrownNoise called');
+    
+    if (!this.scene) {
+      console.error('ProceduralSoundManager not initialized - no scene');
+      return;
+    }
+    
+    if (!this.audioContext) {
+      console.error('ProceduralSoundManager not initialized - no audio context');
+      return;
+    }
+
+    // Ensure AudioContext is running (might be suspended)
+    if (this.audioContext.state === 'suspended') {
+      console.log('AudioContext is suspended, attempting to resume...');
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed successfully, state:', this.audioContext.state);
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+        return;
+      }
+    }
+
+    try {
+      console.log('Generating brown noise buffer...');
+      // Generate the brown noise buffer
+      const buffer = this.createBrownNoiseBuffer(3, 0.25); // 3 seconds, 25% volume (slightly louder than white noise)
+
+      if (!buffer) {
+        console.error('Failed to create brown noise buffer');
+        logger.error('Failed to create brown noise buffer', 'ProceduralSoundManager');
+        return;
+      }
+
+      console.log('Brown noise buffer created successfully, length:', buffer.length, 'duration:', buffer.duration);
+
+      // Create direct Web Audio API sound (bypass Babylon.js Sound for now)
+      const bufferSource = this.audioContext.createBufferSource();
+      bufferSource.buffer = buffer;
+      bufferSource.loop = false; // Don't loop brown noise
+      
+      // Create gain node for volume control
+      const gainNode = this.audioContext.createGain();
+      const baseVolume = 0.25; // 25% volume for brown noise (slightly louder)
+      const effectiveVolume = this.audioStateManager ? 
+        baseVolume * this.audioStateManager.getEffectiveSFXVolume() : 
+        baseVolume;
+      gainNode.gain.value = effectiveVolume;
+      
+      console.log('Brown noise volume calculation:', {
+        baseVolume,
+        effectiveVolume,
+        audioState: this.audioStateManager?.getAudioState()
+      });
+      
+      // Connect: bufferSource -> gainNode -> destination
+      bufferSource.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      console.log('Brown noise audio graph connected');
+      
+      // Create a simple wrapper object that mimics Babylon.js Sound interface
+      const sound = {
+        name: 'BrownNoise',
+        play: () => {
+          console.log('Starting brown noise buffer source');
+          bufferSource.start();
+        },
+        stop: () => {
+          console.log('Stopping brown noise buffer source');
+          bufferSource.stop();
+        },
+        dispose: () => {
+          console.log('Disposing brown noise buffer source');
+          bufferSource.disconnect();
+          gainNode.disconnect();
+        }
+      } as any;
+
+      this.activeSounds.set('BrownNoise', sound);
+      console.log('Brown noise sound created and stored');
+      logger.info('Created brown noise sound (3s, 25% volume)', 'ProceduralSoundManager');
+      
+      // Play the brown noise
+      sound.play();
+      logger.info('Playing brown noise test', 'ProceduralSoundManager');
+      
+    } catch (error) {
+      console.error('Error creating brown noise:', error);
+      logger.error(`Failed to create brown noise: ${error}`, 'ProceduralSoundManager');
     }
   }
 

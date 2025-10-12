@@ -22,8 +22,8 @@ export class DataStarIntegration {
       return `${protocol}//${hostname}`;
     }
     
-    // For local development, use localhost:10000
-    return 'http://localhost:10000';
+    // For local development, use localhost:10000 with HTTPS
+    return 'https://localhost:10000';
   }
 
   constructor() {

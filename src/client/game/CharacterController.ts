@@ -70,6 +70,7 @@ export class CharacterController {
   private boostDebounceDelay = 100; // 100ms debounce
   private playerParticleSystem: IParticleSystem | null = null;
   private thrusterSound: Sound | null = null;
+  private thrusterSoundAttempted: boolean = false;
   public animationController: AnimationController | null = null;
 
   // Mobile device detection - computed once at initialization
@@ -396,14 +397,28 @@ export class CharacterController {
 
     // Update thruster sound (like playground - simple and direct)
     if (this.thrusterSound) {
+      // Check if sound is ready to play
+      const isReady = this.thrusterSound.isReady ? this.thrusterSound.isReady() : true;
+      
       if (this.boostActive) {
-        if (!this.thrusterSound.isPlaying) {
+        if (isReady && !this.thrusterSound.isPlaying) {
           this.thrusterSound.play();
+          this.thrusterSoundAttempted = true;
+        } else if (!isReady && !this.thrusterSound.isPlaying && !this.thrusterSoundAttempted) {
+          // Try to play anyway - sometimes isReady() is unreliable
+          try {
+            this.thrusterSound.play();
+            this.thrusterSoundAttempted = true;
+          } catch (error) {
+            this.thrusterSoundAttempted = true;
+          }
         }
       } else {
         if (this.thrusterSound.isPlaying) {
           this.thrusterSound.stop();
         }
+        // Reset the attempt flag when boost is released
+        this.thrusterSoundAttempted = false;
       }
     }
   }
