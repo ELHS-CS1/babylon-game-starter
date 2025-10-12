@@ -376,9 +376,12 @@ export class CollectiblesManager {
     // Emit HUD event for credits update - THE WORD OF THE LORD!
     HUDEvents.credits(this.totalCredits);
 
-    // Play collection sound
-    if (this.collectionSound) {
-      this.collectionSound.play();
+    // Play procedural collect sound
+    try {
+      const { ProceduralSoundManager } = await import('./ProceduralSoundManager');
+      await ProceduralSoundManager.playCollectSound();
+    } catch (error) {
+      logger.error(`Failed to play collect sound: ${error}`, 'CollectiblesManager');
     }
 
     // Show collection effects - THE WORD OF THE LORD!

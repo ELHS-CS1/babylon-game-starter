@@ -444,6 +444,99 @@ export class ProceduralSoundManager {
   }
 
   /**
+   * Create and play a collect effect sound using dual oscillators
+   * Triangle wave for bright melodic tone, sine wave for harmonic overtone
+   * Quick attack and smooth decay envelope for satisfying "ping" sound
+   */
+  public static async playCollectSound(): Promise<void> {
+    console.log('ProceduralSoundManager.playCollectSound called');
+    
+    if (!this.scene) {
+      console.error('ProceduralSoundManager not initialized - no scene');
+      return;
+    }
+    
+    if (!this.audioContext) {
+      console.error('ProceduralSoundManager not initialized - no audio context');
+      return;
+    }
+
+    // Ensure AudioContext is running (might be suspended)
+    if (this.audioContext.state === 'suspended') {
+      console.log('AudioContext is suspended, attempting to resume...');
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed successfully, state:', this.audioContext.state);
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+        return;
+      }
+    }
+
+    try {
+      console.log('Creating collect effect sound with dual oscillators...');
+      
+      // Create triangle oscillator for bright melodic tone
+      const triangleOsc = this.audioContext.createOscillator();
+      triangleOsc.type = 'triangle';
+      triangleOsc.frequency.setValueAtTime(400, this.audioContext.currentTime); // Reduced from 800Hz to 400Hz
+      
+      // Create sine oscillator for harmonic overtone
+      const sineOsc = this.audioContext.createOscillator();
+      sineOsc.type = 'sine';
+      sineOsc.frequency.setValueAtTime(600, this.audioContext.currentTime); // Reduced from 1200Hz to 600Hz
+      
+      // Create gain node for envelope control
+      const gainNode = this.audioContext.createGain();
+      const baseVolume = 0.4; // 40% volume for collect sound
+      const effectiveVolume = this.audioStateManager ? 
+        baseVolume * this.audioStateManager.getEffectiveSFXVolume() : 
+        baseVolume;
+      
+      // Quick attack and smooth decay envelope
+      const now = this.audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0, now); // Start at 0
+      gainNode.gain.linearRampToValueAtTime(effectiveVolume, now + 0.01); // Quick attack (10ms)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3); // Smooth decay (300ms)
+      
+      console.log('Collect sound volume calculation:', {
+        baseVolume,
+        effectiveVolume,
+        audioState: this.audioStateManager?.getAudioState()
+      });
+      
+      // Connect oscillators to gain node
+      triangleOsc.connect(gainNode);
+      sineOsc.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      console.log('Collect sound audio graph connected');
+      
+      // Start both oscillators
+      triangleOsc.start(now);
+      sineOsc.start(now);
+      
+      // Stop oscillators after envelope completes
+      triangleOsc.stop(now + 0.3);
+      sineOsc.stop(now + 0.3);
+      
+      // Clean up after sound completes
+      setTimeout(() => {
+        triangleOsc.disconnect();
+        sineOsc.disconnect();
+        gainNode.disconnect();
+      }, 350); // Slightly longer than sound duration
+      
+      console.log('Collect effect sound played successfully');
+      logger.info('Playing collect effect sound (dual oscillators, 300ms)', 'ProceduralSoundManager');
+      
+    } catch (error) {
+      console.error('Error creating collect sound:', error);
+      logger.error(`Failed to create collect sound: ${error}`, 'ProceduralSoundManager');
+    }
+  }
+
+  /**
    * Create and play smoothed brown noise using proper audio engine v2 techniques
    */
   public static async playBrownNoise(): Promise<void> {

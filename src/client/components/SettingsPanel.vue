@@ -308,9 +308,19 @@
                 color="green-lighten-2"
                 variant="outlined"
                 prepend-icon="mdi-waveform"
+                class="mb-3"
                 @click="testBrownNoise"
               >
                 Test Brown Noise (3s)
+              </v-btn>
+              
+              <v-btn
+                color="green-lighten-2"
+                variant="outlined"
+                prepend-icon="mdi-star"
+                @click="testCollectSound"
+              >
+                Test Collect Sound (300ms)
               </v-btn>
             </div>
           </div>
@@ -640,6 +650,17 @@ const testBrownNoise = async () => {
   } catch (error) {
     console.error('Failed to play brown noise:', error);
     logger.error(`Brown noise test failed: ${error}`, 'SettingsPanel');
+  }
+};
+
+const testCollectSound = async () => {
+  try {
+    console.log('Testing collect sound (300ms)...');
+    await ProceduralSoundManager.playCollectSound();
+    logger.info('Collect sound test completed', 'SettingsPanel');
+  } catch (error) {
+    console.error('Failed to play collect sound:', error);
+    logger.error(`Collect sound test failed: ${error}`, 'SettingsPanel');
   }
 };
 
