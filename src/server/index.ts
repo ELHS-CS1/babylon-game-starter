@@ -209,21 +209,74 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
         try {
           const data = JSON.parse(body);
           
-          // Broadcast to all SSE connections
-          const message = `data: ${JSON.stringify(data)}\n\n`;
-          sseConnections.forEach((connection, id) => {
-            if (connection !== res) {
-              try {
-                connection.write(message);
-              } catch (error) {
-                sseConnections.delete(id);
+          // Log the received data
+          console.log('📤 Received DataStar send request:', data);
+          
+          // Handle join requests specifically
+          if (data.type === 'join' && data.playerName) {
+            const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const newPlayer = {
+              id: playerId,
+              name: data.playerName,
+              position: { x: 0, y: 0, z: 0 },
+              rotation: { x: 0, y: 0, z: 0 },
+              environment: gameState.currentEnvironment,
+              lastUpdate: Date.now()
+            };
+            
+            gameState.peers[playerId] = newPlayer;
+            console.log('✅ Player added to game state:', newPlayer);
+            
+            // Send response back to the client
+            const response = {
+              type: 'joinResponse',
+              success: true,
+              player: newPlayer,
+              gameState: {
+                peers: Object.keys(gameState.peers).length,
+                environment: gameState.currentEnvironment
+              },
+              timestamp: Date.now()
+            };
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response));
+            
+            // Broadcast player update to all SSE connections
+            const broadcastMessage = `data: ${JSON.stringify({
+              type: 'peerUpdate',
+              peer: newPlayer,
+              gameState: {
+                peers: Object.keys(gameState.peers).length,
+                environment: gameState.currentEnvironment
               }
+            })}\n\n`;
+            
+            sseConnections.forEach((connection) => {
+              try {
+                connection.write(broadcastMessage);
+              } catch (error) {
+                console.error('Error broadcasting to SSE connection:', error);
+              }
+            });
+            
+            return;
+          }
+          
+          // For other message types, broadcast to all SSE connections
+          const message = `data: ${JSON.stringify(data)}\n\n`;
+          sseConnections.forEach((connection) => {
+            try {
+              connection.write(message);
+            } catch (error) {
+              console.error('Error broadcasting to SSE connection:', error);
             }
           });
           
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, timestamp: Date.now() }));
         } catch (error) {
+          console.error('Error processing DataStar send request:', error);
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Invalid JSON' }));
         }

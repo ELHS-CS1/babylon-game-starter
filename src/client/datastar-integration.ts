@@ -231,6 +231,24 @@ export class DataStarIntegration {
     }
   }
 
+  private handleJoinResponse(data: any): void {
+    logger.info('🎮 Handling join response:', { context: 'DataStar', tag: 'join', data });
+    
+    if (data.success && data.player) {
+      logger.info('✅ Successfully joined game!', { context: 'DataStar', tag: 'join' });
+      logger.info('👤 Player info:', { context: 'DataStar', tag: 'join', player: data.player });
+      logger.info('🎯 Game state:', { context: 'DataStar', tag: 'join', gameState: data.gameState });
+      
+      // Update the game state with the new player info
+      if (data.gameState) {
+        // The game state will be updated via the peerUpdate message
+        logger.info('🔄 Game state will be updated via peerUpdate', { context: 'DataStar', tag: 'join' });
+      }
+    } else {
+      logger.error('❌ Failed to join game:', { context: 'DataStar', tag: 'join', data });
+    }
+  }
+
   public connect(): void {
     if (this.eventSource) {
       logger.info('🔗 SSE already connected', { context: 'DataStar', tag: 'connection' });
@@ -396,8 +414,9 @@ export class DataStarIntegration {
     
     this.eventSource.onmessage = (event) => {
       try {
+        logger.info('📡 Raw SSE message received:', { context: 'DataStar', tag: 'raw', data: event.data });
         const data = JSON.parse(event.data);
-        logger.info('📡 Received SSE data:', { context: 'DataStar', tag: 'data', data });
+        logger.info('📡 Parsed SSE data:', { context: 'DataStar', tag: 'data', data });
 
         // Handle different message types from the server
         if (data.type === 'signals') {
@@ -412,6 +431,9 @@ export class DataStarIntegration {
         } else if (data.type === 'message') {
           logger.info('🔍 Processing message', { context: 'DataStar', tag: 'message' });
           this.handleMessage(data.data);
+        } else if (data.type === 'joinResponse') {
+          logger.info('🔍 Processing joinResponse', { context: 'DataStar', tag: 'join' });
+          this.handleJoinResponse(data);
         } else if (data.isConnected !== undefined) {
           logger.info('🔍 Processing direct signals message', { context: 'DataStar', tag: 'message' });
           // Handle direct signal messages
