@@ -12,10 +12,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 3001,
     host: true,
-    https: {
-      key: readFileSync('./certs/localhost+2-key.pem'),
-      cert: readFileSync('./certs/localhost+2.pem')
-    },
+    ...(process.env['DOCKER'] !== 'true' && {
+      https: {
+        key: readFileSync('./certs/localhost+2-key.pem'),
+        cert: readFileSync('./certs/localhost+2.pem')
+      }
+    }),
     hmr: {
       port: 3002
     },
