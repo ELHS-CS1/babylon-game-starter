@@ -175,16 +175,19 @@ const initGameEngine = (): void => {
       if (isConnected.value) {
         import('./utils/serverUrl').then(({ getSendUrl }) => {
           fetch(getSendUrl(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'peer-update',
-            environment: selectedEnvironment.value
-          })
-        }).catch(() => {
-          // Error sending DataStar message
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'peer-update',
+              environment: selectedEnvironment.value
+            })
+          }).catch(() => {
+            // Error sending DataStar message
+          });
+        }).catch(error => {
+          logger.error('Failed to get send URL:', { context: 'App', tag: 'multiplayer', error });
         });
       }
 

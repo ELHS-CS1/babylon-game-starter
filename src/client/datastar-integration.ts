@@ -54,7 +54,9 @@ export class DataStarIntegration {
       // Check if DataStar is available globally
       if (typeof window !== 'undefined' && (window as any).DataStar) {
         logger.info('🚀 DataStar client found, using DataStar API...', { context: 'connection' });
-        this.initializeDataStarClient();
+        this.initializeDataStarClient().catch(error => {
+          logger.error('Failed to initialize DataStar client:', { context: 'connection', error });
+        });
       } else {
         logger.warn('⚠️ DataStar client not found, falling back to EventSource...', { context: 'connection' });
         this.initializeEventSource();
@@ -65,7 +67,7 @@ export class DataStarIntegration {
     }
   }
 
-  private initializeDataStarClient(): void {
+  private async initializeDataStarClient(): Promise<void> {
     try {
       logger.info('🚀 Initializing DataStar client...', { context: 'connection' });
       
