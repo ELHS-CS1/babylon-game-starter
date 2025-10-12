@@ -40,7 +40,7 @@
       :game-engine="gameEngine"
       @character-change="onCharacterChange"
       @environment-change="onEnvironmentChange"
-      @hud-settings-change="onHUDSettingsChange"
+      @hudSettingsChange="onHUDSettingsChange"
       @hud-position-change="onHUDPositionChange"
       @audio-settings-change="onAudioSettingsChange"
       @settings-save="onSettingsSave"
@@ -136,6 +136,7 @@ const inventoryPanel = ref<InstanceType<typeof InventoryPanel>>();
 
 // HUD and settings state
 const hudPosition = ref<'top' | 'bottom' | 'left' | 'right'>(CONFIG.HUD.POSITION);
+
 const hudSettings = reactive<{
   showCoordinates: boolean;
   showTime: boolean;
@@ -320,12 +321,19 @@ const onEnvironmentChange = (environment: string) => {
 };
 
 const onHUDSettingsChange = (settings: Record<string, unknown>) => {
+  console.log('App.vue: onHUDSettingsChange called with:', settings);
   // Type-safe assignment of HUD settings
+  if (typeof settings['showCoordinates'] === 'boolean') hudSettings.showCoordinates = settings['showCoordinates'];
+  if (typeof settings['showTime'] === 'boolean') hudSettings.showTime = settings['showTime'];
+  if (typeof settings['showFPS'] === 'boolean') hudSettings.showFPS = settings['showFPS'];
+  if (typeof settings['showState'] === 'boolean') hudSettings.showState = settings['showState'];
   if (typeof settings['showBoost'] === 'boolean') hudSettings.showBoost = settings['showBoost'];
   if (typeof settings['showCredits'] === 'boolean') hudSettings.showCredits = settings['showCredits'];
   if (typeof settings['showPlayers'] === 'boolean') hudSettings.showPlayers = settings['showPlayers'];
   if (typeof settings['showConnection'] === 'boolean') hudSettings.showConnection = settings['showConnection'];
-  // HUD settings changed
+  
+  console.log('App.vue: hudSettings after update:', hudSettings);
+  console.log('App.vue: hudSettings.showFPS specifically:', hudSettings.showFPS);
 };
 
 const onHUDPositionChange = (position: string) => {
@@ -335,9 +343,20 @@ const onHUDPositionChange = (position: string) => {
   // HUD position changed
 };
 
-const onAudioSettingsChange = () => {
-  // Audio settings changed
-  // Update audio system if needed
+const onAudioSettingsChange = async (settings: Record<string, unknown>) => {
+  console.log('Audio settings changed:', settings);
+  
+  // Update the centralized audio state manager
+  const { AudioStateManager } = await import('./game/AudioStateManager');
+  const audioStateManager = AudioStateManager.getInstance();
+  
+  audioStateManager.updateAudioState({
+    masterVolume: settings.masterVolume as number || 100,
+    sfxVolume: settings.sfxVolume as number || 100,
+    musicVolume: settings.musicVolume as number || 100
+  });
+  
+  console.log('Audio state updated:', audioStateManager.getAudioState());
 };
 
 const onSettingsSave = () => {

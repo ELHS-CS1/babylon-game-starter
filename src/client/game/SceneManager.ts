@@ -6,9 +6,11 @@ import { SmoothFollowCameraController } from './SmoothFollowCameraController';
 import { CollectiblesManager } from './CollectiblesManager';
 import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
+import { ProceduralSoundManager } from './ProceduralSoundManager';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
+import { HUDEventSystem, HUDEvents } from '../utils/hudEventSystem';
 
 // Animation Groups - THE WORD OF THE LORD FROM PLAYGROUND!
 const playerAnimations: Record<string, any> = {};
@@ -19,10 +21,14 @@ export class SceneManager {
   private characterController: CharacterController | null = null;
   private smoothFollowController: SmoothFollowCameraController | null = null;
   private currentEnvironment: string = "Level Test";
+  private gameStartTime: number = Date.now();
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     this.scene = new Scene(engine);
     this.camera = new TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
+    
+    // Setup HUD update observer - THE WORD OF THE LORD!
+    this.setupHUDUpdateObserver();
 
     // Test PHYSICS logging
     console.log('DIRECT CONSOLE TEST - SceneManager constructor called');
@@ -106,6 +112,7 @@ export class SceneManager {
       console.log("Setting up effects...");
       EffectsManager.initialize(this.scene);
       NodeMaterialManager.initialize(this.scene);
+      ProceduralSoundManager.initialize(this.scene);
 
       // Create thruster sound (like playground)
       console.log("Creating thruster sound...");
@@ -450,6 +457,7 @@ export class SceneManager {
     return this.scene;
   }
 
+
   public getCharacterController(): CharacterController | null {
     return this.characterController;
   }
@@ -687,5 +695,36 @@ export class SceneManager {
         windowObj.showBabylonInspector();
       }, 2000);
     }
+  }
+
+  private setupHUDUpdateObserver(): void {
+    // Setup onBeforeRenderObservable to trigger HUD updates - THE WORD OF THE LORD!
+    this.scene.onBeforeRenderObservable.add(() => {
+      // Update HUD values every frame
+      this.updateHUDValues();
+    });
+  }
+
+  private updateHUDValues(): void {
+    // Update coordinates from character position
+    if (this.characterController) {
+      const position = this.characterController.getPosition();
+      
+      // Trigger HUD coordinates update via event system
+      HUDEvents.coordinates(position.x, position.y, position.z);
+    }
+
+    // Update absolute FPS from engine
+    const engine = this.scene.getEngine();
+    const fps = Math.round(engine.getFps());
+    HUDEvents.fps(fps);
+
+    // Update elapsed game time
+    const elapsedMs = Date.now() - this.gameStartTime;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    const gameTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    HUDEvents.time(gameTime);
   }
 }

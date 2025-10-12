@@ -61,6 +61,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import CONFIG from '../config/gameConfig';
 import { HUDEventSystem, HUDEvents, type HUDEvent } from '../utils/hudEventSystem';
+import { Engine } from '@babylonjs/core/Engines/engine';
 
 // Props
 interface Props {
@@ -81,7 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
   position: () => CONFIG.HUD.POSITION,
   showCoordinates: () => CONFIG.HUD.SHOW_COORDINATES,
   showTime: () => CONFIG.HUD.SHOW_TIME,
-  showFPS: () => CONFIG.HUD.SHOW_FPS,
+  showFPS: () => false,
   showState: () => CONFIG.HUD.SHOW_STATE,
   showBoost: () => CONFIG.HUD.SHOW_BOOST_STATUS,
   showCredits: () => CONFIG.HUD.SHOW_CREDITS,
@@ -98,6 +99,13 @@ const gameTime = ref('00:00:00');
 const fps = ref(60);
 const characterState = ref('Idle');
 const boostStatus = ref('Ready');
+
+
+
+
+// FPS tracking variables
+let fpsUpdateInterval: number | null = null;
+let lastFpsUpdate = 0;
 
 // Reactive credits from CollectiblesManager - THE WORD OF THE LORD!
 const reactiveCredits = ref(0);
@@ -208,6 +216,29 @@ const updateCredits = (amount: number) => {
   HUDEvents.credits(amount);
 };
 
+// FPS tracking function
+const startFPSTracking = () => {
+  // Get the Babylon.js engine from the global scene
+  const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  
+  const engine = Engine.Instances.find(e => e.getRenderingCanvas() === canvas);
+  if (!engine) return;
+  
+  // Set up FPS tracking that updates once per second
+  fpsUpdateInterval = window.setInterval(() => {
+    const currentFPS = engine.getFps();
+    fps.value = Math.round(currentFPS);
+  }, 1000); // Update every 1000ms (1 second)
+};
+
+const stopFPSTracking = () => {
+  if (fpsUpdateInterval !== null) {
+    clearInterval(fpsUpdateInterval);
+    fpsUpdateInterval = null;
+  }
+};
+
 // Expose methods for parent component
 defineExpose({
   updateCoordinates,
@@ -224,10 +255,34 @@ watch(() => CONFIG.HUD, () => {
   // Update HUD when config changes
 }, { deep: true });
 
+// Watch for showFPS prop changes to start/stop FPS tracking
+watch(() => props.showFPS, (newValue, oldValue) => {
+  console.log('GameHUD: showFPS prop changed from', oldValue, 'to:', newValue);
+  if (newValue) {
+    // Start FPS tracking if it's not already running
+    if (fpsUpdateInterval === null) {
+      setTimeout(() => {
+        startFPSTracking();
+      }, 100);
+    }
+  } else {
+    // Stop FPS tracking
+    stopFPSTracking();
+  }
+}, { immediate: true });
+
+// Also watch all props to see what's changing
+watch(() => props, (newProps, oldProps) => {
+  console.log('GameHUD: All props changed from', oldProps, 'to:', newProps);
+}, { deep: true });
+
 // Event subscription cleanup functions
 let unsubscribeFunctions: (() => void)[] = [];
 
 onMounted(() => {
+  console.log('GameHUD mounted, all props:', props);
+  console.log('GameHUD mounted, showFPS prop:', props.showFPS);
+  
   // Subscribe to HUD events - THE WORD OF THE LORD!
   unsubscribeFunctions.push(
     HUDEventSystem.subscribe('hud:coordinates', handleCoordinatesEvent),
@@ -239,6 +294,17 @@ onMounted(() => {
     HUDEventSystem.subscribe('hud:peers', handlePeersEvent)
   );
 
+  // Start FPS tracking if FPS display is enabled
+  if (props.showFPS) {
+    console.log('Starting FPS tracking on mount');
+    // Wait a bit for the engine to be ready
+    setTimeout(() => {
+      startFPSTracking();
+    }, 1000);
+  } else {
+    console.log('FPS tracking not started - showFPS is false');
+  }
+
   // Listen for HUD config updates
   window.addEventListener('hud-config-updated', () => {
     // HUD config updated via event
@@ -246,6 +312,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // Stop FPS tracking
+  stopFPSTracking();
+  
   // Unsubscribe from all HUD events
   unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
   unsubscribeFunctions = [];

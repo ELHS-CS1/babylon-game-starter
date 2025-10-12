@@ -20,7 +20,6 @@ export default defineConfig(({ mode }) => ({
       port: 3002
     },
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin'
     }
   },

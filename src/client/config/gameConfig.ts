@@ -720,9 +720,9 @@ const CONFIG = {
     },
 
     AUDIO: {
-        MASTER_VOLUME: 1.0,
-        SFX_VOLUME: 1.0,
-        MUSIC_VOLUME: 1.0
+        MASTER_VOLUME: 100,
+        SFX_VOLUME: 100,
+        MUSIC_VOLUME: 100
     },
 
            INVENTORY: {

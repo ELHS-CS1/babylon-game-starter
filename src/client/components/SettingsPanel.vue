@@ -156,7 +156,7 @@
             <v-switch
               v-model="hudSettings.showPlayers"
               label="Show Players Count"
-              color="green-lighten-2"
+              color="blue-lighten-2"
               density="comfortable"
               @update:model-value="onHUDSettingsChange"
             />
@@ -164,7 +164,7 @@
             <v-switch
               v-model="hudSettings.showConnection"
               label="Show Connection Status"
-              color="red-lighten-2"
+              color="blue-lighten-2"
               density="comfortable"
               @update:model-value="onHUDSettingsChange"
             />
@@ -256,6 +256,44 @@
               Inspector is now active! Use the scene explorer to debug sound, physics, and scene objects.
             </v-alert>
           </div>
+
+          <!-- Procedural Sound Testing -->
+          <div class="mb-6">
+            <v-label class="text-subtitle-1 font-weight-medium mb-3 d-block">
+              <v-icon color="green-lighten-2" class="me-2">mdi-music-note</v-icon>
+              Procedural Sound Engine
+            </v-label>
+            
+            <v-alert
+              type="info"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+            >
+              Test the procedural sound system inspired by v2 audio engine
+            </v-alert>
+            
+            <div class="d-flex flex-column">
+              <v-btn
+                color="green-lighten-2"
+                variant="outlined"
+                prepend-icon="mdi-sine-wave"
+                class="mb-3"
+                @click="testProceduralTone"
+              >
+                Test Tone (440Hz A)
+              </v-btn>
+              
+              <v-btn
+                color="green-lighten-2"
+                variant="outlined"
+                prepend-icon="mdi-music"
+                @click="testChordProgression"
+              >
+                Test Chord (C Major)
+              </v-btn>
+            </div>
+          </div>
         </v-form>
       </v-card-text>
 
@@ -290,6 +328,7 @@ import { SettingsData } from '../game/SettingsData';
 // import { ThemeUtils } from '../config/themeConfig'; // Unused for now
 import CONFIG from '../config/gameConfig';
 import { logger } from '../utils/logger';
+import { ProceduralSoundManager } from '../game/ProceduralSoundManager';
 
 // Props
 interface Props {
@@ -506,6 +545,7 @@ const onEnvironmentChange = (environment: string) => {
 };
 
 const onHUDSettingsChange = () => {
+  console.log('SettingsPanel: onHUDSettingsChange called, hudSettings:', hudSettings);
   emit('hudSettingsChange', { ...hudSettings });
 };
 
@@ -535,6 +575,29 @@ const onInspectorToggle = async () => {
     if (windowObj.hideBabylonInspector) {
       windowObj.hideBabylonInspector();
     }
+  }
+};
+
+// Procedural Sound Test Functions
+const testProceduralTone = async () => {
+  try {
+    console.log('Testing procedural tone (440Hz A note)...');
+    await ProceduralSoundManager.playTestTone();
+    logger.info('Procedural tone test completed', 'SettingsPanel');
+  } catch (error) {
+    console.error('Failed to play procedural tone:', error);
+    logger.error(`Procedural tone test failed: ${error}`, 'SettingsPanel');
+  }
+};
+
+const testChordProgression = async () => {
+  try {
+    console.log('Testing chord progression (C major)...');
+    await ProceduralSoundManager.playChordProgression();
+    logger.info('Chord progression test completed', 'SettingsPanel');
+  } catch (error) {
+    console.error('Failed to play chord progression:', error);
+    logger.error(`Chord progression test failed: ${error}`, 'SettingsPanel');
   }
 };
 

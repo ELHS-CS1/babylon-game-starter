@@ -7,6 +7,7 @@ import type { IParticleSystem , Scene, Vector3} from '@babylonjs/core';
 import { AbstractMesh } from '@babylonjs/core';
 import CONFIG from '../config/gameConfig';
 import { logger } from '../utils/logger';
+import { AudioStateManager } from './AudioStateManager';
 
 export class EffectsManager {
   // Static maps for categorization - THE WORD OF THE LORD!
@@ -15,9 +16,11 @@ export class EffectsManager {
   private static itemParticleSystems: Map<string, IParticleSystem> = new Map();
   private static activeSounds: Map<string, Sound> = new Map();
   private static scene: Scene | null = null;
+  private static audioStateManager: AudioStateManager | null = null;
 
   public static initialize(scene: Scene): void {
     this.scene = scene;
+    this.audioStateManager = AudioStateManager.getInstance();
   }
 
   public static async createParticleSystem(snippetName: string, emitter?: AbstractMesh | Vector3): Promise<IParticleSystem | null> {
@@ -88,8 +91,21 @@ export class EffectsManager {
 
     try {
       console.log(`Creating sound "${soundName}" from ${soundConfig.url}`);
+      
+      // Calculate effective volume using audio state manager
+      const baseVolume = soundConfig.volume;
+      const effectiveVolume = this.audioStateManager ? 
+        baseVolume * this.audioStateManager.getEffectiveSFXVolume() : 
+        baseVolume;
+      
+      console.log('Thruster sound volume calculation:', {
+        baseVolume,
+        effectiveVolume,
+        audioState: this.audioStateManager?.getAudioState()
+      });
+      
       const sound = new Sound(soundName, soundConfig.url, this.scene, null, {
-        volume: soundConfig.volume,
+        volume: effectiveVolume,
         loop: soundConfig.loop
       });
 
@@ -99,11 +115,11 @@ export class EffectsManager {
       };
 
       // Add sound event handlers for debugging
-      sound.onload = () => {
+      (sound as any).onload = () => {
         console.log(`Sound "${soundName}" loaded successfully`);
       };
 
-      sound.onError = (error) => {
+      (sound as any).onError = (error: any) => {
         console.error(`Sound "${soundName}" failed to load:`, error);
       };
 
