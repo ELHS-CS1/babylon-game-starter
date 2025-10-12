@@ -280,7 +280,7 @@ const server = createHttpServer(async (req: IncomingMessage, res: ServerResponse
           
           // Log connection to peer mapping
           console.log('🔗 Connection to peer mapping:');
-          connectionToPeerMap.forEach((peerId, connection) => {
+          connectionToPeerMap.forEach((peerId, _connection) => {
             console.log(`   Connection -> Peer: ${peerId}`);
           });
           
