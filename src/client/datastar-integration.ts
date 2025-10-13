@@ -510,6 +510,7 @@ export class DataStarIntegration {
       type: 'join',
       playerName: playerName,
       peerId: peerId,
+      environment: 'Level Test', // Default environment for new peers
       timestamp: Date.now()
     };
     

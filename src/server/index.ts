@@ -126,7 +126,7 @@ function handlePeerRequest(res: ServerResponse, environment: string): void {
 }
 
 function handleJoinRequest(res: ServerResponse, data: any): void {
-  const newPlayer = peerDataManager.addPeer(data.playerName, data.peerId, data.character);
+  const newPlayer = peerDataManager.addPeer(data.playerName, data.peerId, data.character, data.environment || 'levelTest');
   peerDataManager.associateConnectionWithPeer(res, newPlayer.id);
   
   const existingPeers = peerDataManager.getPeersByEnvironment(newPlayer.environment)
@@ -291,7 +291,7 @@ const server = createHttpServer(async (req, res) => {
       status: 'healthy', 
       peers: peerDataManager.getPeerCount(),
       connections: sseManager.getConnectionCount(),
-      environment: peerDataManager.getGameState().currentEnvironment,
+      environments: peerDataManager.getGameState().environments,
       protocol: 'http',
       config: {
         isProduction: config.isProduction,

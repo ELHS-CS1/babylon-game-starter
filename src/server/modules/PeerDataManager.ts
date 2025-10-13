@@ -25,7 +25,6 @@ export interface Peer {
 export interface GameState {
   peers: Record<string, Peer>;
   environments: string[];
-  currentEnvironment: string;
 }
 
 export class PeerDataManager {
@@ -35,8 +34,7 @@ export class PeerDataManager {
   constructor() {
     this.gameState = {
       peers: {},
-      environments: ['levelTest', 'islandTown', 'joyTown', 'mansion', 'firefoxReality'],
-      currentEnvironment: 'levelTest'
+      environments: ['levelTest', 'islandTown', 'joyTown', 'mansion', 'firefoxReality']
     };
     this.connectionToPeerMap = new Map();
   }
@@ -72,7 +70,7 @@ export class PeerDataManager {
   }
 
   // Peer operations
-  public addPeer(playerName: string, peerId: string, character: string = 'Red'): Peer {
+  public addPeer(playerName: string, peerId: string, character: string = 'Red', environment: string = 'levelTest'): Peer {
     // Use client's UUIDv4 peer ID instead of generating our own
     const playerId = peerId;
     const newPlayer: Peer = {
@@ -80,7 +78,7 @@ export class PeerDataManager {
       name: playerName,
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
-      environment: this.gameState.currentEnvironment,
+      environment: environment, // Each peer can start in their own environment
       character,
       boostActive: false,
       state: 'idle',
