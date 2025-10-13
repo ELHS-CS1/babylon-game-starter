@@ -48,6 +48,7 @@ export class RemotePeer {
 
   // Method to initialize position state to prevent lerping from origin
   public initializePosition(position: Vector3, rotation: Vector3): void {
+    // Set both current and target to the same initial position to avoid lerping from origin
     this.peerState.position = position.clone();
     this.peerState.rotation = rotation.clone();
     this.peerState.targetPosition = position.clone();
