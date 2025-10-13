@@ -146,6 +146,12 @@ export class LocalPeerDataServiceProvider {
       return;
     }
 
+    // Don't send updates with temporary peer IDs
+    if (this.peerId.startsWith('local-peer-')) {
+      logger.warn('Peer ID not set yet, skipping update', { context: 'LocalPeerDataServiceProvider' });
+      return;
+    }
+
     const characterState = this.characterController.getCharacterState();
     const currentCharacter = this.characterController.getCurrentCharacter();
 

@@ -8,6 +8,7 @@ import { remotePeerStateUpdateService } from './services/RemotePeerStateUpdateSe
 export class DataStarIntegration {
   private isConnected = false;
   private eventSource: EventSource | null = null;
+  private myPeerId: string | null = null;
   private isInitialized = false;
 
   private async getServerUrl(): Promise<string> {
@@ -239,7 +240,7 @@ export class DataStarIntegration {
     }
   }
 
-  private handleJoinResponse(data: any): void {
+  private async handleJoinResponse(data: any): Promise<void> {
     logger.info('🎮 Handling join response:', { context: 'DataStar', tag: 'join', data });
     
     if (data.success && data.player) {
@@ -247,11 +248,20 @@ export class DataStarIntegration {
       logger.info('👤 Player info:', { context: 'DataStar', tag: 'join', player: data.player });
       logger.info('🎯 Game state:', { context: 'DataStar', tag: 'join', gameState: data.gameState });
       
-      // Update LocalPeerDataServiceProvider with the correct peer ID from server
+      // Store the server-assigned peer ID
       if (data.player.id) {
-        const { localPeerDataService } = require('./services/LocalPeerDataServiceProvider');
-        localPeerDataService.updatePeerId(data.player.id);
-        logger.info(`🔄 Updated LocalPeerDataServiceProvider with server peer ID: ${data.player.id}`, { context: 'DataStar', tag: 'join' });
+        this.myPeerId = data.player.id;
+        logger.info(`🆔 Stored server peer ID: ${this.myPeerId}`, { context: 'DataStar', tag: 'join' });
+        
+        // Update LocalPeerDataServiceProvider with the correct peer ID from server
+        try {
+          const { localPeerDataService } = await import('./services/LocalPeerDataServiceProvider');
+          localPeerDataService.updatePeerId(data.player.id);
+          logger.info(`🔄 Updated LocalPeerDataServiceProvider with server peer ID: ${data.player.id}`, { context: 'DataStar', tag: 'join' });
+          
+        } catch (error) {
+          logger.error('Failed to update LocalPeerDataServiceProvider with peer ID:', { context: 'DataStar', tag: 'join', error });
+        }
       }
       
       // Add existing peers to game state
@@ -413,6 +423,11 @@ export class DataStarIntegration {
     return this.isConnected;
   }
 
+  public getMyPeerId(): string | null {
+    return this.myPeerId;
+  }
+
+
 
   // Send data to server
   public async send(data: Record<string, unknown>): Promise<void> {
@@ -554,7 +569,7 @@ export class DataStarIntegration {
       gameState.isConnected = false;
     };
     
-    this.eventSource.onmessage = (event) => {
+    this.eventSource.onmessage = async (event) => {
       try {
         logger.info('📡 Raw SSE message received:', { context: 'DataStar', tag: 'raw', data: event.data });
         const data = JSON.parse(event.data);
@@ -576,7 +591,7 @@ export class DataStarIntegration {
           this.handleMessage(data.data);
         } else if (data.type === 'joinResponse') {
           logger.info('🔍 Processing joinResponse', { context: 'DataStar', tag: 'join' });
-          this.handleJoinResponse(data);
+          await this.handleJoinResponse(data);
         } else if (data.type === 'peersResponse') {
           logger.info('🔍 Processing peersResponse', { context: 'DataStar', tag: 'peers' });
           this.handlePeersResponse(data);

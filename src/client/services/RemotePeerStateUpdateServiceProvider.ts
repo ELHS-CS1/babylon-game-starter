@@ -119,9 +119,11 @@ export class RemotePeerStateUpdateServiceProvider {
     }
 
     try {
-      logger.info(`Creating remote peer: ${peerData.name} (${peerData.id})`, {
+      logger.info(`🎮 NEW MULTIPLAYER PEER: Creating remote peer for ${peerData.name}`, {
         context: 'RemotePeerStateUpdateServiceProvider',
-        tag: 'create'
+        tag: 'mp',
+        peerId: peerData.id,
+        name: peerData.name
       });
 
       // Create the RemotePeer instance
