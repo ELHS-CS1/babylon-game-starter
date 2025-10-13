@@ -53,6 +53,8 @@ async function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: 
           handlePeerDataUpdate(req, res, data);
         } else if (data.type === 'environmentChange') {
           handleEnvironmentChange(req, res, data);
+        } else if (data.type === 'characterModelChange') {
+          handleCharacterModelChange(req, res, data);
         } else if (data.type === 'peer-update') {
           handlePeerUpdate(req, res, data);
         } else {
@@ -209,10 +211,51 @@ function handlePeerDataUpdate(_req: IncomingMessage, res: ServerResponse, data: 
 function handleEnvironmentChange(_req: IncomingMessage, res: ServerResponse, data: any): void {
   console.log('🌍 Received environment change:', data);
   
-  // Just acknowledge the environment change
-  // The client handles its own environment switching
+  // Update peer's environment in the database
+  if (data.peerId) {
+    const peer = peerDataManager.getPeer(data.peerId);
+    if (peer) {
+      peer.environment = data.environment;
+      peer.lastUpdate = Date.now();
+      console.log(`📍 Updated peer ${data.peerId} environment to: ${data.environment}`);
+      
+      // Broadcast environment change to other peers
+      sseManager.broadcastToEnvironment(data.environment, {
+        type: 'peerUpdate',
+        peer: peer
+      });
+    } else {
+      console.log(`📍 Peer ${data.peerId} not found for environment change`);
+    }
+  }
+  
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ success: true, message: 'Environment change acknowledged' }));
+  res.end(JSON.stringify({ success: true, message: 'Environment change processed' }));
+}
+
+function handleCharacterModelChange(_req: IncomingMessage, res: ServerResponse, data: any): void {
+  console.log('👤 Received character model change:', data);
+  
+  // Update peer's character in the database
+  if (data.peerId) {
+    const peer = peerDataManager.getPeer(data.peerId);
+    if (peer) {
+      peer.character = data.character;
+      peer.lastUpdate = Date.now();
+      console.log(`📍 Updated peer ${data.peerId} character to: ${data.character}`);
+      
+      // Broadcast character change to other peers in the same environment
+      sseManager.broadcastToEnvironment(peer.environment, {
+        type: 'peerUpdate',
+        peer: peer
+      });
+    } else {
+      console.log(`📍 Peer ${data.peerId} not found for character change`);
+    }
+  }
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: true, message: 'Character model change processed' }));
 }
 
 function handlePeerUpdate(_req: IncomingMessage, res: ServerResponse, data: any): void {
