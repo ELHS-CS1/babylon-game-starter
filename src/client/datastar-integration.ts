@@ -248,6 +248,12 @@ export class DataStarIntegration {
       logger.info('👤 Player info:', { context: 'DataStar', tag: 'join', player: data.player });
       logger.info('🎯 Game state:', { context: 'DataStar', tag: 'join', gameState: data.gameState });
       
+      // Set connection status to connected
+      this.isConnected = true;
+      const { setConnected } = await import('./stores/datastar');
+      setConnected(true);
+      logger.info('🔗 Connection status set to CONNECTED', { context: 'DataStar', tag: 'join' });
+      
       // Store the server-assigned peer ID
       if (data.player.id) {
         this.myPeerId = data.player.id;

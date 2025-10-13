@@ -50,6 +50,8 @@ export class StaticFileServer {
       case 'mp3': return 'audio/mpeg';
       case 'wav': return 'audio/wav';
       case 'ogg': return 'audio/ogg';
+      case 'wasm': return 'application/wasm';
+      case 'bin': return 'application/octet-stream';
       default: return 'application/octet-stream';
     }
   }

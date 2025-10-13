@@ -74,17 +74,22 @@ export class GameEngine {
       
       // Initialize WebGPU engine with fallback after construction
       try {
-        const webgpuEngine = await WebGPUEngine.CreateAsync(canvas);
-        GameEngine.instance.engine = webgpuEngine;
-        
-        // Add detection logging:
-        const isWebGPU = webgpuEngine instanceof WebGPUEngine;
-        logger.info(`Rendering backend: ${isWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}`, 'GameEngine');
-        logger.info(`GPU Info: ${webgpuEngine.description}`, 'GameEngine');
-        logger.info("WebGPU engine created with automatic fallback", 'GameEngine');
+        // Check if WebGPU is supported before attempting to create
+        if (navigator.gpu) {
+          const webgpuEngine = await WebGPUEngine.CreateAsync(canvas);
+          GameEngine.instance.engine = webgpuEngine;
+          
+          const isWebGPU = webgpuEngine instanceof WebGPUEngine;
+          logger.info(`Rendering backend: ${isWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}`, 'GameEngine');
+          logger.info(`GPU Info: ${webgpuEngine.description}`, 'GameEngine');
+          logger.info("WebGPU engine created successfully", 'GameEngine');
+        } else {
+          logger.info('WebGPU not supported by browser, using WebGL2', 'GameEngine');
+        }
       } catch (error) {
         logger.warn('WebGPU initialization failed, using WebGL2 fallback:', 'GameEngine');
         logger.warn(`Error: ${error instanceof Error ? error.message : String(error)}`, 'GameEngine');
+        // Engine is already set to WebGL2 in constructor, so no need to change it
       }
     }
     return GameEngine.instance;
