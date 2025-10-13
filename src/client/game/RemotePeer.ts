@@ -46,6 +46,20 @@ export class RemotePeer {
     };
   }
 
+  // Method to initialize position state to prevent lerping from origin
+  public initializePosition(position: Vector3, rotation: Vector3): void {
+    this.peerState.position = position.clone();
+    this.peerState.rotation = rotation.clone();
+    this.peerState.targetPosition = position.clone();
+    this.peerState.targetRotation = rotation.clone();
+    
+    logger.info(`🎮 Initialized remote peer position: ${position.x}, ${position.y}, ${position.z}`, {
+      context: 'RemotePeer',
+      tag: 'mp',
+      peerId: this.peerState.id
+    });
+  }
+
   // Public method called by RemotePeerStateUpdateServiceProvider
   public updateFromRemoteData(data: Partial<Player>): void {
     // Update position if provided

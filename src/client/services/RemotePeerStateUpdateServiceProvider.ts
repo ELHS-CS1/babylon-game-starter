@@ -225,6 +225,13 @@ export class RemotePeerStateUpdateServiceProvider {
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
       });
 
+      logger.info(`🎮 Applied character scale: ${character.scale}`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'mp',
+        characterName: character.name,
+        scale: character.scale
+      });
+
       // Set initial position and rotation
       const initialPos = new Vector3(
         peerData.position.x,
@@ -237,6 +244,10 @@ export class RemotePeerStateUpdateServiceProvider {
         peerData.rotation.z
       );
 
+      // Initialize the remote peer's position state to prevent lerping from origin
+      remotePeer.initializePosition(initialPos, initialRot);
+      
+      // Apply position to mesh
       remotePeer.mesh.position = initialPos;
       remotePeer.mesh.rotation = initialRot;
 
