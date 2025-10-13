@@ -63,8 +63,8 @@ export class RemotePeer {
 
   // Public method called by RemotePeerStateUpdateServiceProvider
   public updateFromRemoteData(data: Partial<Player>): void {
-    const POSITION_EPSILON = 0.001; // Small threshold for position changes
-    const ROTATION_EPSILON = 0.001; // Small threshold for rotation changes
+    const POSITION_EPSILON = 0.01; // Increased threshold to reduce blinking
+    const ROTATION_EPSILON = 0.05; // Increased threshold for rotation changes
 
     // Update position if provided and change is significant
     if (data.position) {
@@ -79,6 +79,11 @@ export class RemotePeer {
       if (positionDistance > POSITION_EPSILON) {
         this.peerState.targetPosition = newPosition;
         logger.debug(`🎮 Updated position for peer ${this.peerState.id}: distance=${positionDistance.toFixed(4)}`, {
+          context: 'RemotePeer',
+          tag: 'mp'
+        });
+      } else {
+        logger.debug(`🎮 Position update skipped for peer ${this.peerState.id}: distance=${positionDistance.toFixed(4)} < ${POSITION_EPSILON}`, {
           context: 'RemotePeer',
           tag: 'mp'
         });
@@ -98,6 +103,11 @@ export class RemotePeer {
       if (rotationDistance > ROTATION_EPSILON) {
         this.peerState.targetRotation = newRotation;
         logger.debug(`🎮 Updated rotation for peer ${this.peerState.id}: distance=${rotationDistance.toFixed(4)}`, {
+          context: 'RemotePeer',
+          tag: 'mp'
+        });
+      } else {
+        logger.debug(`🎮 Rotation update skipped for peer ${this.peerState.id}: distance=${rotationDistance.toFixed(4)} < ${ROTATION_EPSILON}`, {
           context: 'RemotePeer',
           tag: 'mp'
         });
@@ -136,10 +146,8 @@ export class RemotePeer {
       }
     }
 
-    // Update lastUpdate timestamp
-    if (data.lastUpdate !== undefined) {
-      this.peerState.lastUpdate = data.lastUpdate;
-    }
+    // Always update lastUpdate timestamp when we receive any data
+    this.peerState.lastUpdate = Date.now();
 
     logger.info(`Updated peer ${this.peerState.id} from remote data`, {
       context: 'RemotePeer',
@@ -222,21 +230,30 @@ export class RemotePeer {
     return this.peerState.name;
   }
 
-  public interpolate(deltaTime: number, smoothing: number = 0.2): void {
+  public interpolate(deltaTime: number, smoothing: number = 0.1): void {
     if (!this.mesh) return;
 
     // Store previous position to detect movement
     const previousPosition = this.peerState.position.clone();
 
-    // Smooth position interpolation
-    this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * smoothing;
-    this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * smoothing;
-    this.peerState.position.z += (this.peerState.targetPosition.z - this.peerState.position.z) * smoothing;
+    // Calculate distance to target to determine if we should interpolate
+    const positionDistance = Vector3.Distance(this.peerState.position, this.peerState.targetPosition);
+    const rotationDistance = Vector3.Distance(this.peerState.rotation, this.peerState.targetRotation);
 
-    // Smooth rotation interpolation
-    this.peerState.rotation.x += (this.peerState.targetRotation.x - this.peerState.rotation.x) * smoothing;
-    this.peerState.rotation.y += (this.peerState.targetRotation.y - this.peerState.rotation.y) * smoothing;
-    this.peerState.rotation.z += (this.peerState.targetRotation.z - this.peerState.rotation.z) * smoothing;
+    // Only interpolate if we're far enough from target to avoid micro-movements
+    if (positionDistance > 0.001) {
+      // Smooth position interpolation with reduced smoothing for less jitter
+      this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * smoothing;
+      this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * smoothing;
+      this.peerState.position.z += (this.peerState.targetPosition.z - this.peerState.position.z) * smoothing;
+    }
+
+    if (rotationDistance > 0.01) {
+      // Smooth rotation interpolation
+      this.peerState.rotation.x += (this.peerState.targetRotation.x - this.peerState.rotation.x) * smoothing;
+      this.peerState.rotation.y += (this.peerState.targetRotation.y - this.peerState.rotation.y) * smoothing;
+      this.peerState.rotation.z += (this.peerState.targetRotation.z - this.peerState.rotation.z) * smoothing;
+    }
 
     // Apply to mesh
     this.mesh.position.copyFrom(this.peerState.position);

@@ -147,12 +147,26 @@ export class RemotePeerStateUpdateServiceProvider {
     const now = Date.now();
     const STALE_THRESHOLD_MS = 2000; // 2 seconds
 
+    logger.debug(`🎮 Checking for stale peers: ${this.remotePeers.size} total peers`, {
+      context: 'RemotePeerStateUpdateServiceProvider',
+      tag: 'mp'
+    });
+
     this.remotePeers.forEach((peer, peerId) => {
       const peerState = peer.getState();
       const timeSinceLastUpdate = now - peerState.lastUpdate;
 
+      logger.debug(`🎮 Peer ${peerId} last update: ${timeSinceLastUpdate}ms ago`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'mp',
+        peerId,
+        timeSinceLastUpdate,
+        lastUpdate: peerState.lastUpdate,
+        now
+      });
+
       if (timeSinceLastUpdate > STALE_THRESHOLD_MS) {
-        logger.warn(`Peer ${peerId} is stale (${timeSinceLastUpdate}ms), removing`, {
+        logger.warn(`🎮 Peer ${peerId} is stale (${timeSinceLastUpdate}ms), removing`, {
           context: 'RemotePeerStateUpdateServiceProvider',
           tag: 'mp'
         });
@@ -222,7 +236,8 @@ export class RemotePeerStateUpdateServiceProvider {
       remotePeer.mesh = result.meshes[0];
       result.meshes.forEach(mesh => {
         const originalScale = mesh.scaling.clone();
-        mesh.scaling.setAll(character.scale);
+        // Use the same scaling approach as local character: CONFIG.ANIMATION.PLAYER_SCALE
+        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
         
         logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {
@@ -231,6 +246,7 @@ export class RemotePeerStateUpdateServiceProvider {
           meshName: mesh.name,
           originalScale: { x: originalScale.x, y: originalScale.y, z: originalScale.z },
           newScale: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z },
+          playerScale: CONFIG.ANIMATION.PLAYER_SCALE,
           characterScale: character.scale
         });
       });

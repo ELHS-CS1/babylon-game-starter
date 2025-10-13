@@ -88,14 +88,20 @@ class Logger {
   const loggingScope = urlParams.get('scope') ?? 'none';
   const targetTag = urlParams.get('tag') ?? '';
   
+  // Extract tag from data object if it exists
+  let logTag: string | undefined;
+  if (data && typeof data === 'object' && data !== null && 'tag' in data) {
+    logTag = (data as any).tag;
+  }
+  
   // Debug: Always log the URL parameters
-  console.log('LOGGER DEBUG:', { loggingScope, targetTag, context, level, message });
+  console.log('LOGGER DEBUG:', { loggingScope, targetTag, context, logTag, level, message });
   
   // Enable logging based on URL parameters
-  if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === context)) {
+  if (loggingScope === 'all' || (loggingScope === 'tag' && targetTag === logTag)) {
     console.log(`[${level}] [${context}] ${message}`, data || '');
   } else {
-    console.log('LOGGER FILTERED OUT:', { loggingScope, targetTag, context });
+    console.log('LOGGER FILTERED OUT:', { loggingScope, targetTag, context, logTag });
   }
     return;
   }
