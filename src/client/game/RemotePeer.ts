@@ -143,7 +143,7 @@ export class RemotePeer {
 
     logger.info(`Updated peer ${this.peerState.id} from remote data`, {
       context: 'RemotePeer',
-      tag: 'update'
+      tag: 'mp'
     });
   }
 
@@ -276,7 +276,7 @@ export class RemotePeer {
 
     logger.info(`RemotePeer ${this.peerState.id} disposed`, {
       context: 'RemotePeer',
-      tag: 'dispose'
+      tag: 'mp'
     });
   }
 }
