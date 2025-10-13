@@ -51,6 +51,10 @@ async function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: 
           handlePositionUpdate(req, res, data);
         } else if (data.type === 'peerDataUpdate') {
           handlePeerDataUpdate(req, res, data);
+        } else if (data.type === 'environmentChange') {
+          handleEnvironmentChange(req, res, data);
+        } else if (data.type === 'peer-update') {
+          handlePeerUpdate(req, res, data);
         } else {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Unknown request type' }));
@@ -200,6 +204,24 @@ function handlePeerDataUpdate(_req: IncomingMessage, res: ServerResponse, data: 
   
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ success: true }));
+}
+
+function handleEnvironmentChange(_req: IncomingMessage, res: ServerResponse, data: any): void {
+  console.log('🌍 Received environment change:', data);
+  
+  // Just acknowledge the environment change
+  // The client handles its own environment switching
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: true, message: 'Environment change acknowledged' }));
+}
+
+function handlePeerUpdate(_req: IncomingMessage, res: ServerResponse, data: any): void {
+  console.log('👥 Received peer update:', data);
+  
+  // Just acknowledge the peer update
+  // The client handles its own peer state management
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: true, message: 'Peer update acknowledged' }));
 }
 
 // Create HTTP server
