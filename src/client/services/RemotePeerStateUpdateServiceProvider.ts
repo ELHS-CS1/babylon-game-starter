@@ -102,11 +102,12 @@ export class RemotePeerStateUpdateServiceProvider {
     const existingPeer = this.remotePeers.get(peerData.id);
 
     if (existingPeer) {
-      // Check if character model changed
+      // Check if character model changed - only recreate if character is explicitly provided and different
       const currentCharacter = existingPeer.getState().character;
       const newCharacter = peerData.character;
       
-      if (newCharacter && newCharacter !== currentCharacter) {
+      // Only recreate peer if character field is explicitly provided AND it's different from current
+      if (newCharacter !== undefined && newCharacter !== currentCharacter) {
         logger.info(`🎮 Character model changed for peer ${peerData.id}: ${currentCharacter} -> ${newCharacter}`, {
           context: 'RemotePeerStateUpdateServiceProvider',
           tag: 'mp'
@@ -117,8 +118,8 @@ export class RemotePeerStateUpdateServiceProvider {
         await this.createPeer(peerData as Player);
         this.creatingPeers.delete(peerData.id);
       } else {
-        // Update existing peer
-        logger.info(`🎮 Updating existing peer: ${peerData.id}`, {
+        // Update existing peer - character field not provided or same as current
+        logger.debug(`🎮 Updating existing peer: ${peerData.id} (character: ${newCharacter || 'not provided'}, current: ${currentCharacter})`, {
           context: 'RemotePeerStateUpdateServiceProvider',
           tag: 'mp'
         });
@@ -210,7 +211,10 @@ export class RemotePeerStateUpdateServiceProvider {
         tag: 'mp',
         characterName: character.name,
         modelUrl: character.model,
-        requestedCharacter: characterName
+        requestedCharacter: characterName,
+        peerDataCharacter: peerData.character,
+        defaultCharacter: this.defaultCharacter.name,
+        fallbackUsed: !peerData.character
       });
       
       const result = await ImportMeshAsync(character.model, this.scene);
@@ -237,7 +241,8 @@ export class RemotePeerStateUpdateServiceProvider {
       result.meshes.forEach(mesh => {
         const originalScale = mesh.scaling.clone();
         // Use the same scaling approach as local character: CONFIG.ANIMATION.PLAYER_SCALE
-        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+        // TODO: Figure out why 1.2x multiplier is needed for remote peers to match expected size
+        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 1.2);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
         
         logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {

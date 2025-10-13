@@ -66,6 +66,15 @@ export class RemotePeer {
     const POSITION_EPSILON = 0.01; // Increased threshold to reduce blinking
     const ROTATION_EPSILON = 0.05; // Increased threshold for rotation changes
 
+    logger.debug(`🎮 updateFromRemoteData called for peer ${this.peerState.id}:`, {
+      context: 'RemotePeer',
+      tag: 'mp',
+      hasPosition: !!data.position,
+      hasRotation: !!data.rotation,
+      currentPosition: this.peerState.position,
+      currentTargetPosition: this.peerState.targetPosition
+    });
+
     // Update position if provided and change is significant
     if (data.position) {
       const newPosition = new Vector3(
@@ -88,6 +97,13 @@ export class RemotePeer {
           tag: 'mp'
         });
       }
+    } else {
+      // No position data provided - ensure target position is preserved
+      logger.debug(`🎮 No position data provided for peer ${this.peerState.id}, preserving current target position`, {
+        context: 'RemotePeer',
+        tag: 'mp',
+        currentTargetPosition: this.peerState.targetPosition
+      });
     }
 
     // Update rotation if provided and change is significant
