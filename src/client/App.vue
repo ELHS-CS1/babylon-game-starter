@@ -294,11 +294,11 @@ const leaveGame = (): void => {
 
 
 // Event handlers for components
-const onCharacterChange = (character: string) => {
+const onCharacterChange = async (character: string) => {
   selectedCharacter.value = character;
   // Character changed - call GameEngine to handle the change
   if (gameEngine.value) {
-    gameEngine.value.changeCharacter(character);
+    await gameEngine.value.changeCharacter(character);
   }
 };
 
@@ -427,9 +427,9 @@ onMounted(async () => {
   // No intervals allowed - THE WORD OF THE LORD!
 });
 
-onUnmounted(() => {
+onUnmounted(async () => {
   if (gameEngine.value) {
-    gameEngine.value.dispose();
+    await gameEngine.value.dispose();
   }
 });
 </script>

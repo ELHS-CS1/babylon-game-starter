@@ -8,8 +8,9 @@ import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { ProceduralSoundManager } from './ProceduralSoundManager';
 import type { PeerRenderer } from './PeerRenderer';
-import { localPeerDataService } from '../services/LocalPeerDataServiceProvider';
-import { remotePeerStateUpdateService } from '../services/RemotePeerStateUpdateServiceProvider';
+// Dynamic imports to avoid circular dependencies
+// import { localPeerDataService } from '../services/LocalPeerDataServiceProvider';
+// import { remotePeerStateUpdateService } from '../services/RemotePeerStateUpdateServiceProvider';
 import CONFIG from '../config/gameConfig';
 import { ASSETS } from '../config/gameConfig';
 import { logger } from '../utils/logger';
@@ -66,6 +67,7 @@ export class SceneManager {
     this.loadCharacterModel();
 
     // Initialize RemotePeerStateUpdateServiceProvider
+    const { remotePeerStateUpdateService } = await import('../services/RemotePeerStateUpdateServiceProvider');
     remotePeerStateUpdateService.initialize(this.scene);
 
     // Initialize collectibles system - THE WORD OF THE LORD!
@@ -758,6 +760,7 @@ export class SceneManager {
     await this.setupEnvironmentItems();
 
     // Notify LocalPeerDataServiceProvider of environment change
+    const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
     localPeerDataService.changeEnvironment(environmentName);
 
     // Reposition character to safe location in new environment
@@ -770,7 +773,7 @@ export class SceneManager {
     this.resumePhysics();
   }
 
-  public changeCharacter(characterIndexOrName: number | string): void {
+  public async changeCharacter(characterIndexOrName: number | string): Promise<void> {
     let character: any;
 
     if (typeof characterIndexOrName === 'number') {
@@ -828,6 +831,7 @@ export class SceneManager {
     this.loadCharacter(character, currentPosition);
     
     // Notify LocalPeerDataServiceProvider of character change
+    const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
     localPeerDataService.changeCharacterModel(character.name);
     
     logger.info(`Character changed to: ${character.name}`, 'SceneManager');
@@ -845,6 +849,7 @@ export class SceneManager {
       const peerId = 'local-peer-' + Date.now();
       const playerName = 'Player_' + Math.random().toString(36).substr(2, 9);
       
+      const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
       localPeerDataService.initialize(
         this.characterController,
         peerId,
@@ -860,11 +865,13 @@ export class SceneManager {
     }
   }
 
-  public dispose(): void {
+  public async dispose(): Promise<void> {
     // Dispose LocalPeerDataServiceProvider
+    const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
     localPeerDataService.dispose();
 
     // Dispose RemotePeerStateUpdateServiceProvider
+    const { remotePeerStateUpdateService } = await import('../services/RemotePeerStateUpdateServiceProvider');
     remotePeerStateUpdateService.dispose();
 
     // Dispose character controller

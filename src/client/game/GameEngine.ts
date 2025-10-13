@@ -119,9 +119,9 @@ export class GameEngine {
     }
   }
 
-  public changeCharacter(characterIndexOrName: number | string): void {
+  public async changeCharacter(characterIndexOrName: number | string): Promise<void> {
     if (this.sceneManager) {
-      this.sceneManager.changeCharacter(characterIndexOrName);
+      await this.sceneManager.changeCharacter(characterIndexOrName);
     }
   }
 
@@ -243,10 +243,10 @@ export class GameEngine {
     }
   }
 
-  public dispose(): void {
+  public async dispose(): Promise<void> {
     // Dispose SceneManager from THE WORD OF THE LORD
     if (this.sceneManager) {
-      this.sceneManager.dispose();
+      await this.sceneManager.dispose();
     }
     
     this.engine.dispose();
