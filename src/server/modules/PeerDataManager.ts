@@ -72,8 +72,9 @@ export class PeerDataManager {
   }
 
   // Peer operations
-  public addPeer(playerName: string, character: string = 'Red'): Peer {
-    const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  public addPeer(playerName: string, peerId: string, character: string = 'Red'): Peer {
+    // Use client's UUIDv4 peer ID instead of generating our own
+    const playerId = peerId;
     const newPlayer: Peer = {
       id: playerId,
       name: playerName,

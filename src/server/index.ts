@@ -120,7 +120,7 @@ function handlePeerRequest(res: ServerResponse, environment: string): void {
 }
 
 function handleJoinRequest(res: ServerResponse, data: any): void {
-  const newPlayer = peerDataManager.addPeer(data.playerName, data.character);
+  const newPlayer = peerDataManager.addPeer(data.playerName, data.peerId, data.character);
   peerDataManager.associateConnectionWithPeer(res, newPlayer.id);
   
   const existingPeers = peerDataManager.getPeersByEnvironment(newPlayer.environment)

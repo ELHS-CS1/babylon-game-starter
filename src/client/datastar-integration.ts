@@ -497,11 +497,19 @@ export class DataStarIntegration {
     logger.info(`🔍 Game state connection: ${gameState.isConnected}`, { context: 'join' });
     logger.info(`🔍 Current players count: ${gameState.players.length}`, { context: 'join' });
     
+    // Generate UUIDv4 using browser's crypto API
+    const peerId = window.crypto.randomUUID();
+
     const joinData = {
       type: 'join',
       playerName: playerName,
+      peerId: peerId,
       timestamp: Date.now()
     };
+    
+    // Store client's UUIDv4 peer ID immediately
+    this.myPeerId = peerId;
+    logger.info(`🆔 Generated client peer ID: ${peerId}`, { context: 'join' });
     
     logger.info('📤 Sending join data:', { context: 'join', data: joinData });
     
