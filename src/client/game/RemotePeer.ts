@@ -19,6 +19,7 @@ export interface RemotePeerState {
   boostActive: boolean;
   state: string;
   lastUpdate: number;
+  lastPositionUpdate: number; // Track when position was last updated
 }
 
 export class RemotePeer {
@@ -42,7 +43,8 @@ export class RemotePeer {
       character: 'Red',
       boostActive: false,
       state: 'idle',
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
+      lastPositionUpdate: Date.now()
     };
   }
 
@@ -53,6 +55,7 @@ export class RemotePeer {
     this.peerState.rotation = rotation.clone();
     this.peerState.targetPosition = position.clone();
     this.peerState.targetRotation = rotation.clone();
+    this.peerState.lastPositionUpdate = Date.now();
     
     logger.info(`🎮 Initialized remote peer position: ${position.x}, ${position.y}, ${position.z}`, {
       context: 'RemotePeer',
@@ -87,6 +90,7 @@ export class RemotePeer {
       const positionDistance = Vector3.Distance(this.peerState.targetPosition, newPosition);
       if (positionDistance > POSITION_EPSILON) {
         this.peerState.targetPosition = newPosition;
+        this.peerState.lastPositionUpdate = Date.now();
         logger.debug(`🎮 Updated position for peer ${this.peerState.id}: distance=${positionDistance.toFixed(4)}`, {
           context: 'RemotePeer',
           tag: 'mp'
@@ -256,12 +260,34 @@ export class RemotePeer {
     const positionDistance = Vector3.Distance(this.peerState.position, this.peerState.targetPosition);
     const rotationDistance = Vector3.Distance(this.peerState.rotation, this.peerState.targetRotation);
 
-    // Only interpolate if we're far enough from target to avoid micro-movements
+    // Debug logging for position changes during rotation-only updates
     if (positionDistance > 0.001) {
+      logger.debug(`🎮 Position interpolation for peer ${this.peerState.id}: distance=${positionDistance.toFixed(4)}`, {
+        context: 'RemotePeer',
+        tag: 'mp',
+        currentPosition: this.peerState.position,
+        targetPosition: this.peerState.targetPosition,
+        positionDistance
+      });
+    }
+
+    // Only interpolate position if we recently received position data (within last 200ms)
+    const timeSinceLastPositionUpdate = Date.now() - this.peerState.lastPositionUpdate;
+    const shouldInterpolatePosition = positionDistance > 0.001 && timeSinceLastPositionUpdate < 200;
+    
+    if (shouldInterpolatePosition) {
       // Smooth position interpolation with reduced smoothing for less jitter
       this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * smoothing;
       this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * smoothing;
       this.peerState.position.z += (this.peerState.targetPosition.z - this.peerState.position.z) * smoothing;
+    } else if (positionDistance > 0.001) {
+      // Position distance exists but we haven't received recent position data - this shouldn't happen
+      logger.warn(`🎮 Position interpolation blocked for peer ${this.peerState.id}: no recent position data (${timeSinceLastPositionUpdate}ms ago)`, {
+        context: 'RemotePeer',
+        tag: 'mp',
+        positionDistance,
+        timeSinceLastPositionUpdate
+      });
     }
 
     if (rotationDistance > 0.01) {
