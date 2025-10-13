@@ -189,11 +189,6 @@ export class ProceduralSoundManager {
 
       console.log('Wave buffer created successfully, length:', buffer.length, 'duration:', buffer.duration);
 
-      // Create direct Web Audio API sound (bypass Babylon.js Sound for now)
-      const bufferSource = this.audioContext.createBufferSource();
-      bufferSource.buffer = buffer;
-      bufferSource.loop = config.loop || false;
-      
       // Create gain node for volume control
       const gainNode = this.audioContext.createGain();
       const baseVolume = config.volume || 0.5;
@@ -208,8 +203,7 @@ export class ProceduralSoundManager {
         audioState: this.audioStateManager?.getAudioState()
       });
       
-      // Connect: bufferSource -> gainNode -> destination
-      bufferSource.connect(gainNode);
+      // Connect gain node to destination
       gainNode.connect(this.audioContext.destination);
       
       console.log('Audio graph connected for:', config.name);
@@ -217,18 +211,45 @@ export class ProceduralSoundManager {
       // Create a simple wrapper object that mimics Babylon.js Sound interface
       const sound = {
         name: config.name,
+        isPlaying: false,
+        currentBufferSource: null as AudioBufferSourceNode | null,
+        baseBuffer: buffer, // Store the buffer for creating new sources
+        gainNode: gainNode,
         play: () => {
-          console.log('Starting buffer source for:', config.name);
-          bufferSource.start();
+          if (!sound.isPlaying) {
+            console.log('Starting buffer source for:', config.name);
+            // Create a new buffer source each time (required for AudioBufferSourceNode)
+            const newBufferSource = this.audioContext!.createBufferSource();
+            newBufferSource.buffer = buffer;
+            newBufferSource.loop = config.loop || false;
+            newBufferSource.connect(gainNode);
+            newBufferSource.start();
+            
+            sound.currentBufferSource = newBufferSource;
+            sound.isPlaying = true;
+          }
         },
         stop: () => {
-          console.log('Stopping buffer source for:', config.name);
-          bufferSource.stop();
+          if (sound.isPlaying && sound.currentBufferSource) {
+            console.log('Stopping buffer source for:', config.name);
+            try {
+              sound.currentBufferSource.stop();
+            } catch (error) {
+              // Ignore errors if already stopped
+            }
+            sound.currentBufferSource.disconnect();
+            sound.currentBufferSource = null;
+            sound.isPlaying = false;
+          }
         },
         dispose: () => {
           console.log('Disposing buffer source for:', config.name);
-          bufferSource.disconnect();
+          if (sound.currentBufferSource) {
+            sound.currentBufferSource.disconnect();
+          }
           gainNode.disconnect();
+          // Clear the buffer reference to help GC
+          sound.baseBuffer = null as any;
         }
       } as any;
 

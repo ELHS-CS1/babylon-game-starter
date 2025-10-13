@@ -861,6 +861,9 @@ export class SceneManager {
     const { remotePeerStateUpdateService } = await import('../services/RemotePeerStateUpdateServiceProvider');
     remotePeerStateUpdateService.dispose();
 
+    // Dispose ProceduralSoundManager to prevent memory leaks
+    ProceduralSoundManager.dispose();
+
     // Dispose character controller
     if (this.characterController) {
       this.characterController.dispose();
