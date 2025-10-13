@@ -163,13 +163,13 @@ const initDataStar = (): void => {
 };
 
 // Initialize game engine
-const initGameEngine = (): void => {
+const initGameEngine = async (): Promise<void> => {
   if (!gameCanvas.value) {
     return;
   }
 
   try {
-    gameEngine.value = new GameEngine(gameCanvas.value, selectedEnvironment.value);
+    gameEngine.value = await GameEngine.getInstance(gameCanvas.value, selectedEnvironment.value);
     gameEngine.value.onPeerUpdate = () => {
       // Send peer update to server via DataStar signals
       if (isConnected.value) {
@@ -414,7 +414,7 @@ watch([isConnected, peers, selectedEnvironment], () => {
 onMounted(async () => {
   logClientConfig();
   initDataStar();
-  initGameEngine();
+  await initGameEngine();
   exposeToWindow();
   
   // Initialize PWA

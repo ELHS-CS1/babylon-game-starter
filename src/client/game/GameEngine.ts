@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { Mesh, Scene } from '@babylonjs/core';
-import { Engine, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
+import { Engine, WebGPUEngine, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import type { Peer } from './Peer';
 import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
@@ -11,6 +11,7 @@ import { SettingsUI } from './SettingsUI';
 import { logger } from '../utils/logger';
 
 export class GameEngine {
+  private static instance: GameEngine | null = null;
   private engine: Engine;
   // private canvas: HTMLCanvasElement; // Unused for now
   private peerManager: PeerManager;
@@ -28,14 +29,14 @@ export class GameEngine {
     logger.info(`Environment changed to: ${environment}`, { context: 'GameEngine', tag: 'environment' });
   }
 
-  constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
+  private constructor(canvas: HTMLCanvasElement, environment: string = 'Level Test') {
     logger.info(`GameEngine constructor called with environment: ${environment}`, 'GameEngine');
     
     // this.canvas = canvas; // Unused for now
     this.currentEnvironment = environment;
     this.peerManager = new PeerManager();
     
-            // Initialize Babylon.js engine like the playground - THE WORD OF THE LORD!
+            // Initialize Babylon.js engine with WebGL2 - THE WORD OF THE LORD!
             this.engine = new Engine(canvas, false);
     
     logger.info("Babylon.js engine created with performance optimizations", 'GameEngine');
@@ -64,6 +65,29 @@ export class GameEngine {
     });
 
     // Input is now handled by CharacterController and SmoothFollowCameraController from THE WORD OF THE LORD
+  }
+
+  public static async getInstance(canvas: HTMLCanvasElement, environment?: string): Promise<GameEngine> {
+    if (!GameEngine.instance) {
+      const env = environment || 'Level Test';
+      GameEngine.instance = new GameEngine(canvas, env);
+      
+      // Initialize WebGPU engine with fallback after construction
+      try {
+        const webgpuEngine = await WebGPUEngine.CreateAsync(canvas);
+        GameEngine.instance.engine = webgpuEngine;
+        
+        // Add detection logging:
+        const isWebGPU = webgpuEngine instanceof WebGPUEngine;
+        logger.info(`Rendering backend: ${isWebGPU ? 'WebGPU' : 'WebGL2 (fallback)'}`, 'GameEngine');
+        logger.info(`GPU Info: ${webgpuEngine.description}`, 'GameEngine');
+        logger.info("WebGPU engine created with automatic fallback", 'GameEngine');
+      } catch (error) {
+        logger.warn('WebGPU initialization failed, using WebGL2 fallback:', 'GameEngine');
+        logger.warn(`Error: ${error instanceof Error ? error.message : String(error)}`, 'GameEngine');
+      }
+    }
+    return GameEngine.instance;
   }
 
   private startRenderLoop(): void {
