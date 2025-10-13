@@ -250,7 +250,7 @@ export class RemotePeerStateUpdateServiceProvider {
     }
 
     // Dispose all peers
-    this.remotePeers.forEach(peer => peer.dispose());
+    this.remotePeers.forEach(peer => { peer.dispose(); });
     this.remotePeers.clear();
 
     this.scene = null;

@@ -38,12 +38,13 @@ export default defineConfig(({ mode }) => ({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vue-vendor': ['vue'],
-          'vuetify-vendor': ['vuetify'],
-          'babylon-vendor': ['@babylonjs/core', '@babylonjs/loaders'],
-          'havok-vendor': ['@babylonjs/havok']
-        }
+        // Temporarily disable manual chunks to fix initialization error
+        // manualChunks: {
+        //   'vue-vendor': ['vue'],
+        //   'vuetify-vendor': ['vuetify'],
+        //   'babylon-vendor': ['@babylonjs/core', '@babylonjs/loaders'],
+        //   'havok-vendor': ['@babylonjs/havok']
+        // }
       }
     }
   },

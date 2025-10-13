@@ -7,7 +7,7 @@ import { CollectiblesManager } from './CollectiblesManager';
 import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { ProceduralSoundManager } from './ProceduralSoundManager';
-import { PeerRenderer } from './PeerRenderer';
+import type { PeerRenderer } from './PeerRenderer';
 import { localPeerDataService } from '../services/LocalPeerDataServiceProvider';
 import { remotePeerStateUpdateService } from '../services/RemotePeerStateUpdateServiceProvider';
 import CONFIG from '../config/gameConfig';
