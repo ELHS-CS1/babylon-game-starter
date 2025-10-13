@@ -9,11 +9,13 @@ export class SSEManager {
   private sseConnections: Set<ServerResponse>;
   private peerDataManager: PeerDataManager;
   private corsOrigin: string;
+  private pendingConnections: Map<ServerResponse, { timestamp: number; heartbeat: NodeJS.Timeout }>;
 
   constructor(peerDataManager: PeerDataManager, corsOrigin: string) {
     this.sseConnections = new Set();
     this.peerDataManager = peerDataManager;
     this.corsOrigin = corsOrigin;
+    this.pendingConnections = new Map();
   }
 
   public handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
@@ -30,7 +32,7 @@ export class SSEManager {
     // Send initial connection event
     res.write('data: {"type":"connected","timestamp":' + Date.now() + '}\n\n');
 
-    // Store connection
+    // Store connection as pending (not yet associated with a peer)
     this.sseConnections.add(res);
     console.log(`🔗 SSE connection established. Total connections: ${this.sseConnections.size}`);
 
@@ -96,5 +98,23 @@ export class SSEManager {
 
   public getConnectionCount(): number {
     return this.sseConnections.size;
+  }
+
+  public associateConnectionWithPeer(peerId: string): boolean {
+    // Find the most recent unassociated SSE connection
+    // This is a simple approach - in production you might want to use IP matching or other methods
+    const unassociatedConnections = Array.from(this.sseConnections).filter(conn => 
+      !this.peerDataManager.getPeerIdFromConnection(conn)
+    );
+    
+    if (unassociatedConnections.length > 0) {
+      const connection = unassociatedConnections[0]; // Take the first unassociated connection
+      this.peerDataManager.associateConnectionWithPeer(connection, peerId);
+      console.log(`🔗 Associated SSE connection with peer ID: ${peerId}`);
+      return true;
+    }
+    
+    console.log(`⚠️ No unassociated SSE connections found for peer ID: ${peerId}`);
+    return false;
   }
 }

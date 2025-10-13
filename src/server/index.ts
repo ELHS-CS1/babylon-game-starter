@@ -131,7 +131,12 @@ function handlePeerRequest(res: ServerResponse, environment: string): void {
 
 function handleJoinRequest(res: ServerResponse, data: any): void {
   const newPlayer = peerDataManager.addPeer(data.playerName, data.peerId, data.character, data.environment || 'levelTest');
-  peerDataManager.associateConnectionWithPeer(res, newPlayer.id);
+  
+  // Associate the SSE connection with the peer ID (not the HTTP response)
+  const associated = sseManager.associateConnectionWithPeer(newPlayer.id);
+  if (!associated) {
+    console.log(`⚠️ Failed to associate SSE connection for peer: ${newPlayer.id}`);
+  }
   
   const existingPeers = peerDataManager.getPeersByEnvironment(newPlayer.environment)
     .filter(peer => peer.id !== newPlayer.id);

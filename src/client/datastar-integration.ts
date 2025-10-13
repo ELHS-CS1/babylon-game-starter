@@ -211,15 +211,11 @@ export class DataStarIntegration {
       lastUpdate: Number(peer['lastUpdate'] || Date.now())
     };
     
-    // Update gameState (keep for backward compatibility)
-    const existingIndex = gameState.players.findIndex(p => p.id === peerData.id);
-    if (existingIndex >= 0) {
-      gameState.players[existingIndex] = peerData;
-      logger.info('👥 Updated existing peer:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
-    } else {
-      gameState.players.push(peerData);
-      logger.info('👥 Added new peer:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
-    }
+    // Update datastarStore
+    import('./stores/datastar').then(({ addPeer }) => {
+      addPeer(peerData);
+      logger.info('👥 Updated peer in datastarStore:', { context: 'DataStar', tag: 'peer', peerId: peerData.id });
+    });
     
     // Delegate to RemotePeerStateUpdateServiceProvider
     remotePeerStateUpdateService.handlePeerUpdate(peerData).catch(error => {
@@ -273,11 +269,12 @@ export class DataStarIntegration {
         }
       }
       
-      // Add existing peers to game state
+      // Add existing peers to datastarStore
       if (data.existingPeers && Array.isArray(data.existingPeers)) {
         logger.info(`👥 Received ${data.existingPeers.length} existing peers`, { context: 'DataStar', tag: 'join' });
         
-        gameState.players = data.existingPeers.map((peer: any) => ({
+        const { setPeers } = await import('./stores/datastar');
+        const existingPeers = data.existingPeers.map((peer: any) => ({
           id: String(peer.id || ''),
           name: String(peer.name || ''),
           position: peer.position || { x: 0, y: 0, z: 0 },
@@ -289,7 +286,8 @@ export class DataStarIntegration {
           lastUpdate: Number(peer.lastUpdate || Date.now())
         }));
         
-        logger.info(`✅ Added ${gameState.players.length} existing peers to game state`, { context: 'DataStar', tag: 'join' });
+        setPeers(existingPeers);
+        logger.info(`✅ Added ${existingPeers.length} existing peers to datastarStore`, { context: 'DataStar', tag: 'join' });
       }
       
       // Update the game state with the new player info

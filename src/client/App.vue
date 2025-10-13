@@ -114,12 +114,14 @@ const characters = ref<string[]>(ASSETS.CHARACTERS.map(char => char.name));
 const gameEngine = ref<GameEngine | null>(null);
 
 // DataStar signals (reactive state from store)
-const peers = computed(() => gameState.players);
+import { datastarStore } from './stores/datastar';
+
+const peers = computed(() => datastarStore.peers);
 const isConnected = computed(() => {
-  logger.info('🔍 isConnected computed - gameState.isConnected:', { context: 'App', tag: 'connection', isConnected: gameState.isConnected });
-  return gameState.isConnected;
+  logger.info('🔍 isConnected computed - datastarStore.gameState.isConnected:', { context: 'App', tag: 'connection', isConnected: datastarStore.gameState.isConnected });
+  return datastarStore.gameState.isConnected;
 });
-const activePeersCount = computed(() => gameState.players.length);
+const activePeersCount = computed(() => datastarStore.activePeers);
 
 // Component refs
 const gameHUD = ref<InstanceType<typeof GameHUD>>();
