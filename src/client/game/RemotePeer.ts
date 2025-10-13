@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { Vector3, type Mesh, type AnimationGroup, type IParticleSystem } from '@babylonjs/core';
-import type { Player } from '../state';
+import type { Player } from '../types/player';
 import { logger } from '../utils/logger';
 
 export interface RemotePeerState {

@@ -9,7 +9,7 @@ import { NodeMaterialManager } from './NodeMaterialManager';
 import { EffectsManager } from './EffectsManager';
 import { logger } from '../utils/logger';
 import { ASSETS } from '../config/gameConfig';
-import type { Player } from '../state';
+import type { Player } from '../types/player';
 
 export interface PeerCharacter {
   id: string;
