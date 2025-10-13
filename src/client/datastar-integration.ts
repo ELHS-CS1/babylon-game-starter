@@ -446,12 +446,23 @@ export class DataStarIntegration {
         },
       body: JSON.stringify(data),
     })
-    .then(response => {
+    .then(async response => {
       logger.info('📤 Fetch response received:', { context: 'send', status: response.status, ok: response.ok, statusText: response.statusText });
       if (!response.ok) {
         logger.error('❌ Fetch response not OK:', { context: 'send', status: response.status, statusText: response.statusText });
       } else {
         logger.info('✅ Fetch request successful!', { context: 'send' });
+        
+        // Handle join response if this was a join request
+        if (data['type'] === 'join') {
+          try {
+            const responseData = await response.json();
+            logger.info('📤 Join response data:', { context: 'send', data: responseData });
+            await this.handleJoinResponse(responseData);
+          } catch (error) {
+            logger.error('❌ Failed to parse join response:', { context: 'send', error });
+          }
+        }
       }
       return response;
     })
