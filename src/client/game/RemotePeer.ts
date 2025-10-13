@@ -5,6 +5,7 @@
 import { Vector3, type Mesh, type AnimationGroup, type IParticleSystem } from '@babylonjs/core';
 import type { Player } from '../types/player';
 import { logger } from '../utils/logger';
+import { CONFIG } from '../config/gameConfig';
 
 export interface RemotePeerState {
   id: string;
@@ -51,7 +52,7 @@ export class RemotePeer {
     if (data.position) {
       this.peerState.targetPosition = new Vector3(
         data.position.x,
-        data.position.y,
+        data.position.y + CONFIG.ANIMATION.PLAYER_Y_OFFSET, // Apply same Y offset as local character
         data.position.z
       );
     }

@@ -8,13 +8,14 @@ import { RemotePeer } from '../game/RemotePeer';
 import { NodeMaterialManager } from '../game/NodeMaterialManager';
 import { EffectsManager } from '../game/EffectsManager';
 import { logger } from '../utils/logger';
-import { ASSETS } from '../config/gameConfig';
+import { ASSETS, CONFIG } from '../config/gameConfig';
 import type { Player } from '../types/player';
 
 export class RemotePeerStateUpdateServiceProvider {
   private static instance: RemotePeerStateUpdateServiceProvider | null = null;
   private scene: Scene | null = null;
   private remotePeers: Map<string, RemotePeer> = new Map();
+  private creatingPeers: Set<string> = new Set(); // Track peers being created to prevent duplicates
   private defaultCharacter: any;
   private interpolationIntervalId: number | null = null;
   private staleCheckIntervalId: number | null = null;
@@ -88,15 +89,47 @@ export class RemotePeerStateUpdateServiceProvider {
       return;
     }
 
-    const existingPeer = this.remotePeers.get(peerData.id);
-
-    if (existingPeer) {
-      // Update existing peer
-      logger.info(`🎮 Updating existing peer: ${peerData.id}`, {
+    // Filter out local peer - don't create remote representation for self
+    const { dataStarIntegration } = await import('../datastar-integration');
+    if (peerData.id === dataStarIntegration.getMyPeerId()) {
+      logger.info(`🎮 Skipping local peer: ${peerData.id}`, {
         context: 'RemotePeerStateUpdateServiceProvider',
         tag: 'mp'
       });
-      existingPeer.updateFromRemoteData(peerData);
+      return;
+    }
+
+    const existingPeer = this.remotePeers.get(peerData.id);
+
+    if (existingPeer) {
+      // Check if character model changed
+      const currentCharacter = existingPeer.getState().character;
+      const newCharacter = peerData.character;
+      
+      if (newCharacter && newCharacter !== currentCharacter) {
+        logger.info(`🎮 Character model changed for peer ${peerData.id}: ${currentCharacter} -> ${newCharacter}`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp'
+        });
+        // Remove old peer and create new one with new character
+        this.removePeer(peerData.id);
+        this.creatingPeers.add(peerData.id);
+        await this.createPeer(peerData as Player);
+        this.creatingPeers.delete(peerData.id);
+      } else {
+        // Update existing peer
+        logger.info(`🎮 Updating existing peer: ${peerData.id}`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp'
+        });
+        existingPeer.updateFromRemoteData(peerData);
+      }
+    } else if (this.creatingPeers.has(peerData.id)) {
+      // Peer is already being created, skip
+      logger.info(`🎮 Peer ${peerData.id} is already being created, skipping`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'mp'
+      });
     } else {
       // Create new peer for new peer id
       logger.info(`🎮 NEW PEER DETECTED: ${peerData.id}, creating remote peer`, {
@@ -104,7 +137,9 @@ export class RemotePeerStateUpdateServiceProvider {
         tag: 'mp',
         peerData: peerData
       });
+      this.creatingPeers.add(peerData.id);
       await this.createPeer(peerData as Player);
+      this.creatingPeers.delete(peerData.id);
     }
   }
 
@@ -153,13 +188,15 @@ export class RemotePeerStateUpdateServiceProvider {
         peerId: peerData.id
       });
 
-      // Load character mesh
-      const character = this.defaultCharacter; // Can be enhanced to support different characters
+      // Load character mesh - use peer's character or default
+      const characterName = peerData.character || this.defaultCharacter.name;
+      const character = ASSETS.CHARACTERS.find(c => c.name === characterName) || this.defaultCharacter;
       logger.info(`🎮 Loading character mesh: ${character.name} from ${character.model}`, {
         context: 'RemotePeerStateUpdateServiceProvider',
         tag: 'mp',
         characterName: character.name,
-        modelUrl: character.model
+        modelUrl: character.model,
+        requestedCharacter: characterName
       });
       
       const result = await ImportMeshAsync(character.model, this.scene);
@@ -191,7 +228,7 @@ export class RemotePeerStateUpdateServiceProvider {
       // Set initial position and rotation
       const initialPos = new Vector3(
         peerData.position.x,
-        peerData.position.y,
+        peerData.position.y + CONFIG.ANIMATION.PLAYER_Y_OFFSET, // Apply same Y offset as local character
         peerData.position.z
       );
       const initialRot = new Vector3(
