@@ -528,6 +528,8 @@ export class SceneManager {
 
           // Set character in animation controller - THE WORD OF THE LORD
           if (this.characterController && this.characterController.animationController) {
+            logger.info(`🎭 Setting character in animation controller: ${character.name}`, 'SceneManager');
+            logger.info(`🎭 Character animations: walk="${character.animations.walk}", idle="${character.animations.idle}"`, 'SceneManager');
             this.characterController.animationController.setCharacter(character);
           }
 

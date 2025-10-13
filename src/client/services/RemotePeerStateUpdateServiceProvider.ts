@@ -259,6 +259,14 @@ export class RemotePeerStateUpdateServiceProvider {
       }
 
       // Setup animations
+      logger.info(`🎮 Available animations for ${character.name}:`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'mp',
+        animations: result.animationGroups.map(a => a.name),
+        expectedWalk: character.animations.walk,
+        expectedIdle: character.animations.idle
+      });
+
       remotePeer.animationGroups.walk =
         result.animationGroups.find(a => a.name === character.animations.walk) ||
         result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
@@ -268,9 +276,26 @@ export class RemotePeerStateUpdateServiceProvider {
         result.animationGroups.find(a => a.name === character.animations.idle) ||
         result.animationGroups.find(a => a.name.toLowerCase().includes('idle'));
 
+      logger.info(`🎮 Animation setup for ${character.name}:`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'mp',
+        walkAnimation: remotePeer.animationGroups.walk?.name || 'NOT FOUND',
+        idleAnimation: remotePeer.animationGroups.idle?.name || 'NOT FOUND'
+      });
+
       // Start with idle animation
       if (remotePeer.animationGroups.idle) {
         remotePeer.animationGroups.idle.play(true);
+        logger.info(`🎮 Started idle animation: ${remotePeer.animationGroups.idle.name}`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp'
+        });
+      } else {
+        logger.warn(`🎮 No idle animation found for ${character.name}`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp',
+          availableAnimations: result.animationGroups.map(a => a.name)
+        });
       }
 
       // Update peer with initial data

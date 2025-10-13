@@ -109,14 +109,21 @@ export class AnimationController {
    * Starts a new animation directly (no blending)
    */
   private startAnimation(animationName: string): void {
+    logger.info(`🎭 startAnimation called for: "${animationName}"`, 'AnimationController');
+    logger.info(`🎭 Available animations: ${this.scene.animationGroups.map(a => a.name).join(', ')}`, 'AnimationController');
+    
     // First try to find the animation by exact name
     let animation = this.scene.getAnimationGroupByName(animationName);
+    logger.info(`🎭 Exact name match: ${animation?.name || 'NOT FOUND'}`, 'AnimationController');
 
     // If not found, try to find it by partial name match
-    animation ??= this.scene.animationGroups.find(anim =>
-      anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
-      animationName.toLowerCase().includes(anim.name.toLowerCase())
-    ) ?? null;
+    if (!animation) {
+      animation = this.scene.animationGroups.find(anim =>
+        anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
+        animationName.toLowerCase().includes(anim.name.toLowerCase())
+      ) ?? null;
+      logger.info(`🎭 Partial name match: ${animation?.name || 'NOT FOUND'}`, 'AnimationController');
+    }
 
     // If still not found, try common fallbacks
     if (animation === null) {
@@ -125,23 +132,26 @@ export class AnimationController {
           anim.name.toLowerCase().includes('idle') ||
           anim.name.toLowerCase().includes('stand')
         ) ?? null;
+        logger.info(`🎭 Idle fallback: ${animation?.name || 'NOT FOUND'}`, 'AnimationController');
       } else if (animationName.toLowerCase().includes('walk')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('walk') ||
           anim.name.toLowerCase().includes('run') ||
           anim.name.toLowerCase().includes('move')
         ) ?? null;
+        logger.info(`🎭 Walk fallback: ${animation?.name || 'NOT FOUND'}`, 'AnimationController');
       } else if (animationName.toLowerCase().includes('jump')) {
         animation = this.scene.animationGroups.find(anim =>
           anim.name.toLowerCase().includes('jump') ||
           anim.name.toLowerCase().includes('leap') ||
           anim.name.toLowerCase().includes('hop')
         ) ?? null;
+        logger.info(`🎭 Jump fallback: ${animation?.name || 'NOT FOUND'}`, 'AnimationController');
       }
     }
 
     if (animation === null) {
-      // Animation not found - handled silently
+      logger.warn(`🎭 Animation not found: "${animationName}"`, 'AnimationController');
       return;
     }
 
@@ -158,6 +168,8 @@ export class AnimationController {
     this.previousAnimation = null;
     this.isBlending = false;
     // this.weightedAnimation = null; // Commented out - property removed
+    
+    logger.info(`🎭 Started animation: "${animation.name}" (requested: "${animationName}")`, 'AnimationController');
   }
 
   /**
