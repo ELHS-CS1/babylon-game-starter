@@ -224,50 +224,16 @@ const joinGame = async (): Promise<void> => {
     return;
   }
   
-  logger.info('✅ GameEngine found - proceeding with player creation', { context: 'App', tag: 'multiplayer' });
+  logger.info('✅ GameEngine found - proceeding with join', { context: 'App', tag: 'multiplayer' });
   
   try {
     const playerName = `Player_${Math.random().toString(36).substr(2, 9)}`;
-    logger.info(`👤 Creating player with name: ${playerName}`, { context: 'App', tag: 'multiplayer' });
+    logger.info(`👤 Joining game with name: ${playerName}`, { context: 'App', tag: 'multiplayer' });
     
-    // Join game via SSE
+    // Join game via DataStar integration - this handles everything
     dataStarIntegration.joinGame(playerName);
     
-    const playerPeer = gameEngine.value.createPlayer(playerName);
-    if (playerPeer === null || playerPeer === undefined) {
-      logger.error('❌ Failed to create player - createPlayer returned null/undefined', { context: 'App', tag: 'multiplayer' });
-      throw new Error('Failed to create player');
-    }
-    
-    logger.info('✅ Player created successfully', { context: 'App', tag: 'multiplayer' });
-    logger.info(`📊 Player data: ${JSON.stringify(playerPeer)}`, { context: 'App', tag: 'multiplayer' });
-    
-    logger.info('📡 Sending peer update to server...', { context: 'App', tag: 'multiplayer' });
-    const { getSendUrl } = await import('./utils/serverUrl');
-    const response = await fetch(getSendUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        type: 'peer-update',
-        peer: playerPeer
-      })
-    });
-    
-    logger.info(`📡 Server response status: ${response.status}`, { context: 'App', tag: 'multiplayer' });
-    
-    if (response.ok) {
-      logger.info('🎉 Successfully joined game!', { context: 'App', tag: 'multiplayer' });
-      const responseData: unknown = await response.json();
-      if (isServerResponseData(responseData)) {
-        logger.info(`📊 Server response: ${JSON.stringify(responseData)}`, { context: 'App', tag: 'multiplayer' });
-      }
-    } else {
-      logger.error(`❌ Server rejected join request - status: ${response.status}`, { context: 'App', tag: 'multiplayer' });
-      const errorText = await response.text();
-      logger.error(`📊 Server error response: ${errorText}`, { context: 'App', tag: 'multiplayer' });
-    }
+    logger.info('✅ Join request sent successfully', { context: 'App', tag: 'multiplayer' });
   } catch (error) {
     logger.error('❌ Failed to join game', { context: 'App', tag: 'multiplayer' });
     logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'App', tag: 'multiplayer' });
