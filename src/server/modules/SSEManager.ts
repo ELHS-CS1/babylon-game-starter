@@ -9,13 +9,11 @@ export class SSEManager {
   private sseConnections: Set<ServerResponse>;
   private peerDataManager: PeerDataManager;
   private corsOrigin: string;
-  private pendingConnections: Map<ServerResponse, { timestamp: number; heartbeat: NodeJS.Timeout }>;
 
   constructor(peerDataManager: PeerDataManager, corsOrigin: string) {
     this.sseConnections = new Set();
     this.peerDataManager = peerDataManager;
     this.corsOrigin = corsOrigin;
-    this.pendingConnections = new Map();
   }
 
   public handleSSEConnection(req: IncomingMessage, res: ServerResponse): void {
@@ -109,9 +107,11 @@ export class SSEManager {
     
     if (unassociatedConnections.length > 0) {
       const connection = unassociatedConnections[0]; // Take the first unassociated connection
-      this.peerDataManager.associateConnectionWithPeer(connection, peerId);
-      console.log(`🔗 Associated SSE connection with peer ID: ${peerId}`);
-      return true;
+      if (connection) {
+        this.peerDataManager.associateConnectionWithPeer(connection, peerId);
+        console.log(`🔗 Associated SSE connection with peer ID: ${peerId}`);
+        return true;
+      }
     }
     
     console.log(`⚠️ No unassociated SSE connections found for peer ID: ${peerId}`);
