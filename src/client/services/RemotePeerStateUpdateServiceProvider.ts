@@ -8,7 +8,7 @@ import { RemotePeer } from '../game/RemotePeer';
 import { NodeMaterialManager } from '../game/NodeMaterialManager';
 import { EffectsManager } from '../game/EffectsManager';
 import { logger } from '../utils/logger';
-import { ASSETS, CONFIG } from '../config/gameConfig';
+import CONFIG, { ASSETS } from '../config/gameConfig';
 import type { Player } from '../types/player';
 
 export class RemotePeerStateUpdateServiceProvider {
