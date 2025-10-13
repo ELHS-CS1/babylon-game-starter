@@ -53,6 +53,13 @@ export class LocalPeerDataServiceProvider {
     logger.info('LocalPeerDataServiceProvider started polling', { context: 'LocalPeerDataServiceProvider' });
   }
 
+  public updatePeerId(newPeerId: string): void {
+    logger.info(`Updating peer ID from ${this.peerId} to ${newPeerId}`, { context: 'LocalPeerDataServiceProvider' });
+    this.peerId = newPeerId;
+    // Reset cache to ensure new peer ID is sent
+    this.lastSentData = null;
+  }
+
   private startPolling(): void {
     if (this.intervalId !== null) {
       return;

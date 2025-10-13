@@ -247,6 +247,13 @@ export class DataStarIntegration {
       logger.info('👤 Player info:', { context: 'DataStar', tag: 'join', player: data.player });
       logger.info('🎯 Game state:', { context: 'DataStar', tag: 'join', gameState: data.gameState });
       
+      // Update LocalPeerDataServiceProvider with the correct peer ID from server
+      if (data.player.id) {
+        const { localPeerDataService } = require('./services/LocalPeerDataServiceProvider');
+        localPeerDataService.updatePeerId(data.player.id);
+        logger.info(`🔄 Updated LocalPeerDataServiceProvider with server peer ID: ${data.player.id}`, { context: 'DataStar', tag: 'join' });
+      }
+      
       // Add existing peers to game state
       if (data.existingPeers && Array.isArray(data.existingPeers)) {
         logger.info(`👥 Received ${data.existingPeers.length} existing peers`, { context: 'DataStar', tag: 'join' });
