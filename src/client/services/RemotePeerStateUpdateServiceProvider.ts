@@ -2,7 +2,7 @@
 // REMOTE PEER STATE UPDATE SERVICE PROVIDER - Central handler for remote peer updates
 // ============================================================================
 
-import type { Scene } from '@babylonjs/core';
+import type { Scene, Mesh } from '@babylonjs/core';
 import { Vector3, ImportMeshAsync } from '@babylonjs/core';
 import { RemotePeer } from '../game/RemotePeer';
 import { NodeMaterialManager } from '../game/NodeMaterialManager';
@@ -269,12 +269,12 @@ export class RemotePeerStateUpdateServiceProvider {
       }
 
       // Set up the mesh
-      remotePeer.mesh = result.meshes[0];
+      remotePeer.mesh = (result.meshes[0] as Mesh) || null;
       result.meshes.forEach(mesh => {
         const originalScale = mesh.scaling.clone();
         // Use the same scaling approach as local character: CONFIG.ANIMATION.PLAYER_SCALE
-        // TODO: Figure out why 1.35x multiplier is needed for remote peers to match expected size
-        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 1.35);
+        // TODO: Figure out why 1.26x multiplier is needed for remote peers to match expected size
+        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 1.26);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
         
         logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {
@@ -304,14 +304,16 @@ export class RemotePeerStateUpdateServiceProvider {
       remotePeer.initializePosition(initialPos, initialRot);
       
       // Apply position to mesh
-      remotePeer.mesh.position = initialPos;
-      remotePeer.mesh.rotation = initialRot;
+      if (remotePeer.mesh) {
+        remotePeer.mesh.position = initialPos;
+        remotePeer.mesh.rotation = initialRot;
+      }
 
       // Create particle system
       try {
         const particleSystem = await EffectsManager.createParticleSystem(
           "Magic Sparkles",
-          remotePeer.mesh
+          remotePeer.mesh || undefined
         );
         if (particleSystem) {
           remotePeer.particleSystem = particleSystem;
@@ -337,11 +339,13 @@ export class RemotePeerStateUpdateServiceProvider {
       remotePeer.animationGroups.walk =
         result.animationGroups.find(a => a.name === character.animations.walk) ||
         result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ||
-        result.animationGroups.find(a => a.name.toLowerCase().includes('run'));
+        result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ||
+        null;
 
       remotePeer.animationGroups.idle =
         result.animationGroups.find(a => a.name === character.animations.idle) ||
-        result.animationGroups.find(a => a.name.toLowerCase().includes('idle'));
+        result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ||
+        null;
 
       logger.info(`🎮 Animation setup for ${character.name}:`, {
         context: 'RemotePeerStateUpdateServiceProvider',
