@@ -89,7 +89,13 @@ export class RemotePeer {
 
     // Update state if provided
     if (data.state !== undefined) {
+      const previousState = this.peerState.state;
       this.peerState.state = data.state;
+      
+      // Update animation based on state change
+      if (previousState !== data.state) {
+        this.updateAnimationFromState(data.state);
+      }
     }
 
     // Update lastUpdate timestamp
@@ -113,6 +119,59 @@ export class RemotePeer {
     }
   }
 
+  private updateAnimationFromState(state: string): void {
+    if (!this.animationGroups.walk || !this.animationGroups.idle) {
+      logger.warn(`🎭 Remote peer ${this.peerState.id} animations not ready`, {
+        context: 'RemotePeer',
+        tag: 'animation'
+      });
+      return;
+    }
+
+    // Stop all animations first
+    this.animationGroups.walk.stop();
+    this.animationGroups.idle.stop();
+
+    // Play animation based on state
+    if (state === 'IN_AIR' || state === 'START_JUMP') {
+      // For now, use idle for jump states - could add jump animation later
+      this.animationGroups.idle.play(true);
+      logger.info(`🎭 Remote peer ${this.peerState.id} playing idle (state: ${state})`, {
+        context: 'RemotePeer',
+        tag: 'animation'
+      });
+    } else if (state === 'ON_GROUND') {
+      // Check if peer is moving based on position changes
+      const isMoving = this.isMoving();
+      if (isMoving) {
+        this.animationGroups.walk.play(true);
+        logger.info(`🎭 Remote peer ${this.peerState.id} playing walk (moving)`, {
+          context: 'RemotePeer',
+          tag: 'animation'
+        });
+      } else {
+        this.animationGroups.idle.play(true);
+        logger.info(`🎭 Remote peer ${this.peerState.id} playing idle (not moving)`, {
+          context: 'RemotePeer',
+          tag: 'animation'
+        });
+      }
+    } else {
+      // Default to idle for unknown states
+      this.animationGroups.idle.play(true);
+      logger.info(`🎭 Remote peer ${this.peerState.id} playing idle (unknown state: ${state})`, {
+        context: 'RemotePeer',
+        tag: 'animation'
+      });
+    }
+  }
+
+  private isMoving(): boolean {
+    // Check if the peer has moved significantly since last update
+    const distance = Vector3.Distance(this.peerState.position, this.peerState.targetPosition);
+    return distance > 0.01; // Small threshold to detect movement
+  }
+
   public getState(): RemotePeerState {
     return { ...this.peerState };
   }
@@ -128,6 +187,9 @@ export class RemotePeer {
   public interpolate(deltaTime: number, smoothing: number = 0.2): void {
     if (!this.mesh) return;
 
+    // Store previous position to detect movement
+    const previousPosition = this.peerState.position.clone();
+
     // Smooth position interpolation
     this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * smoothing;
     this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * smoothing;
@@ -141,6 +203,26 @@ export class RemotePeer {
     // Apply to mesh
     this.mesh.position.copyFrom(this.peerState.position);
     this.mesh.rotation.copyFrom(this.peerState.rotation);
+
+    // Update animation based on movement (only for ON_GROUND state)
+    if (this.peerState.state === 'ON_GROUND') {
+      const currentDistance = Vector3.Distance(previousPosition, this.peerState.position);
+      const isCurrentlyMoving = currentDistance > 0.001; // Small threshold for movement detection
+      
+      // Check if animation needs to change based on movement
+      const walkAnimationPlaying = this.animationGroups.walk?.isPlaying || false;
+      const idleAnimationPlaying = this.animationGroups.idle?.isPlaying || false;
+      
+      if (isCurrentlyMoving && !walkAnimationPlaying) {
+        // Start walk animation
+        this.animationGroups.idle?.stop();
+        this.animationGroups.walk?.play(true);
+      } else if (!isCurrentlyMoving && !idleAnimationPlaying) {
+        // Start idle animation
+        this.animationGroups.walk?.stop();
+        this.animationGroups.idle?.play(true);
+      }
+    }
   }
 
   public dispose(): void {
