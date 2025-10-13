@@ -8,7 +8,7 @@ import { remotePeerStateUpdateService } from './services/RemotePeerStateUpdateSe
 export class DataStarIntegration {
   private isConnected = false;
   private eventSource: EventSource | null = null;
-  private myPeerId: string | null = null;
+  private myPeerId: string; // Never null
   private isInitialized = false;
 
   private async getServerUrl(): Promise<string> {
@@ -19,7 +19,9 @@ export class DataStarIntegration {
   }
 
   constructor() {
-    logger.info('🚀 DataStarIntegration constructor called', { context: 'init' });
+    // Generate UUIDv4 immediately on construction
+    this.myPeerId = window.crypto.randomUUID();
+    logger.info('🚀 DataStarIntegration created', { context: 'init', peerId: this.myPeerId });
     this.initializeSSE();
   }
 
@@ -124,6 +126,7 @@ export class DataStarIntegration {
         gameState.isConnected = true;
         logger.info('🔄 Updated gameState.isConnected to true', { context: 'DataStar', tag: 'connection' });
         logger.info('🔍 Current gameState:', { context: 'DataStar', tag: 'connection', gameState });
+        this.autoJoin(); // AUTO-JOIN HERE
       };
       
       this.eventSource.onerror = (error) => {
@@ -407,10 +410,39 @@ export class DataStarIntegration {
     }
   }
 
+  private handleAggregatedPeerUpdate(data: any): void {
+    if (!data.peers || !Array.isArray(data.peers)) {
+      logger.warn('⚠️ Invalid aggregated update', { context: 'DataStar' });
+      return;
+    }
+    
+    // Filter out self
+    const remotePeers = data.peers.filter((peer: any) => peer.id !== this.myPeerId);
+    logger.info(`📦 Processing ${remotePeers.length} remote peers`, { context: 'DataStar' });
+    
+    remotePeers.forEach((peer: any) => {
+      const peerData = {
+        id: String(peer.id || ''),
+        name: String(peer.name || ''),
+        position: peer.position || { x: 0, y: 0, z: 0 },
+        rotation: peer.rotation || { x: 0, y: 0, z: 0 },
+        environment: String(peer.environment || ''),
+        character: String(peer.character || 'Red'),
+        boostActive: Boolean(peer.boostActive ?? false),
+        state: String(peer.state || 'idle'),
+        lastUpdate: Number(peer.lastUpdate || Date.now())
+      };
+      
+      remotePeerStateUpdateService.handlePeerUpdate(peerData).catch(error => {
+        logger.error('Failed to handle peer:', { context: 'DataStar', peerId: peerData.id, error });
+      });
+    });
+  }
+
   public connect(): void {
     if (this.eventSource) {
       logger.info('🔗 SSE already connected', { context: 'DataStar', tag: 'connection' });
-    } else {
+      } else {
       this.initializeSSE();
     }
   }
@@ -429,11 +461,21 @@ export class DataStarIntegration {
     return this.isConnected;
   }
 
-  public getMyPeerId(): string | null {
-    return this.myPeerId;
+  public getMyPeerId(): string {
+    return this.myPeerId; // Always returns valid UUIDv4
   }
 
-
+  private autoJoin(): void {
+    logger.info('🤖 AUTO-JOIN starting', { context: 'autoJoin', peerId: this.myPeerId });
+    const playerName = `Player_${Math.random().toString(36).substr(2, 5)}`;
+    this.send({
+      type: 'join',
+      playerName,
+      peerId: this.myPeerId,
+      environment: 'Level Test',
+      timestamp: Date.now()
+    });
+  }
 
   // Send data to server
   public async send(data: Record<string, unknown>): Promise<void> {
@@ -581,6 +623,7 @@ export class DataStarIntegration {
       gameState.isConnected = true;
       logger.info('🔄 Updated gameState.isConnected to true', { context: 'DataStar', tag: 'connection' });
       logger.info('🔍 Current gameState:', { context: 'DataStar', tag: 'connection', gameState });
+      this.autoJoin(); // AUTO-JOIN HERE
     };
     
     this.eventSource.onerror = (error) => {
@@ -622,6 +665,9 @@ export class DataStarIntegration {
         } else if (data.type === 'positionUpdate') {
           logger.info('🔍 Processing positionUpdate', { context: 'DataStar', tag: 'position' });
           this.handlePositionUpdate(data);
+        } else if (data.type === 'aggregatedPeerUpdate') {
+          logger.info('🔍 aggregatedPeerUpdate', { context: 'DataStar', peerCount: data.peers?.length });
+          this.handleAggregatedPeerUpdate(data);
         } else if (data.isConnected !== undefined) {
           logger.info('🔍 Processing direct signals message', { context: 'DataStar', tag: 'message' });
           // Handle direct signal messages

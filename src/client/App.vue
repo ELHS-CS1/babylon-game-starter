@@ -37,8 +37,6 @@
       @audio-settings-change="onAudioSettingsChange"
       @settings-save="onSettingsSave"
       @settings-reset="onSettingsReset"
-      @join-game="joinGame"
-      @leave-game="leaveGame"
     />
 
     <!-- Inventory Panel -->
@@ -215,48 +213,9 @@ const initGameEngine = async (): Promise<void> => {
 
 // REMOVED - NOW USING SettingsUI.changeEnvironment DIRECTLY FROM gameConfig.ts
 
-// Join game
-const joinGame = async (): Promise<void> => {
-  logger.info('🎮 Join Game button clicked - starting join process', { context: 'App', tag: 'multiplayer' });
-  
-  if (!gameEngine.value) {
-    logger.error('❌ GameEngine not initialized - cannot join game', { context: 'App', tag: 'multiplayer' });
-    return;
-  }
-  
-  logger.info('✅ GameEngine found - proceeding with join', { context: 'App', tag: 'multiplayer' });
-  
-  try {
-    const playerName = `Player_${Math.random().toString(36).substr(2, 9)}`;
-    logger.info(`👤 Joining game with name: ${playerName}`, { context: 'App', tag: 'multiplayer' });
-    
-    // Join game via DataStar integration - this handles everything
-    dataStarIntegration.joinGame(playerName);
-    
-    logger.info('✅ Join request sent successfully', { context: 'App', tag: 'multiplayer' });
-  } catch (error) {
-    logger.error('❌ Failed to join game', { context: 'App', tag: 'multiplayer' });
-    logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'App', tag: 'multiplayer' });
-  }
-};
+// Join game - REMOVED: Auto-join handles this now
 
-// Leave game
-const leaveGame = (): void => {
-  logger.info('🚪 Leave Game button clicked - starting leave process', { context: 'App', tag: 'multiplayer' });
-  
-  if (gameEngine.value) {
-    logger.info('✅ GameEngine found - proceeding with player removal', { context: 'App', tag: 'multiplayer' });
-    try {
-      // gameEngine.value.removePlayer();
-      logger.info('🎉 Successfully left game!', { context: 'App', tag: 'multiplayer' });
-    } catch (error) {
-      logger.error('❌ Error removing player', { context: 'App', tag: 'multiplayer' });
-      logger.error(`📊 Error details: ${error instanceof Error ? error.message : String(error)}`, { context: 'App', tag: 'multiplayer' });
-    }
-  } else {
-    logger.warn('⚠️ GameEngine not found - cannot leave game', { context: 'App', tag: 'multiplayer' });
-  }
-};
+// Leave game - REMOVED: Auto-join handles this now
 
 
 // Event handlers for components

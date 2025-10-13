@@ -542,8 +542,8 @@ export class SceneManager {
             this.characterController.setThrusterSound(this.thrusterSound);
           }
 
-          // Start polling for peer ID availability to initialize LocalPeerDataServiceProvider
-          this.startPeerDataServicePolling(character);
+        // Initialize peer data service immediately (no polling needed)
+        await this.initializePeerDataService(character);
 
           logger.info(`Character ${character.name} loaded successfully at position:`, 'SceneManager');
         }
@@ -837,65 +837,19 @@ export class SceneManager {
     logger.info(`Character changed to: ${character.name}`, 'SceneManager');
   }
 
-  private peerDataServicePollingInterval: number | null = null;
-
-  private startPeerDataServicePolling(character: any): void {
-    // Clear any existing polling
-    if (this.peerDataServicePollingInterval) {
-      clearInterval(this.peerDataServicePollingInterval);
-    }
-
-    // Poll every 100ms to check for peer ID availability
-    this.peerDataServicePollingInterval = window.setInterval(async () => {
-      await this.checkAndInitializePeerDataService(character);
-    }, 100);
-  }
-
-  private async checkAndInitializePeerDataService(character: any): Promise<void> {
-    if (!this.characterController) {
-      return;
-    }
-
-    try {
-      // Get peerId from dataStarIntegration
-      const { dataStarIntegration } = await import('../datastar-integration');
-      const peerId = dataStarIntegration.getMyPeerId();
-      
-      if (!peerId || peerId.startsWith('local-peer-')) {
-        // Still waiting for valid peer ID
-        return;
-      }
-      
-      // Valid peer ID found, stop polling and initialize
-      if (this.peerDataServicePollingInterval) {
-        clearInterval(this.peerDataServicePollingInterval);
-        this.peerDataServicePollingInterval = null;
-      }
-      
-      const playerName = 'Player_' + Math.random().toString(36).substr(2, 9);
-      
-      const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
-      localPeerDataService.initialize(
-        this.characterController,
-        peerId,
-        playerName,
-        this.currentEnvironment,
-        character.name
-      );
-      
-      logger.info('LocalPeerDataServiceProvider initialized successfully with server peer ID', 'SceneManager');
-    } catch (error) {
-      logger.error('Failed to initialize LocalPeerDataServiceProvider:', 'SceneManager');
-      logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`, 'SceneManager');
-    }
+  private async initializePeerDataService(character: any): Promise<void> {
+    if (!this.characterController) return;
+    
+    const { dataStarIntegration } = await import('../datastar-integration');
+    const peerId = dataStarIntegration.getMyPeerId();
+    const playerName = 'Player_' + Math.random().toString(36).substr(2, 9);
+    const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');
+    
+    localPeerDataService.initialize(this.characterController, peerId, playerName, this.currentEnvironment, character.name);
+    logger.info('LocalPeerDataServiceProvider initialized', 'SceneManager');
   }
 
   public async dispose(): Promise<void> {
-    // Clear polling interval
-    if (this.peerDataServicePollingInterval) {
-      clearInterval(this.peerDataServicePollingInterval);
-      this.peerDataServicePollingInterval = null;
-    }
 
     // Dispose LocalPeerDataServiceProvider
     const { localPeerDataService } = await import('../services/LocalPeerDataServiceProvider');

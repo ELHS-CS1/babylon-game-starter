@@ -719,6 +719,7 @@ const CONFIG = {
                         const { dataStarIntegration } = await import('../datastar-integration');
                         dataStarIntegration.send({
                             type: 'environmentChange',
+                            peerId: dataStarIntegration.getMyPeerId(), // ADD THIS
                             environment: value,
                             timestamp: Date.now()
                         });
