@@ -39,8 +39,11 @@ export class RemotePeerStateUpdateServiceProvider {
     this.scene = scene;
     this.startInterpolation();
     this.startStaleCheck();
-    logger.info('RemotePeerStateUpdateServiceProvider initialized with scene', {
-      context: 'RemotePeerStateUpdateServiceProvider'
+    logger.info('🎮 RemotePeerStateUpdateServiceProvider initialized with scene', {
+      context: 'RemotePeerStateUpdateServiceProvider',
+      tag: 'init',
+      sceneExists: !!this.scene,
+      sceneMeshes: this.scene?.meshes?.length || 0
     });
   }
 
@@ -69,6 +72,14 @@ export class RemotePeerStateUpdateServiceProvider {
 
   // Main entry point for handling remote peer updates
   public async handlePeerUpdate(peerData: Player | Partial<Player>): Promise<void> {
+    logger.info('🎮 handlePeerUpdate called', {
+      context: 'RemotePeerStateUpdateServiceProvider',
+      tag: 'update',
+      peerId: peerData.id,
+      sceneExists: !!this.scene,
+      remotePeersCount: this.remotePeers.size
+    });
+
     if (!peerData.id) {
       logger.warn('Received peer update without id', {
         context: 'RemotePeerStateUpdateServiceProvider',
@@ -81,12 +92,17 @@ export class RemotePeerStateUpdateServiceProvider {
 
     if (existingPeer) {
       // Update existing peer
+      logger.info(`🎮 Updating existing peer: ${peerData.id}`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'update'
+      });
       existingPeer.updateFromRemoteData(peerData);
     } else {
       // Create new peer for new peer id
-      logger.info(`New peer id detected: ${peerData.id}, creating remote peer`, {
+      logger.info(`🎮 NEW PEER DETECTED: ${peerData.id}, creating remote peer`, {
         context: 'RemotePeerStateUpdateServiceProvider',
-        tag: 'create'
+        tag: 'create',
+        peerData: peerData
       });
       await this.createPeer(peerData as Player);
     }
@@ -112,8 +128,9 @@ export class RemotePeerStateUpdateServiceProvider {
 
   private async createPeer(peerData: Player): Promise<void> {
     if (!this.scene) {
-      logger.error('Cannot create peer: scene not initialized', {
-        context: 'RemotePeerStateUpdateServiceProvider'
+      logger.error('❌ Cannot create peer: scene not initialized', {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'create'
       });
       return;
     }
@@ -123,15 +140,35 @@ export class RemotePeerStateUpdateServiceProvider {
         context: 'RemotePeerStateUpdateServiceProvider',
         tag: 'mp',
         peerId: peerData.id,
-        name: peerData.name
+        name: peerData.name,
+        sceneExists: !!this.scene,
+        sceneMeshes: this.scene?.meshes?.length || 0
       });
 
       // Create the RemotePeer instance
       const remotePeer = new RemotePeer(peerData.id, peerData.name);
+      logger.info(`🎮 RemotePeer instance created`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'create',
+        peerId: peerData.id
+      });
 
       // Load character mesh
       const character = this.defaultCharacter; // Can be enhanced to support different characters
+      logger.info(`🎮 Loading character mesh: ${character.name} from ${character.model}`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'create',
+        characterName: character.name,
+        modelUrl: character.model
+      });
+      
       const result = await ImportMeshAsync(character.model, this.scene);
+      logger.info(`🎮 Mesh import completed`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'create',
+        meshCount: result.meshes.length,
+        animationGroupCount: result.animationGroups.length
+      });
 
       // Process node materials
       await NodeMaterialManager.processImportResult(result);
@@ -205,15 +242,22 @@ export class RemotePeerStateUpdateServiceProvider {
       // Store the peer
       this.remotePeers.set(peerData.id, remotePeer);
 
-      logger.info(`✅ Remote peer created: ${peerData.name}`, {
-        context: 'RemotePeerStateUpdateServiceProvider',
-        tag: 'create'
-      });
-    } catch (error) {
-      logger.error(`Failed to create remote peer ${peerData.name}`, {
+      logger.info(`✅ Remote peer created successfully: ${peerData.name}`, {
         context: 'RemotePeerStateUpdateServiceProvider',
         tag: 'create',
-        error
+        peerId: peerData.id,
+        meshExists: !!remotePeer.mesh,
+        meshName: remotePeer.mesh?.name,
+        meshPosition: remotePeer.mesh?.position,
+        totalRemotePeers: this.remotePeers.size
+      });
+    } catch (error) {
+      logger.error(`❌ Failed to create remote peer ${peerData.name}`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'create',
+        peerId: peerData.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       });
     }
   }
