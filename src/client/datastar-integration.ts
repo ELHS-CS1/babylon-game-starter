@@ -492,12 +492,7 @@ export class DataStarIntegration {
       logger.info(`🔍 EventSource URL: ${this.eventSource.url}`, { context: 'join' });
     }
     
-    if (!this.eventSource || this.eventSource.readyState !== EventSource.OPEN) {
-      logger.warn('⚠️ SSE connection not ready, attempting to reconnect...', { context: 'join' });
-      logger.warn(`⚠️ Current connection status: ${this.getConnectionStatus()}`, { context: 'join' });
-      this.initializeSSE();
-      return;
-    }
+    // Remove SSE connection check - send() method handles HTTP requests directly
     
     logger.info(`🔍 SSE connection state: ${this.eventSource.readyState}`, { context: 'join' });
     logger.info(`🔍 Game state connection: ${gameState.isConnected}`, { context: 'join' });
