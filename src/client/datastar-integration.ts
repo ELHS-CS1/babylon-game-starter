@@ -494,7 +494,7 @@ export class DataStarIntegration {
     
     // Remove SSE connection check - send() method handles HTTP requests directly
     
-    logger.info(`🔍 SSE connection state: ${this.eventSource.readyState}`, { context: 'join' });
+    logger.info(`🔍 SSE connection state: ${this.eventSource?.readyState || 'null'}`, { context: 'join' });
     logger.info(`🔍 Game state connection: ${gameState.isConnected}`, { context: 'join' });
     logger.info(`🔍 Current players count: ${gameState.players.length}`, { context: 'join' });
     
