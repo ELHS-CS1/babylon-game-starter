@@ -5,7 +5,7 @@
 import { Vector3, type Mesh, type AnimationGroup, type IParticleSystem } from '@babylonjs/core';
 import type { Player } from '../types/player';
 import { logger } from '../utils/logger';
-import { CONFIG } from '../config/gameConfig';
+import CONFIG from '../config/gameConfig';
 
 export interface RemotePeerState {
   id: string;
