@@ -63,22 +63,45 @@ export class RemotePeer {
 
   // Public method called by RemotePeerStateUpdateServiceProvider
   public updateFromRemoteData(data: Partial<Player>): void {
-    // Update position if provided
+    const POSITION_EPSILON = 0.001; // Small threshold for position changes
+    const ROTATION_EPSILON = 0.001; // Small threshold for rotation changes
+
+    // Update position if provided and change is significant
     if (data.position) {
-      this.peerState.targetPosition = new Vector3(
+      const newPosition = new Vector3(
         data.position.x,
         data.position.y + CONFIG.ANIMATION.PLAYER_Y_OFFSET, // Apply same Y offset as local character
         data.position.z
       );
+      
+      // Check if position change is significant enough to update
+      const positionDistance = Vector3.Distance(this.peerState.targetPosition, newPosition);
+      if (positionDistance > POSITION_EPSILON) {
+        this.peerState.targetPosition = newPosition;
+        logger.debug(`🎮 Updated position for peer ${this.peerState.id}: distance=${positionDistance.toFixed(4)}`, {
+          context: 'RemotePeer',
+          tag: 'mp'
+        });
+      }
     }
 
-    // Update rotation if provided
+    // Update rotation if provided and change is significant
     if (data.rotation) {
-      this.peerState.targetRotation = new Vector3(
+      const newRotation = new Vector3(
         data.rotation.x,
         data.rotation.y,
         data.rotation.z
       );
+      
+      // Check if rotation change is significant enough to update
+      const rotationDistance = Vector3.Distance(this.peerState.targetRotation, newRotation);
+      if (rotationDistance > ROTATION_EPSILON) {
+        this.peerState.targetRotation = newRotation;
+        logger.debug(`🎮 Updated rotation for peer ${this.peerState.id}: distance=${rotationDistance.toFixed(4)}`, {
+          context: 'RemotePeer',
+          tag: 'mp'
+        });
+      }
     }
 
     // Update environment if provided

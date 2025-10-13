@@ -221,15 +221,18 @@ export class RemotePeerStateUpdateServiceProvider {
       // Set up the mesh
       remotePeer.mesh = result.meshes[0];
       result.meshes.forEach(mesh => {
+        const originalScale = mesh.scaling.clone();
         mesh.scaling.setAll(character.scale);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
-      });
-
-      logger.info(`🎮 Applied character scale: ${character.scale}`, {
-        context: 'RemotePeerStateUpdateServiceProvider',
-        tag: 'mp',
-        characterName: character.name,
-        scale: character.scale
+        
+        logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp',
+          meshName: mesh.name,
+          originalScale: { x: originalScale.x, y: originalScale.y, z: originalScale.z },
+          newScale: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z },
+          characterScale: character.scale
+        });
       });
 
       // Set initial position and rotation
