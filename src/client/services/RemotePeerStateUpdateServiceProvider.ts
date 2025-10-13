@@ -237,8 +237,7 @@ export class RemotePeerStateUpdateServiceProvider {
       result.meshes.forEach(mesh => {
         const originalScale = mesh.scaling.clone();
         // Use the same scaling approach as local character: CONFIG.ANIMATION.PLAYER_SCALE
-        // TODO: Figure out why 2x multiplier is needed for remote peers to match expected size
-        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 2);
+        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
         
         logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {
