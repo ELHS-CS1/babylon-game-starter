@@ -437,6 +437,25 @@ export class DataStarIntegration {
     });
   }
 
+  private handlePeerLeft(data: any): void {
+    logger.info('👋 Handling peer left:', { context: 'DataStar', tag: 'peerLeft', data });
+    
+    if (!data.peerId) {
+      logger.warn('⚠️ peerLeft event missing peerId', { context: 'DataStar', tag: 'peerLeft' });
+      return;
+    }
+    
+    // Remove the peer from the remote peer state update service
+    remotePeerStateUpdateService.removePeer(data.peerId);
+    
+    logger.info(`👋 Peer ${data.peerId} (${data.peerName || 'unknown'}) removed from environment`, {
+      context: 'DataStar',
+      tag: 'peerLeft',
+      peerId: data.peerId,
+      peerName: data.peerName
+    });
+  }
+
   public connect(): void {
     if (this.eventSource) {
       logger.info('🔗 SSE already connected', { context: 'DataStar', tag: 'connection' });
@@ -666,6 +685,9 @@ export class DataStarIntegration {
         } else if (data.type === 'aggregatedPeerUpdate') {
           logger.info('🔍 aggregatedPeerUpdate', { context: 'DataStar', peerCount: data.peers?.length });
           this.handleAggregatedPeerUpdate(data);
+        } else if (data.type === 'peerLeft') {
+          logger.info('🔍 Processing peerLeft', { context: 'DataStar', tag: 'peerLeft', peerId: data.peerId });
+          this.handlePeerLeft(data);
         } else if (data.isConnected !== undefined) {
           logger.info('🔍 Processing direct signals message', { context: 'DataStar', tag: 'message' });
           // Handle direct signal messages

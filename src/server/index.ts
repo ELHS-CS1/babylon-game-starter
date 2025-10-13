@@ -224,15 +224,28 @@ function handleEnvironmentChange(_req: IncomingMessage, res: ServerResponse, dat
   if (data.peerId) {
     const peer = peerDataManager.getPeer(data.peerId);
     if (peer) {
+      const oldEnvironment = peer.environment;
       peer.environment = data.environment;
       peer.lastUpdate = Date.now();
-      console.log(`📍 Updated peer ${data.peerId} environment to: ${data.environment}`);
+      console.log(`📍 Updated peer ${data.peerId} environment from ${oldEnvironment} to: ${data.environment}`);
       
-      // Broadcast environment change to other peers
+      // Broadcast peerLeft to old environment (if different)
+      if (oldEnvironment !== data.environment) {
+        sseManager.broadcastToEnvironment(oldEnvironment, {
+          type: 'peerLeft',
+          peerId: data.peerId,
+          peerName: peer.name,
+          timestamp: Date.now()
+        });
+        console.log(`👋 Broadcasted peerLeft to ${oldEnvironment} for peer ${data.peerId}`);
+      }
+      
+      // Broadcast full peer data to new environment
       sseManager.broadcastToEnvironment(data.environment, {
         type: 'peerUpdate',
         peer: peer
       });
+      console.log(`📡 Broadcasted full peer data to ${data.environment} for peer ${data.peerId}`);
     } else {
       console.log(`📍 Peer ${data.peerId} not found for environment change`);
     }
@@ -253,11 +266,12 @@ function handleCharacterModelChange(_req: IncomingMessage, res: ServerResponse, 
       peer.lastUpdate = Date.now();
       console.log(`📍 Updated peer ${data.peerId} character to: ${data.character}`);
       
-      // Broadcast character change to other peers in the same environment
+      // Broadcast full peer data including new character, position, rotation, state
       sseManager.broadcastToEnvironment(peer.environment, {
         type: 'peerUpdate',
         peer: peer
       });
+      console.log(`📡 Broadcasted full peer data with new character to ${peer.environment} for peer ${data.peerId}`);
     } else {
       console.log(`📍 Peer ${data.peerId} not found for character change`);
     }

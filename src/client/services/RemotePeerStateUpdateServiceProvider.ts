@@ -112,10 +112,30 @@ export class RemotePeerStateUpdateServiceProvider {
           context: 'RemotePeerStateUpdateServiceProvider',
           tag: 'mp'
         });
-        // Remove old peer and create new one with new character
+        
+        // Store current peer state before disposing to preserve position/rotation
+        const currentPeerState = existingPeer.getState();
+        const preservedPeerData = {
+          ...peerData,
+          position: currentPeerState.position,
+          rotation: currentPeerState.rotation,
+          state: currentPeerState.state,
+          boostActive: currentPeerState.boostActive
+        } as Player;
+        
+        logger.info(`🎮 Preserved peer state for character change:`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp',
+          peerId: peerData.id,
+          preservedPosition: preservedPeerData.position,
+          preservedRotation: preservedPeerData.rotation,
+          preservedState: preservedPeerData.state
+        });
+        
+        // Remove old peer and create new one with new character and preserved state
         this.removePeer(peerData.id);
         this.creatingPeers.add(peerData.id);
-        await this.createPeer(peerData as Player);
+        await this.createPeer(preservedPeerData);
         this.creatingPeers.delete(peerData.id);
       } else {
         // Update existing peer - character field not provided or same as current
@@ -146,7 +166,7 @@ export class RemotePeerStateUpdateServiceProvider {
 
   private checkForStalePeers(): void {
     const now = Date.now();
-    const STALE_THRESHOLD_MS = 2000; // 2 seconds
+    const STALE_THRESHOLD_MS = 10000; // 10 seconds - increased to prevent premature removal due to network drops
 
     logger.debug(`🎮 Checking for stale peers: ${this.remotePeers.size} total peers`, {
       context: 'RemotePeerStateUpdateServiceProvider',
@@ -167,11 +187,23 @@ export class RemotePeerStateUpdateServiceProvider {
       });
 
       if (timeSinceLastUpdate > STALE_THRESHOLD_MS) {
-        logger.warn(`🎮 Peer ${peerId} is stale (${timeSinceLastUpdate}ms), removing`, {
+        logger.warn(`🎮 Peer ${peerId} is stale (${timeSinceLastUpdate}ms), removing after ${STALE_THRESHOLD_MS}ms threshold`, {
           context: 'RemotePeerStateUpdateServiceProvider',
-          tag: 'mp'
+          tag: 'mp',
+          peerId,
+          timeSinceLastUpdate,
+          threshold: STALE_THRESHOLD_MS
         });
         this.removePeer(peerId);
+      } else if (timeSinceLastUpdate > STALE_THRESHOLD_MS * 0.8) {
+        // Warning when approaching stale threshold
+        logger.warn(`🎮 Peer ${peerId} approaching stale threshold (${timeSinceLastUpdate}ms / ${STALE_THRESHOLD_MS}ms)`, {
+          context: 'RemotePeerStateUpdateServiceProvider',
+          tag: 'mp',
+          peerId,
+          timeSinceLastUpdate,
+          threshold: STALE_THRESHOLD_MS
+        });
       }
     });
   }
