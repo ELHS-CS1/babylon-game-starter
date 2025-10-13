@@ -81,6 +81,10 @@ export class StaticFileServer {
     this.serveFile(req, res, assetPath, contentType);
   }
 
+  public handleIndex(req: IncomingMessage, res: ServerResponse): void {
+    this.serveFile(req, res, join(this.clientPath, 'index.html'), 'text/html');
+  }
+
   public handleStaticFile(req: IncomingMessage, res: ServerResponse, pathname: string): void {
     const filePath = join(this.clientPath, pathname);
     const ext = pathname.split('.').pop()?.toLowerCase();

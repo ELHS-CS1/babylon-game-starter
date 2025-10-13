@@ -250,18 +250,18 @@ const server = createHttpServer(async (req, res) => {
   // Static file serving
   if (url.pathname === '/sw.js') {
     staticFileServer.handleServiceWorker(req, res);
-              return;
-            }
+    return;
+  }
 
   if (url.pathname === '/manifest.json') {
     staticFileServer.handleManifest(req, res);
-              return;
-            }
+    return;
+  }
 
   if (url.pathname === '/favicon.ico' || url.pathname === '/icons/favicon.png') {
     staticFileServer.handleFavicon(req, res);
-              return;
-            }
+    return;
+  }
 
   if (url.pathname.startsWith('/icons/')) {
     staticFileServer.handleIcon(req, res, url.pathname);
@@ -270,6 +270,12 @@ const server = createHttpServer(async (req, res) => {
   
   if (url.pathname.startsWith('/assets/')) {
     staticFileServer.handleAsset(req, res, url.pathname);
+    return;
+  }
+  
+  // Serve index.html for root path and client-side routing
+  if (url.pathname === '/' || !url.pathname.includes('.')) {
+    staticFileServer.handleIndex(req, res);
     return;
   }
   
