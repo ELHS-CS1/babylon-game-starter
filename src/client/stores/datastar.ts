@@ -1,10 +1,10 @@
 import { reactive } from 'vue';
-import type { Peer } from '../game/Peer';
+import type { Player } from '../types/player';
 import { logger } from '../utils/logger';
 
 // DataStar Signals Store - simple reactive store
 interface GameState {
-  peers: Peer[];
+  peers: Player[];
   environment: string;
   isConnected: boolean;
   lastUpdate: number;
@@ -12,7 +12,7 @@ interface GameState {
 }
 
 interface DataStarStore {
-  peers: Peer[];
+  peers: Player[];
   gameState: GameState;
   activePeers: number;
 }
@@ -31,13 +31,13 @@ export const datastarStore = reactive<DataStarStore>({
 });
 
 // Store actions
-export const setPeers = (peers: Peer[]): void => {
+export const setPeers = (peers: Player[]): void => {
   datastarStore.peers = peers;
   datastarStore.activePeers = peers.length;
   datastarStore.gameState.lastUpdate = Date.now();
 };
 
-export const addPeer = (peer: Peer): void => {
+export const addPeer = (peer: Player): void => {
   const existingIndex = datastarStore.peers.findIndex(p => p.id === peer.id);
   if (existingIndex >= 0) {
     datastarStore.peers[existingIndex] = peer;

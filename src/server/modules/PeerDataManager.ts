@@ -164,8 +164,32 @@ export class PeerDataManager {
   public removeConnectionMapping(res: ServerResponse): void {
     const peerId = this.connectionToPeerMap.get(res);
     if (peerId) {
+      console.log(`🗑️ Removing connection mapping for peer: ${peerId}`);
       this.connectionToPeerMap.delete(res);
       this.removePeer(peerId);
+    } else {
+      console.log(`⚠️ No peer ID found for connection mapping removal`);
+    }
+  }
+
+  // Clean up stale peers that haven't been updated recently
+  public cleanupStalePeers(): void {
+    const now = Date.now();
+    const STALE_THRESHOLD_MS = 60000; // 1 minute without updates
+    const stalePeers: string[] = [];
+
+    Object.entries(this.gameState.peers).forEach(([peerId, peerData]) => {
+      const timeSinceLastUpdate = now - peerData.lastUpdate;
+      if (timeSinceLastUpdate > STALE_THRESHOLD_MS) {
+        stalePeers.push(peerId);
+      }
+    });
+
+    if (stalePeers.length > 0) {
+      console.log(`🧹 Cleaning up ${stalePeers.length} stale peers:`, stalePeers);
+      stalePeers.forEach(peerId => {
+        this.removePeer(peerId);
+      });
     }
   }
 

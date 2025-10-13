@@ -34,10 +34,15 @@ export class SSEManager {
     this.sseConnections.add(res);
     console.log(`🔗 SSE connection established. Total connections: ${this.sseConnections.size}`);
 
-    // Send periodic heartbeat
+    // Send periodic heartbeat and detect stale connections
     const heartbeat = setInterval(() => {
       if (this.sseConnections.has(res)) {
-        res.write('data: {"type":"heartbeat","timestamp":' + Date.now() + '}\n\n');
+        try {
+          res.write('data: {"type":"heartbeat","timestamp":' + Date.now() + '}\n\n');
+        } catch (error) {
+          console.log(`💔 Heartbeat failed for connection, removing: ${error}`);
+          this.handleDisconnect(res, heartbeat);
+        }
       } else {
         clearInterval(heartbeat);
       }
@@ -55,10 +60,14 @@ export class SSEManager {
   }
 
   private handleDisconnect(res: ServerResponse, heartbeat: NodeJS.Timeout): void {
+    const peerId = this.peerDataManager.getPeerIdFromConnection(res);
+    console.log(`🔌 SSE connection closed for peer: ${peerId || 'unknown'}. Total connections: ${this.sseConnections.size}`);
+    
     this.peerDataManager.removeConnectionMapping(res);
     this.sseConnections.delete(res);
     clearInterval(heartbeat);
-    console.log(`🔌 SSE connection closed. Total connections: ${this.sseConnections.size}`);
+    
+    console.log(`👋 Peer cleanup completed. Remaining connections: ${this.sseConnections.size}`);
   }
 
   public broadcastToAll(data: unknown): void {

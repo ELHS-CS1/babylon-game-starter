@@ -4,8 +4,6 @@
 
 import type { Mesh, Scene } from '@babylonjs/core';
 import { Engine, WebGPUEngine, MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
-import type { Peer } from './Peer';
-import { PeerManager } from './Peer';
 import { SceneManager } from './SceneManager';
 import { SettingsUI } from './SettingsUI';
 import { logger } from '../utils/logger';
@@ -14,7 +12,6 @@ export class GameEngine {
   private static instance: GameEngine | null = null;
   private engine: Engine;
   // private canvas: HTMLCanvasElement; // Unused for now
-  private peerManager: PeerManager;
   private sceneManager: SceneManager | null = null;
   // Remote players removed - using default Babylon.js render loop like the playground
   private currentEnvironment: string = 'Level Test';
@@ -22,10 +19,9 @@ export class GameEngine {
    
   public onPeerUpdate?: () => void;
 
-  // Update current environment and notify peer manager
+  // Update current environment
   public setEnvironmentInitial(environment: string): void {
     this.currentEnvironment = environment;
-    this.peerManager.setCurrentEnvironment(environment);
     logger.info(`Environment changed to: ${environment}`, { context: 'GameEngine', tag: 'environment' });
   }
 
@@ -34,7 +30,6 @@ export class GameEngine {
     
     // this.canvas = canvas; // Unused for now
     this.currentEnvironment = environment;
-    this.peerManager = new PeerManager();
     
             // Initialize Babylon.js engine with WebGL2 - THE WORD OF THE LORD!
             this.engine = new Engine(canvas, false);
@@ -112,14 +107,10 @@ export class GameEngine {
 
   // createPlayerMesh method removed - using default Babylon.js render loop like the playground
 
-  public createPlayer(playerName: string): Peer | null {
-    try {
-      const peer = this.peerManager.createLocalPeer(playerName, this.currentEnvironment);
-      return peer;
-    } catch (error) {
-      logger.error('Failed to create player:', 'GameEngine');
-      return null;
-    }
+  public createPlayer(playerName: string): any {
+    // Player creation is now handled by RemotePeerStateUpdateServiceProvider
+    logger.info(`Player creation requested: ${playerName}`, { context: 'GameEngine' });
+    return null;
   }
 
   public setEnvironment(environment: string): void {
@@ -134,17 +125,8 @@ export class GameEngine {
       // 3. LOAD NEW ENVIRONMENT USING SCENEMANAGER
       this.sceneManager.changeEnvironment(environment);
       
-      // 4. UPDATE PEER ENVIRONMENT AND NOTIFY SERVER
-      const localPeer = this.peerManager.getLocalPeer();
-      if (localPeer) {
-        localPeer.environment = environment;
-        
-        // Notify server about environment change
-        this.notifyEnvironmentChange(environment);
-      }
-      
-      // 5. UPDATE PEER MANAGER (this will request peers from new environment)
-      this.peerManager.setCurrentEnvironment(environment);
+      // 4. NOTIFY SERVER ABOUT ENVIRONMENT CHANGE
+      this.notifyEnvironmentChange(environment);
     }
   }
 
@@ -181,12 +163,14 @@ export class GameEngine {
     }
   }
 
-  public addRemotePeer(peer: Peer): void {
-    this.peerManager.addRemotePeer(peer);
+  public addRemotePeer(peer: any): void {
+    // Remote peer management is now handled by RemotePeerStateUpdateServiceProvider
+    logger.info(`Remote peer add requested: ${peer.id}`, { context: 'GameEngine' });
   }
 
   public removeRemotePeer(peerId: string): void {
-    this.peerManager.removePeer(peerId);
+    // Remote peer management is now handled by RemotePeerStateUpdateServiceProvider
+    logger.info(`Remote peer remove requested: ${peerId}`, { context: 'GameEngine' });
   }
 
   public getScene(): Scene | null {

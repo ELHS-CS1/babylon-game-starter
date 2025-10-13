@@ -55,7 +55,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue';
 import { GameEngine } from './game/GameEngine';
-// import type { Peer } from './game/Peer';
 import { logClientConfig } from './config';
 import CONFIG, { ASSETS } from './config/gameConfig';
 import GameHUD from './components/GameHUD.vue';

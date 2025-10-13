@@ -7,7 +7,6 @@ import { CollectiblesManager } from './CollectiblesManager';
 import { EffectsManager } from './EffectsManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import { ProceduralSoundManager } from './ProceduralSoundManager';
-import type { PeerRenderer } from './PeerRenderer';
 // Dynamic imports to avoid circular dependencies
 // import { localPeerDataService } from '../services/LocalPeerDataServiceProvider';
 // import { remotePeerStateUpdateService } from '../services/RemotePeerStateUpdateServiceProvider';
@@ -28,7 +27,6 @@ export class SceneManager {
   private gameStartTime: number = Date.now();
   private thrusterSound: any = null;
   private isLoadingCharacter: boolean = false;
-  private peerRenderer: PeerRenderer | null = null;
 
   constructor(engine: Engine, _canvas: HTMLCanvasElement) {
     this.scene = new Scene(engine);
@@ -48,13 +46,7 @@ export class SceneManager {
     // Add Babylon.js inspector if enabled
     this.setupInspector();
     
-    // Initialize PeerRenderer for multiplayer character rendering
-    // DEPRECATED: Replaced by RemotePeerStateUpdateServiceProvider
-    // this.peerRenderer = new PeerRenderer(this.scene);
-    
-    // Setup peer rendering update loop
-    // DEPRECATED: Replaced by RemotePeerStateUpdateServiceProvider
-    // this.setupPeerRenderingLoop();
+    // Multiplayer peer rendering is handled by RemotePeerStateUpdateServiceProvider
   }
 
   private async initializeScene(): Promise<void> {

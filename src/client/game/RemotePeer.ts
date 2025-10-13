@@ -323,14 +323,26 @@ export class RemotePeer {
   }
 
   public dispose(): void {
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
+    // Stop and dispose animations first
+    if (this.animationGroups.walk) {
+      this.animationGroups.walk.stop();
+      this.animationGroups.walk = null;
+    }
+    if (this.animationGroups.idle) {
+      this.animationGroups.idle.stop();
+      this.animationGroups.idle = null;
     }
 
+    // Dispose particle system
     if (this.particleSystem) {
       this.particleSystem.dispose();
       this.particleSystem = null;
+    }
+
+    // Dispose mesh last (this will also dispose any child meshes)
+    if (this.mesh) {
+      this.mesh.dispose();
+      this.mesh = null;
     }
 
     logger.info(`RemotePeer ${this.peerState.id} disposed`, {

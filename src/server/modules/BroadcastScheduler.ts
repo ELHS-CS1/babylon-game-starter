@@ -9,7 +9,9 @@ export class BroadcastScheduler {
   private peerDataManager: PeerDataManager;
   private sseManager: SSEManager;
   private intervalId: NodeJS.Timeout | null = null;
+  private staleCleanupId: NodeJS.Timeout | null = null;
   private readonly BROADCAST_INTERVAL_MS = 150;
+  private readonly STALE_CLEANUP_INTERVAL_MS = 30000; // 30 seconds
 
   constructor(peerDataManager: PeerDataManager, sseManager: SSEManager) {
     this.peerDataManager = peerDataManager;
@@ -19,7 +21,8 @@ export class BroadcastScheduler {
   public start(): void {
     if (this.intervalId) return;
     this.intervalId = setInterval(() => this.broadcastAggregatedState(), this.BROADCAST_INTERVAL_MS);
-    console.log(`📡 BroadcastScheduler started (${this.BROADCAST_INTERVAL_MS}ms)`);
+    this.staleCleanupId = setInterval(() => this.peerDataManager.cleanupStalePeers(), this.STALE_CLEANUP_INTERVAL_MS);
+    console.log(`📡 BroadcastScheduler started (${this.BROADCAST_INTERVAL_MS}ms broadcast, ${this.STALE_CLEANUP_INTERVAL_MS}ms stale cleanup)`);
   }
 
   private broadcastAggregatedState(): void {
@@ -46,7 +49,11 @@ export class BroadcastScheduler {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('📡 BroadcastScheduler stopped');
     }
+    if (this.staleCleanupId) {
+      clearInterval(this.staleCleanupId);
+      this.staleCleanupId = null;
+    }
+    console.log('📡 BroadcastScheduler stopped');
   }
 }

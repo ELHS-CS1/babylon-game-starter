@@ -1,9 +1,9 @@
 import { Engine, Scene, FreeCamera, HemisphericLight, MeshBuilder, Vector3, type AbstractMesh } from '@babylonjs/core';
 import { watch } from 'vue';
-import type { Peer } from './game/Peer';
+import type { Player } from './types/player';
 
 interface GameState {
-  players: Peer[];
+  players: Player[];
   objects: unknown[];
   status: string;
   environment: string;
