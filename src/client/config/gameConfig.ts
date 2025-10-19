@@ -541,9 +541,9 @@ const CONFIG = {
     // Camera Settings
     CAMERA: {
         START_POSITION: new Vector3(0, 5, -10),
-        OFFSET: new Vector3(0, 1.2, -3),
+        OFFSET: new Vector3(0, 2.2, -5),
         DRAG_SENSITIVITY: 0.02,
-        ZOOM_MIN: -15,
+        ZOOM_MIN: -30,
         ZOOM_MAX: -2,
                 FOLLOW_SMOOTHING: 0.1
     },
