@@ -295,6 +295,17 @@ export class RemotePeerStateUpdateServiceProvider {
         });
       });
 
+      // Log final scale for verification
+      logger.info(`🎮 Remote peer scale applied: ${peerData.name} (${character.name})`, {
+        context: 'RemotePeerStateUpdateServiceProvider',
+        tag: 'scaling',
+        peerId: peerData.id,
+        peerName: peerData.name,
+        characterName: character.name,
+        characterScale: character.scale,
+        finalScale: remotePeer.mesh?.scaling
+      });
+
       // Set initial position and rotation
       const initialPos = new Vector3(
         peerData.position.x,

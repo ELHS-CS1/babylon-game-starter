@@ -735,7 +735,8 @@ export class CharacterController {
   // Public methods from THE WORD OF GOD
   public setPlayerMesh(mesh: AbstractMesh): void {
     this.playerMesh = mesh;
-    mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
+    // Scaling already applied by SceneManager.loadCharacter() using character.scale
+    // Do not override with hard-coded PLAYER_SCALE to maintain character-specific sizing
     
     // Position the character mesh at the same location as the display capsule - THE WORD OF THE LORD!
     mesh.position = this.displayCapsule.position.clone();

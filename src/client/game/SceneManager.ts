@@ -490,6 +490,15 @@ export class SceneManager {
             mesh.scaling.setAll(character.scale);
           });
 
+          // Log final scale for verification
+          logger.info(`🎮 Local character scale applied: ${character.name}`, {
+            context: 'SceneManager',
+            tag: 'scaling',
+            characterName: character.name,
+            characterScale: character.scale,
+            finalScale: result.meshes[0]?.scaling
+          });
+
           // Set the player mesh in the character controller
           this.characterController.setPlayerMesh(result.meshes[0]);
 
