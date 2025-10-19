@@ -277,9 +277,8 @@ export class RemotePeerStateUpdateServiceProvider {
       remotePeer.mesh = (result.meshes[0] as Mesh) || null;
       result.meshes.forEach(mesh => {
         const originalScale = mesh.scaling.clone();
-        // Use the same scaling approach as local character: CONFIG.ANIMATION.PLAYER_SCALE
-        // TODO: Figure out why 1.22x multiplier is needed for remote peers to match expected size
-        mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 1.22);
+        // Use the same scaling approach as local character: character.scale
+        mesh.scaling.setAll(character.scale);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
         
         // Mark as remote peer mesh for disposal filtering
@@ -292,7 +291,6 @@ export class RemotePeerStateUpdateServiceProvider {
           meshName: mesh.name,
           originalScale: { x: originalScale.x, y: originalScale.y, z: originalScale.z },
           newScale: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z },
-          playerScale: CONFIG.ANIMATION.PLAYER_SCALE,
           characterScale: character.scale
         });
       });
@@ -377,6 +375,9 @@ export class RemotePeerStateUpdateServiceProvider {
           availableAnimations: result.animationGroups.map(a => a.name)
         });
       }
+
+      // Set character configuration for proper smoothing
+      remotePeer.setCharacterConfig(character);
 
       // Update peer with initial data
       remotePeer.updateFromRemoteData(peerData);

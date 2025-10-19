@@ -20,6 +20,7 @@ export interface RemotePeerState {
   state: string;
   lastUpdate: number;
   lastPositionUpdate: number; // Track when position was last updated
+  characterConfig?: any; // Character-specific configuration
 }
 
 export class RemotePeer {
@@ -66,8 +67,8 @@ export class RemotePeer {
 
   // Public method called by RemotePeerStateUpdateServiceProvider
   public updateFromRemoteData(data: Partial<Player>): void {
-    const POSITION_EPSILON = 0.01; // Increased threshold to reduce blinking
-    const ROTATION_EPSILON = 0.05; // Increased threshold for rotation changes
+    const POSITION_EPSILON = CONFIG.REMOTE_PEER.POSITION_EPSILON;
+    const ROTATION_EPSILON = CONFIG.REMOTE_PEER.ROTATION_EPSILON;
 
     logger.debug(`🎮 updateFromRemoteData called for peer ${this.peerState.id}:`, {
       context: 'RemotePeer',
@@ -250,8 +251,22 @@ export class RemotePeer {
     return this.peerState.name;
   }
 
+  public setCharacterConfig(characterConfig: any): void {
+    this.peerState.characterConfig = characterConfig;
+    logger.info(`🎮 Set character config for peer ${this.peerState.id}:`, {
+      context: 'RemotePeer',
+      tag: 'mp',
+      characterName: characterConfig?.name,
+      rotationSmoothing: characterConfig?.rotationSmoothing
+    });
+  }
+
   public interpolate(deltaTime: number, smoothing: number = 0.1): void {
     if (!this.mesh) return;
+
+    // Use character-specific smoothing if available, otherwise use provided smoothing
+    const characterSmoothing = this.peerState.characterConfig?.rotationSmoothing ?? smoothing;
+    const effectiveSmoothing = characterSmoothing;
 
     // Store previous position to detect movement
     const previousPosition = this.peerState.position.clone();
@@ -267,34 +282,37 @@ export class RemotePeer {
         tag: 'mp',
         currentPosition: this.peerState.position,
         targetPosition: this.peerState.targetPosition,
-        positionDistance
+        positionDistance,
+        effectiveSmoothing
       });
     }
 
-    // Only interpolate position if we recently received position data (within last 200ms)
+    // Only interpolate position if we recently received position data (within threshold)
     const timeSinceLastPositionUpdate = Date.now() - this.peerState.lastPositionUpdate;
-    const shouldInterpolatePosition = positionDistance > 0.001 && timeSinceLastPositionUpdate < 200;
+    const shouldInterpolatePosition = positionDistance > CONFIG.REMOTE_PEER.POSITION_EPSILON && 
+                                     timeSinceLastPositionUpdate < CONFIG.REMOTE_PEER.POSITION_STALE_THRESHOLD_MS;
     
     if (shouldInterpolatePosition) {
-      // Smooth position interpolation with reduced smoothing for less jitter
-      this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * smoothing;
-      this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * smoothing;
-      this.peerState.position.z += (this.peerState.targetPosition.z - this.peerState.position.z) * smoothing;
-    } else if (positionDistance > 0.001) {
+      // Smooth position interpolation using character-specific smoothing
+      this.peerState.position.x += (this.peerState.targetPosition.x - this.peerState.position.x) * effectiveSmoothing;
+      this.peerState.position.y += (this.peerState.targetPosition.y - this.peerState.position.y) * effectiveSmoothing;
+      this.peerState.position.z += (this.peerState.targetPosition.z - this.peerState.position.z) * effectiveSmoothing;
+    } else if (positionDistance > CONFIG.REMOTE_PEER.POSITION_EPSILON) {
       // Position distance exists but we haven't received recent position data - this shouldn't happen
       logger.warn(`🎮 Position interpolation blocked for peer ${this.peerState.id}: no recent position data (${timeSinceLastPositionUpdate}ms ago)`, {
         context: 'RemotePeer',
         tag: 'mp',
         positionDistance,
-        timeSinceLastPositionUpdate
+        timeSinceLastPositionUpdate,
+        threshold: CONFIG.REMOTE_PEER.POSITION_STALE_THRESHOLD_MS
       });
     }
 
-    if (rotationDistance > 0.01) {
-      // Smooth rotation interpolation
-      this.peerState.rotation.x += (this.peerState.targetRotation.x - this.peerState.rotation.x) * smoothing;
-      this.peerState.rotation.y += (this.peerState.targetRotation.y - this.peerState.rotation.y) * smoothing;
-      this.peerState.rotation.z += (this.peerState.targetRotation.z - this.peerState.rotation.z) * smoothing;
+    if (rotationDistance > CONFIG.REMOTE_PEER.ROTATION_EPSILON) {
+      // Smooth rotation interpolation using character-specific smoothing
+      this.peerState.rotation.x += (this.peerState.targetRotation.x - this.peerState.rotation.x) * effectiveSmoothing;
+      this.peerState.rotation.y += (this.peerState.targetRotation.y - this.peerState.rotation.y) * effectiveSmoothing;
+      this.peerState.rotation.z += (this.peerState.targetRotation.z - this.peerState.rotation.z) * effectiveSmoothing;
     }
 
     // Apply to mesh

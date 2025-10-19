@@ -560,6 +560,14 @@ const CONFIG = {
         PLAYER_Y_OFFSET: -0.9
     },
 
+    // Remote Peer Settings
+    REMOTE_PEER: {
+        POSITION_STALE_THRESHOLD_MS: 200,
+        DEFAULT_SMOOTHING: 0.1,
+        POSITION_EPSILON: 0.01,
+        ROTATION_EPSILON: 0.05
+    },
+
     // Debug Settings
     DEBUG: {
         CAPSULE_VISIBLE: false
