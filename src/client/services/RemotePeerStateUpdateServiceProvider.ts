@@ -11,6 +11,11 @@ import { logger } from '../utils/logger';
 import CONFIG, { ASSETS } from '../config/gameConfig';
 import type { Player } from '../types/player';
 
+// Interface for mesh metadata to ensure type safety
+interface MeshMetadata {
+  isLocal: boolean;
+}
+
 export class RemotePeerStateUpdateServiceProvider {
   private static instance: RemotePeerStateUpdateServiceProvider | null = null;
   private scene: Scene | null = null;
@@ -276,6 +281,10 @@ export class RemotePeerStateUpdateServiceProvider {
         // TODO: Figure out why 1.22x multiplier is needed for remote peers to match expected size
         mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE * 1.22);
         mesh.name = `remote_peer_${peerData.id}_${mesh.name}`;
+        
+        // Mark as remote peer mesh for disposal filtering
+        mesh.metadata = mesh.metadata ?? {};
+        (mesh.metadata as MeshMetadata).isLocal = false;
         
         logger.info(`🎮 Applied character scale to mesh ${mesh.name}:`, {
           context: 'RemotePeerStateUpdateServiceProvider',

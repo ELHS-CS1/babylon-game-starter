@@ -1,5 +1,10 @@
 import type { Engine, AbstractMesh} from '@babylonjs/core';
 import { Scene, TargetCamera, Vector3, HemisphericLight, HavokPlugin, PhysicsAggregate, PhysicsShapeType, ImportMeshAsync, HingeConstraint, Mesh, Texture, StandardMaterial, PBRMaterial } from '@babylonjs/core';
+
+// Interface for mesh metadata to ensure type safety
+interface MeshMetadata {
+  isLocal: boolean;
+}
 import "@babylonjs/core/Debug/debugLayer";
 import { CharacterController } from './CharacterController';
 import { SmoothFollowCameraController } from './SmoothFollowCameraController';
@@ -467,7 +472,16 @@ export class SceneManager {
           const rootMesh = result.meshes.find((mesh: any) => !mesh.parent);
           if (rootMesh) {
             rootMesh.name = "player";
+            // Mark as local player mesh for disposal filtering
+            rootMesh.metadata = rootMesh.metadata ?? {};
+            (rootMesh.metadata as MeshMetadata).isLocal = true;
           }
+          
+          // Mark all child meshes as local player meshes
+          result.meshes.forEach(mesh => {
+            mesh.metadata = mesh.metadata ?? {};
+            (mesh.metadata as MeshMetadata).isLocal = true;
+          });
         }
 
         if (this.characterController && result.meshes[0]) {
@@ -805,8 +819,8 @@ export class SceneManager {
     // This is critical to prevent duplicate characters
     const allMeshes = this.scene.meshes.slice();
     allMeshes.forEach(mesh => {
-      if (mesh.name.includes('player') || mesh.name.includes('character') || 
-          (mesh.parent && mesh.parent.name === 'player')) {
+      // Use metadata to identify local player meshes instead of string matching
+      if ((mesh.metadata as MeshMetadata)?.isLocal === true) {
         mesh.dispose();
       }
     });
@@ -814,9 +828,8 @@ export class SceneManager {
     // Dispose any orphaned meshes that might be from previous character loads
     const remainingMeshes = this.scene.meshes.slice();
     remainingMeshes.forEach(mesh => {
-      // If mesh has no parent and is not an environment mesh, dispose it
-      if (!mesh.parent && !mesh.name.includes('environment') && !mesh.name.includes('ground') && 
-          !mesh.name.includes('sky') && !mesh.name.includes('light')) {
+      // Use metadata to identify local player meshes instead of string matching
+      if ((mesh.metadata as MeshMetadata)?.isLocal === true && !mesh.parent) {
         mesh.dispose();
       }
     });
