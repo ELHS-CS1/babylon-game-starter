@@ -309,10 +309,15 @@ export class RemotePeer {
     }
 
     if (rotationDistance > CONFIG.REMOTE_PEER.ROTATION_EPSILON) {
-      // Smooth rotation interpolation using character-specific smoothing
-      this.peerState.rotation.x += (this.peerState.targetRotation.x - this.peerState.rotation.x) * effectiveSmoothing;
-      this.peerState.rotation.y += (this.peerState.targetRotation.y - this.peerState.rotation.y) * effectiveSmoothing;
-      this.peerState.rotation.z += (this.peerState.targetRotation.z - this.peerState.rotation.z) * effectiveSmoothing;
+      // Calculate shortest angle differences for each axis to prevent wild spinning
+      const diffX = this.shortestAngleDifference(this.peerState.rotation.x, this.peerState.targetRotation.x);
+      const diffY = this.shortestAngleDifference(this.peerState.rotation.y, this.peerState.targetRotation.y);
+      const diffZ = this.shortestAngleDifference(this.peerState.rotation.z, this.peerState.targetRotation.z);
+      
+      // Interpolate using shortest path with character-specific smoothing
+      this.peerState.rotation.x += diffX * effectiveSmoothing;
+      this.peerState.rotation.y += diffY * effectiveSmoothing;
+      this.peerState.rotation.z += diffZ * effectiveSmoothing;
     }
 
     // Apply to mesh
@@ -338,6 +343,14 @@ export class RemotePeer {
         this.animationGroups.idle?.play(true);
       }
     }
+  }
+
+  private shortestAngleDifference(current: number, target: number): number {
+    let diff = target - current;
+    // Normalize to [-π, π] for shortest rotation path
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    return diff;
   }
 
   public dispose(): void {

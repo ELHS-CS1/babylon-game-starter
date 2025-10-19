@@ -327,11 +327,12 @@ export class RemotePeerStateUpdateServiceProvider {
         remotePeer.mesh.rotation = initialRot;
       }
 
-      // Create particle system
+      // Create particle system with Vector3 position reference (not mesh)
+      // This prevents the particle system from interfering with mesh position updates
       try {
         const particleSystem = await EffectsManager.createParticleSystem(
           "Magic Sparkles",
-          remotePeer.mesh || undefined
+          remotePeer.mesh ? remotePeer.mesh.position : undefined
         );
         if (particleSystem) {
           remotePeer.particleSystem = particleSystem;
