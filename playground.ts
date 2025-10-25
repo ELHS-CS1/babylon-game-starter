@@ -392,12 +392,12 @@ const ASSETS = {
             spawnPoint: new BABYLON.Vector3(3, 0.5, -8),
             backgroundMusic: {
                 url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/bgm/CosmicWhispers.mp3",
-                volume: 0.4
+                volume: 0.03
             },
             ambientSounds: [
                 {
                     url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/ambience/space-ambience.mp3",
-                    volume: 0.05,
+                    volume: 0.2,
                     position: new BABYLON.Vector3(-2, 1, -6),
                     rollOff: 2,
                     maxDistance: 40
@@ -6928,3 +6928,5 @@ class NodeMaterialManager {
         this.scene = null;
     }
 }
+
+export default Playground
