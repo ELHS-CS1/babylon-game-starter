@@ -325,6 +325,11 @@ declare global {
         class NodeMaterial {
             constructor(name: string, scene: Scene);
             static ParseFromSnippetAsync(snippetId: string, scene: Scene): Promise<NodeMaterial>;
+            dispose(): void;
+        }
+
+        class PhysicsBody {
+            dispose(): void;
         }
 
         // Import utilities

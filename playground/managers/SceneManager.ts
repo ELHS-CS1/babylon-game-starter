@@ -9,6 +9,10 @@ import { ASSETS } from '../config/assets';
 import { CharacterController } from '../controllers/CharacterController';
 import { SmoothFollowCameraController } from '../controllers/SmoothFollowCameraController';
 import { EffectsManager } from './EffectsManager';
+import { HUDManager } from './HUDManager';
+import { CollectiblesManager } from './CollectiblesManager';
+import { InventoryManager } from './InventoryManager';
+import { NodeMaterialManager } from './NodeMaterialManager';
 import type { Character } from '../types/character';
 
 export class SceneManager {
@@ -37,8 +41,7 @@ export class SceneManager {
         
         // Initialize inventory system
         if (this.characterController) {
-            // Note: InventoryManager would be initialized here in the full implementation
-            // For playground compatibility, this is a placeholder
+            InventoryManager.initialize(this.scene, this.characterController);
         }
     }
 
@@ -67,6 +70,12 @@ export class SceneManager {
         // Connect the character controller to the camera controller
         this.characterController.setCameraController(this.smoothFollowController);
         
+        // Initialize HUD
+        HUDManager.initialize(this.scene, this.characterController);
+
+        // Initialize Collectibles after character is set up
+        CollectiblesManager.initialize(this.scene, this.characterController);
+        
         // Force activate smooth follow camera
         this.smoothFollowController.forceActivateSmoothFollow();
     }
@@ -87,24 +96,61 @@ export class SceneManager {
 
         BABYLON.ImportMeshAsync(character.model, this.scene)
             .then(async result => {
-                // Find the character mesh
-                const characterMesh = result.meshes.find(mesh => 
-                    mesh.name.includes('character') || 
-                    mesh.name.includes('body') ||
-                    mesh.name.includes('player')
-                );
+                // Process node materials for character meshes
+                await NodeMaterialManager.processImportResult(result);
 
-                if (characterMesh) {
-                    // Set up the character mesh
-                    this.characterController?.setPlayerMesh(characterMesh);
-                    
+                // Rename the root node to "player" for better organization
+                if (result.meshes.length > 0) {
+                    // Find the root mesh (the one without a parent)
+                    const rootMesh = result.meshes.find(mesh => !mesh.parent);
+                    if (rootMesh) {
+                        rootMesh.name = "player";
+                    }
+                }
+
+                if (this.characterController) {
+                    // Apply character scale to all meshes
+                    result.meshes.forEach(mesh => {
+                        mesh.scaling.setAll(character.scale);
+                    });
+
+                    this.characterController.setPlayerMesh(result.meshes[0]);
+
+                    // Determine position for new character
+                    const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+                    const characterPosition = currentEnvironment?.spawnPoint ?? new BABYLON.Vector3(0, 0, 0);
+
+                    // Update character physics with determined position
+                    this.characterController.updateCharacterPhysics(character, characterPosition);
+
+                    // Setup animations using character's animation mapping with fallbacks
+                    const walkAnimation = result.animationGroups.find(a => a.name === character.animations.walk) ??
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ??
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ??
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
+
+                    const idleAnimation = result.animationGroups.find(a => a.name === character.animations.idle) ??
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ??
+                        result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
+
+                    // Stop animations initially
+                    walkAnimation?.stop();
+                    idleAnimation?.stop();
+
                     // Set character in animation controller
-                    this.characterController?.animationController.setCharacter(character);
-                    
-                    // Position character at spawn point
-                    const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-                    const spawnPoint = environment?.spawnPoint ?? new BABYLON.Vector3(0, 1, 0);
-                    this.characterController?.setPosition(spawnPoint);
+                    this.characterController.animationController.setCharacter(character);
+
+                    // Create particle system attached to player mesh
+                    const playerParticleSystem = await EffectsManager.createParticleSystem(CONFIG.EFFECTS.DEFAULT_PARTICLE, result.meshes[0]);
+                    if (playerParticleSystem) {
+                        this.characterController.setPlayerParticleSystem(playerParticleSystem);
+                    }
+
+                    // Set up thruster sound for character controller
+                    const thrusterSound = EffectsManager.getSound("Thruster");
+                    if (thrusterSound) {
+                        this.characterController.setThrusterSound(thrusterSound);
+                    }
                 }
             })
             .catch(_error => {
@@ -114,6 +160,7 @@ export class SceneManager {
 
     private async setupEffects(): Promise<void> {
         EffectsManager.initialize(this.scene);
+        NodeMaterialManager.initialize(this.scene);
         await EffectsManager.createSound("Thruster");
     }
 
@@ -187,20 +234,11 @@ export class SceneManager {
 
     public async setupEnvironmentItems(): Promise<void> {
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-        if (environment?.items) {
-            // Create collectible items for the environment
-            for (const item of environment.items) {
-                // Create instances for each collectible
-                for (const instance of item.instances) {
-                    const mesh = BABYLON.MeshBuilder.CreateSphere(`collectible_${item.name}_${instance.position.x}_${instance.position.y}_${instance.position.z}`, { diameter: 0.5, segments: 16 }, this.scene);
-                    mesh.position = new BABYLON.Vector3(instance.position.x, instance.position.y, instance.position.z);
-                    mesh.name = `collectible_${item.name}`;
-                    
-                    // Add material
-                    const material = new BABYLON.StandardMaterial(`collectible_material_${item.name}`, this.scene);
-                    material.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
-                    mesh.material = material;
-                }
+        if (environment) {
+            try {
+                await CollectiblesManager.setupEnvironmentItems(environment);
+            } catch (_error) {
+                // Ignore setup errors for playground compatibility
             }
         }
     }
