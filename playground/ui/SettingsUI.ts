@@ -185,8 +185,9 @@ export class SettingsUI {
         `;
 
         // Style the header
-        const header = this.settingsPanel.querySelector('.settings-header') as HTMLElement;
-        header.style.cssText = `
+        const header = this.settingsPanel.querySelector('.settings-header');
+        if (header instanceof HTMLElement) {
+            header.style.cssText = `
             display: flex;
             justify-content: center;
             align-items: center;
@@ -197,81 +198,97 @@ export class SettingsUI {
             max-width: 100%;
         `;
 
-        // Style the header title
-        const headerTitle = header.querySelector('h2') as HTMLElement;
-        headerTitle.style.cssText = `
+            // Style the header title
+            const headerTitle = header.querySelector('h2');
+            if (headerTitle instanceof HTMLElement) {
+                headerTitle.style.cssText = `
             margin: 0;
             font-size: 24px;
             font-weight: bold;
             color: white;
         `;
+            }
+        }
 
         // Style the content area
-        const content = this.settingsPanel.querySelector('.settings-content') as HTMLElement;
-        content.style.cssText = `
+        const content = this.settingsPanel.querySelector('.settings-content');
+        if (content instanceof HTMLElement) {
+            content.style.cssText = `
             padding: 20px;
             box-sizing: border-box;
             max-width: 100%;
             overflow-x: hidden;
         `;
+        }
 
         // Style sections
         const sections = this.settingsPanel.querySelectorAll('.settings-section');
         sections.forEach(section => {
-            (section as HTMLElement).style.cssText = `
+            if (section instanceof HTMLElement) {
+                section.style.cssText = `
                 margin-bottom: 20px;
                 padding: 15px;
                 background: rgba(255, 255, 255, 0.05);
                 border-radius: 8px;
                 border: 1px solid rgba(255, 255, 255, 0.1);
             `;
+            }
         });
 
         // Style section headers
         const sectionHeaders = this.settingsPanel.querySelectorAll('.section-header');
         sectionHeaders.forEach(header => {
-            (header as HTMLElement).style.cssText = `
+            if (header instanceof HTMLElement) {
+                header.style.cssText = `
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 10px;
             `;
+            }
         });
 
         // Style section titles
         const sectionTitles = this.settingsPanel.querySelectorAll('.section-header h3');
         sectionTitles.forEach(title => {
-            (title as HTMLElement).style.cssText = `
+            if (title instanceof HTMLElement) {
+                title.style.cssText = `
                 margin: 0;
                 font-size: 16px;
                 font-weight: 600;
                 color: white;
             `;
+            }
         });
 
         // Style toggle switches
         const toggleSwitches = this.settingsPanel.querySelectorAll('.toggle-switch');
         toggleSwitches.forEach(toggleSwitch => {
-            (toggleSwitch as HTMLElement).style.cssText = `
+            if (toggleSwitch instanceof HTMLElement) {
+                toggleSwitch.style.cssText = `
                 position: relative;
                 display: inline-block;
                 width: 50px;
                 height: 24px;
             `;
+            }
         });
 
         const toggleInputs = this.settingsPanel.querySelectorAll('.toggle-switch input');
         toggleInputs.forEach(input => {
-            (input as HTMLElement).style.cssText = `
+            if (input instanceof HTMLElement) {
+                input.style.cssText = `
                 opacity: 0;
                 width: 0;
                 height: 0;
             `;
+            }
         });
 
         const toggleSliders = this.settingsPanel.querySelectorAll('.toggle-slider');
         toggleSliders.forEach(slider => {
-            (slider as HTMLElement).style.cssText = `
+            if (slider instanceof HTMLElement) {
+                slider.style.cssText = `
                 position: absolute;
                 cursor: pointer;
                 top: 0;
@@ -283,14 +300,16 @@ export class SettingsUI {
                 border-radius: 24px;
             `;
 
-            // Add pseudo-element for the toggle circle
-            slider.innerHTML = '<span style="position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>';
+                // Add pseudo-element for the toggle circle
+                slider.innerHTML = '<span style="position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>';
+            }
         });
 
         // Style dropdowns
         const selects = this.settingsPanel.querySelectorAll('select');
         selects.forEach(select => {
-            (select as HTMLElement).style.cssText = `
+            if (select instanceof HTMLElement) {
+                select.style.cssText = `
                 padding: 8px 12px;
                 background: rgba(255, 255, 255, 0.1);
                 border: 1px solid rgba(255, 255, 255, 0.3);
@@ -299,6 +318,7 @@ export class SettingsUI {
                 font-size: 14px;
                 cursor: pointer;
             `;
+            }
         });
 
         document.body.appendChild(this.settingsPanel);

@@ -112,18 +112,18 @@ export class AnimationController {
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName?.toLowerCase().includes('idle')) {
+            if (animationName.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 ) ?? null;
-            } else if (animationName?.toLowerCase().includes('walk')) {
+            } else if (animationName.toLowerCase().includes('walk')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 ) ?? null;
-            } else if (animationName?.toLowerCase().includes('jump')) {
+            } else if (animationName.toLowerCase().includes('jump')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
