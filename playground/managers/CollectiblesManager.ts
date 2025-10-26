@@ -4,6 +4,8 @@
 
 import type { CharacterController } from '../controllers/CharacterController';
 import type { Environment, ItemConfig, ItemInstance } from '../types/environment';
+import { InventoryManager } from './InventoryManager';
+import { InventoryUI } from '../ui/InventoryUI';
 
 export class CollectiblesManager {
     private static scene: BABYLON.Scene | null = null;
@@ -261,8 +263,11 @@ export class CollectiblesManager {
         // Show collection effects
         this.showCollectionEffects(collectible.position);
 
-        // Add to inventory (if inventory system is available)
-        // InventoryManager.addItem(itemConfig.name, itemConfig.creditValue);
+        // Add to inventory
+        InventoryManager.addItem(itemConfig.name, 1, itemConfig.thumbnail || '');
+
+        // Refresh inventory UI to show the new item
+        InventoryUI.refreshInventory();
 
         // Add credits
         this.totalCredits += itemConfig.creditValue;

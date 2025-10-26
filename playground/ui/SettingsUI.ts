@@ -73,6 +73,9 @@ export class SettingsUI {
     }
 
     public static initialize(canvas: HTMLCanvasElement, sceneManager?: SceneManager): void {
+        // Clean up first
+        this.cleanup();
+        
         this.isInitializing = true; // Prevent onChange during initialization
         this.sceneManager = sceneManager ?? null;
         this.createSettingsButton(canvas);
@@ -610,13 +613,30 @@ export class SettingsUI {
      * Global cleanup method to remove all SettingsUI elements from DOM
      */
     public static cleanup(): void {
-        // Remove settings button
+        // Remove ALL settings buttons and panels (more aggressive)
+        const allButtons = document.querySelectorAll('#settings-button');
+        allButtons.forEach(button => button.remove());
+
+        const allPanels = document.querySelectorAll('#settings-panel');
+        allPanels.forEach(panel => panel.remove());
+
+        // Nuclear option - remove ANY div with settings gear icon
+        const allDivs = document.querySelectorAll('div');
+        allDivs.forEach(div => {
+            if (div.innerHTML.includes('M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z') && 
+                div.style.position === 'fixed' && 
+                div.style.bottom === '20px' && 
+                div.style.left === '20px') {
+                div.remove();
+            }
+        });
+
+        // Also remove by static reference if it exists
         if (this.settingsButton) {
             this.settingsButton.remove();
             this.settingsButton = null;
         }
 
-        // Remove settings panel
         if (this.settingsPanel) {
             this.settingsPanel.remove();
             this.settingsPanel = null;

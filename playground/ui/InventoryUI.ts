@@ -19,6 +19,9 @@ export class InventoryUI {
      * @param sceneManager The scene manager
      */
     public static initialize(canvas: HTMLCanvasElement, sceneManager?: SceneManager): void {
+        // Clean up first
+        this.cleanup();
+        
         this.sceneManager = sceneManager ?? null;
         this.createInventoryButton(canvas);
         this.createInventoryPanel(canvas);
@@ -416,16 +419,30 @@ export class InventoryUI {
     }
 
     /**
+     * Refreshes the inventory display
+     */
+    public static refreshInventory(): void {
+        this.updateInventoryContent();
+        this.updateInventoryButton();
+    }
+
+    /**
      * Global cleanup method to remove all InventoryUI elements from DOM
      */
     public static cleanup(): void {
-        // Remove inventory button
+        // Remove ALL inventory buttons and panels (more aggressive)
+        const allButtons = document.querySelectorAll('#inventory-button');
+        allButtons.forEach(button => button.remove());
+
+        const allPanels = document.querySelectorAll('#inventory-panel');
+        allPanels.forEach(panel => panel.remove());
+
+        // Also remove by static reference if it exists
         if (this.inventoryButton) {
             this.inventoryButton.remove();
             this.inventoryButton = null;
         }
 
-        // Remove inventory panel
         if (this.inventoryPanel) {
             this.inventoryPanel.remove();
             this.inventoryPanel = null;

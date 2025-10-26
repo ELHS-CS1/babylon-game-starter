@@ -28,6 +28,8 @@ export class CharacterController {
     private keysDown = new Set<string>();
     private cameraController: SmoothFollowCameraController | null = null;
     private boostActive = false;
+    private superJumpActive = false;
+    private invisibilityActive = false;
     private playerParticleSystem: BABYLON.IParticleSystem | null = null;
     private thrusterSound: BABYLON.Sound | null = null;
     public animationController: AnimationController;
@@ -407,6 +409,9 @@ export class CharacterController {
         // Update mobile input every frame
         this.updateMobileInput();
 
+        // Apply invisibility effect if active
+        this.updateInvisibilityEffect();
+
         this.updateRotation();
         this.updatePosition();
         this.updateAnimations();
@@ -673,7 +678,12 @@ export class CharacterController {
         const characterMass = character.mass;
 
         // Character-specific jump height using active character's properties
-        const jumpHeight = this.boostActive ? 10.0 : character.jumpHeight; // Use character's jump height
+        let jumpHeight = this.boostActive ? 10.0 : character.jumpHeight; // Use character's jump height
+        
+        // Apply super jump effect if active
+        if (this.superJumpActive) {
+            jumpHeight *= 2.0; // Double jump height
+        }
         const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
 
         // Calculate jump velocity using physics formula: v = sqrt(2 * g * h)
@@ -784,6 +794,53 @@ export class CharacterController {
      */
     public isBoosting(): boolean {
         return this.boostActive;
+    }
+
+    /**
+     * Applies a super jump effect temporarily
+     */
+    public applySuperJumpEffect(): void {
+        if (!this.currentCharacter) return;
+        
+        // Activate super jump effect
+        this.superJumpActive = true;
+        
+        // Reset after 5 seconds
+        setTimeout(() => {
+            this.superJumpActive = false;
+        }, 5000);
+    }
+
+    /**
+     * Applies an invisibility effect temporarily
+     */
+    public applyInvisibilityEffect(): void {
+        if (!this.playerMesh) return;
+        
+        // Activate invisibility effect
+        this.invisibilityActive = true;
+        
+        // Reset after 10 seconds
+        setTimeout(() => {
+            this.invisibilityActive = false;
+        }, 10000);
+    }
+
+    /**
+     * Updates the invisibility effect
+     */
+    private updateInvisibilityEffect(): void {
+        if (!this.playerMesh) return;
+        
+        // Apply invisibility by adjusting material alpha
+        const material = this.playerMesh.material;
+        if (material && 'alpha' in material) {
+            if (this.invisibilityActive) {
+                (material as any).alpha = 0.3;
+            } else {
+                (material as any).alpha = 1.0;
+            }
+        }
     }
 
     /**

@@ -63,9 +63,71 @@ export class InventoryManager {
     /**
      * Uses an inventory item
      */
-    public static useInventoryItem(_itemName: string): boolean {
-        // This would implement item usage logic
-        // For now, just return true to indicate success
+    public static useInventoryItem(itemName: string): boolean {
+        const item = this.inventoryItems.get(itemName);
+        if (!item || item.count <= 0) {
+            return false;
+        }
+
+        // Apply item effect based on item name or effect type
+        const effectApplied = this.applyItemEffect(itemName, item);
+        
+        if (effectApplied) {
+            // Remove one item from inventory
+            this.removeItem(itemName, 1);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Applies the effect of an inventory item
+     */
+    private static applyItemEffect(itemName: string, item: InventoryItem): boolean {
+        if (!this.characterController) {
+            return false;
+        }
+
+        // Map item names to effects (this could be made more sophisticated)
+        const effectMap: Record<string, () => boolean> = {
+            'jump_collectible': () => this.applySuperJumpEffect(),
+            'invisibility_collectible': () => this.applyInvisibilityEffect(),
+            // Add more item effects as needed
+        };
+
+        const effectFunction = effectMap[itemName];
+        if (effectFunction) {
+            return effectFunction();
+        }
+
+        // Default effect - just return true for basic items
+        return true;
+    }
+
+    /**
+     * Applies super jump effect
+     */
+    private static applySuperJumpEffect(): boolean {
+        if (!this.characterController) {
+            return false;
+        }
+
+        // Apply temporary super jump boost
+        this.characterController.applySuperJumpEffect();
+        return true;
+    }
+
+    /**
+     * Applies invisibility effect
+     */
+    private static applyInvisibilityEffect(): boolean {
+        if (!this.characterController) {
+            return false;
+        }
+
+        // Apply temporary invisibility
+        this.characterController.applyInvisibilityEffect();
         return true;
     }
 
