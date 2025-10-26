@@ -248,13 +248,21 @@ declare global {
 
         class PhysicsCharacterController {
             constructor(position: Vector3, options: { capsuleHeight: number; capsuleRadius: number }, scene: Scene);
+            setPosition(position: Vector3): void;
+            getPosition(): Vector3;
+            setVelocity(velocity: Vector3): void;
+            getVelocity(): Vector3;
+            checkSupport(deltaTime: number, direction: Vector3): CharacterSurfaceInfo;
+            integrate(deltaTime: number, supportInfo: CharacterSurfaceInfo, gravity: Vector3): void;
+            pausePhysics(): void;
+            resumePhysics(): void;
         }
 
-        class Quaternion {
-            constructor(x: number, y: number, z: number, w: number);
-            static FromEulerAngles(x: number, y: number, z: number): Quaternion;
-            static FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
+        interface CharacterSurfaceInfo {
+            isSupported: boolean;
+            normal: Vector3;
         }
+
 
         class Scalar {
             static Clamp(value: number, min: number, max: number): number;
@@ -364,6 +372,7 @@ declare global {
         y: number;
         z: number;
         w: number;
+        static FromEulerAngles(x: number, y: number, z: number): Quaternion;
         static FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
     }
 
