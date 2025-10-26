@@ -510,6 +510,28 @@ const ASSETS = {
                 }
             ]
         },
+               {
+            name: "Dystopia",
+            model: "https://raw.githubusercontent.com/EricEisaman/assets/main/environment/dystopia.glb",
+            lightmap: "",
+            scale: 2,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(3, 0, 31),
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(83, 11.4, -156.5), // Fire on top of building 
+                    updateSpeed: 0.007
+                }
+            ]
+        },
         {
             name: "Firefox Reality",
             model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/firefoxReality/firefox_reality.glb",
