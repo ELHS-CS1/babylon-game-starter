@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation && targetAnimationName) {
+        if (!this.currentAnimation) {
             this.startAnimation(targetAnimationName);
             return;
         }
@@ -112,7 +112,7 @@ export class AnimationController {
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName && animationName.toLowerCase().includes('idle')) {
+            if (animationName?.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
