@@ -16,7 +16,7 @@ export class SceneManager {
     private smoothFollowController: SmoothFollowCameraController | null = null;
     private currentEnvironment: string = "Level Test"; // Track current environment
 
-    constructor(engine: BABYLON.Engine, canvas: HTMLCanvasElement) {
+    constructor(engine: BABYLON.Engine, _canvas: HTMLCanvasElement) {
         this.scene = new BABYLON.Scene(engine);
         this.camera = new BABYLON.TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
         
@@ -32,7 +32,7 @@ export class SceneManager {
     }
 
     private setupLighting(): void {
-        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+        new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
     }
 
     private setupPhysics(): void {
@@ -62,7 +62,7 @@ export class SceneManager {
         }
     }
 
-    public getScene(): any {
+    public getScene(): BABYLON.Scene {
         return this.scene;
     }
 

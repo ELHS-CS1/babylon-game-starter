@@ -33,9 +33,9 @@ export interface EffectsConfig {
 }
 
 export interface ItemInstance {
-    readonly position: any;
+    readonly position: BABYLON.Vector3;
     readonly scale: number;
-    readonly rotation: any;
+    readonly rotation: BABYLON.Vector3;
     readonly mass: number;
 }
 

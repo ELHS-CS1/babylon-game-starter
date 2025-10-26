@@ -121,7 +121,7 @@ export interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: string[];
-    readonly onChange?: (value: boolean | string) => void | Promise<void>;
+    readonly onChange?: (_value: boolean | string) => void | Promise<void>;
 }
 
 export type UIElementType = "toggle" | "dropdown";

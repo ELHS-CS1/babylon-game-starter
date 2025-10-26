@@ -40,7 +40,7 @@ export interface SettingsSection {
     readonly visibility: VisibilityType;
     readonly defaultValue?: boolean | string;
     readonly options?: string[]; // For dropdown elements
-    readonly onChange?: (value: boolean | string) => void | Promise<void>;
+    readonly onChange?: (_value: boolean | string) => void | Promise<void>;
 }
 
 export interface SettingsConfig {

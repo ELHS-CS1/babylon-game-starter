@@ -3,7 +3,7 @@
 // ============================================================================
 
 export type ItemEffect = {
-    readonly [K in ItemEffectKind]: (characterController: CharacterController) => void;
+    readonly [K in ItemEffectKind]: (_characterController: CharacterController) => void;
 };
 
 export interface CharacterAnims {

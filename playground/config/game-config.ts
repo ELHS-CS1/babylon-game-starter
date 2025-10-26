@@ -4,29 +4,12 @@
 
 import type { 
     GameConfig, 
-    CharacterConfig,
-    CameraConfig, 
-    PhysicsConfig, 
-    AnimationConfig, 
-    DebugConfig,
-    EffectsConfig,
-    HUDConfig,
-    HUDPosition,
-    SettingsConfig,
-    InventoryConfig
+    HUDPosition
 } from '../types/config';
 import { ASSETS } from './assets';
 
-// Forward declarations for classes that will be imported later
-declare class MobileInputManager {
-    static setVisibility(visible: boolean): void;
-}
-
-declare class SettingsUI {
-    static isInitializing: boolean;
-    static changeCharacter(characterName: string): Promise<void>;
-    static changeEnvironment(environmentName: string): Promise<void>;
-}
+import { MobileInputManager } from '../input/MobileInputManager';
+import { SettingsUI } from '../ui/SettingsUI';
 
 export const CONFIG: GameConfig = {
     // Character Settings

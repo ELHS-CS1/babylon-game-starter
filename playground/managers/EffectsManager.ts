@@ -105,7 +105,7 @@ export class EffectsManager {
                     s.maxDistance = (cfg.maxDistance ?? 40);
                 }
                 this.ambientSounds.push(s);
-            } catch (e) {
+            } catch (_e) {
             }
         }
     }
@@ -172,7 +172,7 @@ export class EffectsManager {
             }
 
             return particleSystem;
-        } catch (error) {
+        } catch (_error) {
             return null;
         }
     }
@@ -217,7 +217,7 @@ export class EffectsManager {
      * @param particleSystem The particle system to categorize
      * @param category The category of the particle snippet
      */
-    private static categorizeParticleSystem(name: string, particleSystem: any, category: ParticleSnippet['category']): void {
+    private static categorizeParticleSystem(name: string, particleSystem: BABYLON.IParticleSystem, _category: ParticleSnippet['category']): void {
         // Environment particles are typically ambient, atmospheric, or background effects
         if (name.includes("ENVIRONMENT")) {
             this.environmentParticleSystems.set(name, particleSystem);
@@ -304,7 +304,7 @@ export class EffectsManager {
      * @param name The name for the particle system
      * @param particleSystem The particle system to add
      */
-    public static addParticleSystem(name: string, particleSystem: any): void {
+    public static addParticleSystem(name: string, particleSystem: BABYLON.IParticleSystem): void {
         this.activeParticleSystems.set(name, particleSystem);
     }
 
@@ -313,7 +313,7 @@ export class EffectsManager {
      * @param name The name for the particle system
      * @param particleSystem The particle system to add
      */
-    public static addEnvironmentParticleSystem(name: string, particleSystem: any): void {
+    public static addEnvironmentParticleSystem(name: string, particleSystem: BABYLON.IParticleSystem): void {
         this.activeParticleSystems.set(name, particleSystem);
         this.environmentParticleSystems.set(name, particleSystem);
     }
@@ -323,7 +323,7 @@ export class EffectsManager {
      * @param name The name for the particle system
      * @param particleSystem The particle system to add
      */
-    public static addItemParticleSystem(name: string, particleSystem: any): void {
+    public static addItemParticleSystem(name: string, particleSystem: BABYLON.IParticleSystem): void {
         this.activeParticleSystems.set(name, particleSystem);
         this.itemParticleSystems.set(name, particleSystem);
     }
@@ -360,7 +360,7 @@ export class EffectsManager {
      * Gets all active particle systems
      * @returns Map of active particle systems
      */
-    public static getActiveParticleSystems(): Map<string, any> {
+    public static getActiveParticleSystems(): Map<string, BABYLON.IParticleSystem> {
         return new Map(this.activeParticleSystems);
     }
 
@@ -397,7 +397,7 @@ export class EffectsManager {
      * @param soundName Name of the sound effect to create
      * @returns The created sound or null if not found
      */
-    public static async createSound(soundName: string): Promise<any | null> {
+    public static async createSound(soundName: string): Promise<BABYLON.Sound | null> {
         if (!this.scene) {
             return null;
         }
@@ -421,7 +421,7 @@ export class EffectsManager {
             this.activeSounds.set(soundName, sound);
 
             return sound;
-        } catch (error) {
+        } catch (_error) {
             return null;
         }
     }
@@ -453,7 +453,7 @@ export class EffectsManager {
      * @param soundName Name of the sound effect
      * @returns The sound or null if not found
      */
-    public static getSound(soundName: string): any | null {
+    public static getSound(soundName: string): BABYLON.Sound | null {
         return this.activeSounds.get(soundName) || null;
     }
 

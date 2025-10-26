@@ -94,6 +94,7 @@ declare global {
             cross(other: Vector3): Vector3;
             applyRotationQuaternion(quaternion: Quaternion): Vector3;
             rotateByQuaternionToRef(quaternion: Quaternion, result: Vector3): Vector3;
+            set(x: number, y: number, z: number): void;
         }
 
         interface Quaternion {
@@ -277,6 +278,8 @@ declare global {
 
         class MeshBuilder {
             static CreateCapsule(name: string, options: { height: number; radius: number }, scene: Scene): AbstractMesh;
+            static CreateSphere(name: string, options: { diameter: number; segments: number }, scene: Scene): Mesh;
+            static CreateBox(name: string, options: { size: number }, scene: Scene): Mesh;
         }
 
         class ParticleHelper {
@@ -287,6 +290,36 @@ declare global {
             constructor(name: string, scene: Scene);
         }
 
+        class Mesh extends AbstractMesh {
+            material: Material | null;
+            dispose(): void;
+        }
+
+        class Material {
+            dispose(): void;
+        }
+
+        class StandardMaterial extends Material {
+            constructor(name: string, scene: Scene);
+            backFaceCulling: boolean;
+            diffuseTexture: Texture | null;
+            disableLighting: boolean;
+            emissiveTexture: Texture | null;
+            emissiveColor: Color3;
+        }
+
+        class Texture {
+            constructor(url: string, scene: Scene);
+            level: number;
+            coordinatesMode: number;
+            dispose(): void;
+            static readonly SKYBOX_MODE: number;
+        }
+
+        class Color3 {
+            constructor(r: number, g: number, b: number);
+        }
+
         class NodeMaterial {
             constructor(name: string, scene: Scene);
             static ParseFromSnippetAsync(snippetId: string, scene: Scene): Promise<NodeMaterial>;
@@ -294,6 +327,21 @@ declare global {
 
         // Import utilities
         function ImportMeshAsync(meshNames: string, rootUrl: string, sceneFilename: string, scene: Scene): Promise<{ meshes: AbstractMesh[]; particleSystems: IParticleSystem[]; skeletons: any[]; animationGroups: AnimationGroup[] }>;
+    }
+
+    // Forward declaration for SceneManager
+    interface SceneManager {
+        changeCharacter(characterIndexOrName: number | string): void;
+        pausePhysics(): void;
+        clearEnvironment(): void;
+        clearItems(): void;
+        clearParticles(): void;
+        loadEnvironment(environmentName: string): Promise<void>;
+        setupEnvironmentItems(): Promise<void>;
+        repositionCharacter(): void;
+        forceActivateSmoothFollow(): void;
+        resumePhysics(): void;
+        getCurrentEnvironment(): string;
     }
 }
 

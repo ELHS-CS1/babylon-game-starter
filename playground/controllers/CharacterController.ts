@@ -13,15 +13,7 @@ import { ASSETS } from '../config/assets';
 import { AnimationController } from './AnimationController';
 import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
-// Forward declaration for MobileInputManager
-declare class MobileInputManager {
-    static initialize(canvas: HTMLCanvasElement): void;
-    static getInputDirection(): BABYLON.Vector3;
-    static getWantJump(): boolean;
-    static getWantBoost(): boolean;
-    static isMobileActive(): boolean;
-    static dispose(): void;
-}
+import { MobileInputManager } from '../input/MobileInputManager';
 
 export class CharacterController {
     private readonly scene: BABYLON.Scene;

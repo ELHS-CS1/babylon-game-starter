@@ -23,7 +23,7 @@ export interface PhysicsObject {
 
 export interface EnvironmentParticle {
     readonly name: string; // Name of the particle snippet to use
-    readonly position: any; // Position where the particle should be created
+    readonly position: BABYLON.Vector3; // Position where the particle should be created
     readonly updateSpeed?: number; // Optional update speed for the particle system
 }
 
@@ -35,7 +35,7 @@ export interface BackgroundMusicConfig {
 export interface AmbientSoundConfig {
     readonly url: string;
     readonly volume: number;
-    readonly position: any;
+    readonly position: BABYLON.Vector3;
     readonly rollOff?: number; // Defaults to 2
     readonly maxDistance?: number; // Defaults to 40
 }
@@ -48,7 +48,7 @@ export interface Environment {
     readonly lightmappedMeshes: readonly LightmappedMesh[];
     readonly physicsObjects: readonly PhysicsObject[];
     readonly sky?: SkyConfig; // Optional sky configuration for this environment
-    readonly spawnPoint: any; // Spawn point for this environment
+    readonly spawnPoint: BABYLON.Vector3; // Spawn point for this environment
     readonly particles?: readonly EnvironmentParticle[]; // Optional environment particles
     readonly items?: readonly ItemConfig[]; // Optional items configuration for this environment
     readonly backgroundMusic?: BackgroundMusicConfig; // Optional looping non-positional BGM
@@ -78,9 +78,9 @@ export interface ItemConfig {
 }
 
 export interface ItemInstance {
-    readonly position: any;
+    readonly position: BABYLON.Vector3;
     readonly scale: number;
-    readonly rotation: any;
+    readonly rotation: BABYLON.Vector3;
     readonly mass: number;
 }
 
