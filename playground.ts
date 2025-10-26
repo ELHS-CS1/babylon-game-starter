@@ -3489,48 +3489,12 @@ class CollectiblesManager {
 
                 }
 
-            } else {
-                console.warn("No meshes with geometry found in item model, creating fallback");
-                this.createFallbackInstanceBasis();
             }
         } catch (error) {
             console.error("Failed to load item model:", error);
-
-            this.createFallbackInstanceBasis();
         }
     }
 
-    /**
-     * Creates a fallback instance basis using a simple box
-     */
-    private static createFallbackInstanceBasis(): void {
-        if (!this.scene) return;
-
-        // Create a fallback item using a simple box - CAST TO MESH!
-        this.instanceBasis = BABYLON.MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene) as BABYLON.Mesh; // Larger size
-
-        // Create a bright baby blue material to make it very visible
-        const material = new BABYLON.StandardMaterial("fallback_item_basis_material", this.scene);
-        material.diffuseColor = new BABYLON.Color3(0.5, 0.8, 1); // Baby blue
-        material.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.3); // Subtle blue glow
-        material.specularColor = new BABYLON.Color3(1, 1, 1); // Shiny
-        this.instanceBasis.material = material;
-
-        // Instance basis should not be scaled - scaling will be applied to individual instances
-
-        // Make the instance basis invisible and disable it in the scene
-        this.instanceBasis.isVisible = false;
-        this.instanceBasis.setEnabled(false);
-
-        // Create reusable physics shape for fallback items
-        this.physicsShape = new BABYLON.PhysicsShapeBox(
-            BABYLON.Vector3.Zero(), // Center - use static zero
-            BABYLON.Quaternion.Identity(), // Rotation - use static identity
-            BABYLON.Vector3.One(), // Size - use static one
-            this.scene
-        );
-
-    }
 
     /**
      * Creates a collectible instance from the instance basis

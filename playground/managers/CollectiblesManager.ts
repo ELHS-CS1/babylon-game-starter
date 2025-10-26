@@ -11,7 +11,7 @@ export class CollectiblesManager {
     private static scene: BABYLON.Scene | null = null;
     private static characterController: CharacterController | null = null;
     private static collectibles: Map<string, BABYLON.AbstractMesh> = new Map();
-    private static collectibleBodies: Map<string, BABYLON.PhysicsBody> = new Map();
+    private static collectibleBodies: Map<string, BABYLON.PhysicsAggregate> = new Map();
     private static collectionSound: BABYLON.Sound | null = null;
     private static totalCredits: number = 0;
     private static collectionObserver: BABYLON.Observer<BABYLON.Scene> | null = null;
@@ -42,9 +42,15 @@ export class CollectiblesManager {
             return;
         }
 
-        // Clear any existing state
+        // Remove all collectibles (like playground.ts)
+        for (const [id, mesh] of this.collectibles.entries()) {
+            this.removeCollectible(id);
+        }
+
+        // Clear collections but keep manager initialized
         this.collectibles.clear();
         this.collectibleBodies.clear();
+        this.itemConfigs.clear();
         this.collectedItems.clear();
 
         // Create collection sound if not already created
@@ -96,6 +102,11 @@ export class CollectiblesManager {
             return;
         }
 
+        // Only load if we don't have an instanceBasis yet
+        if (this.instanceBasis) {
+            return;
+        }
+
         try {
             const result = await BABYLON.ImportMeshAsync(itemConfig.url, this.scene);
 
@@ -127,10 +138,31 @@ export class CollectiblesManager {
                 // Make the instance basis invisible and disable it in the scene
                 this.instanceBasis.isVisible = false;
                 this.instanceBasis.setEnabled(false);
+            } else {
+                this.createFallbackInstanceBasis();
             }
         } catch (_error) {
-            // Ignore item loading errors for playground compatibility
+            this.createFallbackInstanceBasis();
         }
+    }
+
+    /**
+     * Creates a fallback instance basis using a simple box
+     */
+    private static createFallbackInstanceBasis(): void {
+        if (!this.scene) return;
+
+        // Create a fallback item using a simple box
+        this.instanceBasis = BABYLON.MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene);
+
+        // Create a bright baby blue material to make it very visible
+        const material = new BABYLON.StandardMaterial("fallback_item_basis_material", this.scene);
+        material.emissiveColor = new BABYLON.Color3(0.5, 0.8, 1); // Baby blue
+        this.instanceBasis.material = material;
+
+        // Make the instance basis invisible and disable it in the scene
+        this.instanceBasis.isVisible = false;
+        this.instanceBasis.setEnabled(false);
     }
 
     /**
@@ -172,7 +204,7 @@ export class CollectiblesManager {
 
             // Store references
             this.collectibles.set(id, meshInstance);
-            this.collectibleBodies.set(id, physicsAggregate.body);
+            this.collectibleBodies.set(id, physicsAggregate);
 
             // Store the item config for this collectible
             this.itemConfigs.set(id, itemConfig);
@@ -362,28 +394,35 @@ export class CollectiblesManager {
     }
 
     /**
+     * Removes a collectible from the scene
+     */
+    private static removeCollectible(collectibleId: string): void {
+        const mesh = this.collectibles.get(collectibleId);
+
+        if (mesh) {
+            // Dispose physics body if it exists (using physicsImpostor like playground.ts)
+            if ((mesh as any).physicsImpostor) {
+                (mesh as any).physicsImpostor.dispose();
+            }
+            mesh.dispose();
+            this.collectibles.delete(collectibleId);
+        }
+    }
+
+    /**
      * Clears all collectibles
      */
     public static clearCollectibles(): void {
-        // Dispose all collectible meshes
-        this.collectibles.forEach(mesh => {
-            mesh.dispose();
-        });
+        // Remove all collectibles
+        for (const [id, mesh] of this.collectibles.entries()) {
+            this.removeCollectible(id);
+        }
+
+        // Clear collections but keep manager initialized
         this.collectibles.clear();
-        
-        // Dispose all physics bodies
-        this.collectibleBodies.forEach(body => {
-            if (body) {
-                body.dispose();
-            }
-        });
         this.collectibleBodies.clear();
-        
-        // Clear collected items tracking
-        this.collectedItems.clear();
-        
-        // Clear item configs
         this.itemConfigs.clear();
+        this.collectedItems.clear();
         
         // Stop and dispose any active particle systems from collection effects
         this.particleSystemPool.forEach(ps => {
@@ -392,11 +431,8 @@ export class CollectiblesManager {
         });
         this.particleSystemPool.length = 0;
         
-        // Dispose the instance basis mesh
-        if (this.instanceBasis) {
-            this.instanceBasis.dispose();
-            this.instanceBasis = null;
-        }
+        // Keep the instance basis mesh for reuse (don't dispose it)
+        // The instanceBasis will be reused for creating new instances
         
         // Remove collision detection observer
         if (this.collectionObserver) {
@@ -437,6 +473,12 @@ export class CollectiblesManager {
         // Dispose particle system pool
         this.particleSystemPool.forEach(ps => ps.dispose());
         this.particleSystemPool.length = 0;
+
+        // Dispose the instance basis mesh
+        if (this.instanceBasis) {
+            this.instanceBasis.dispose();
+            this.instanceBasis = null;
+        }
 
         this.scene = null;
         this.characterController = null;

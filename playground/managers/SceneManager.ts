@@ -286,6 +286,9 @@ export class SceneManager {
 
             // Update current environment tracking
             this.currentEnvironment = environmentName;
+            
+            // Set up environment items for the new environment
+            await this.setupEnvironmentItems();
         } catch (_error) {
             // Ignore environment loading errors for playground compatibility
         }
