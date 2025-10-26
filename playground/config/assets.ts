@@ -1,0 +1,336 @@
+// ============================================================================
+// ASSETS CONFIGURATION
+// ============================================================================
+
+import type { Character } from '../types/character';
+import type { Environment } from '../types/environment';
+import type { SkyType } from '../types/effects';
+import { OBJECT_ROLE } from '../types/environment';
+
+export const ASSETS = {
+    CHARACTERS: [
+        {
+            name: "Red",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/amongUs/red.glb",
+            animations: {
+                idle: "idle",
+                walk: "walk",
+                jump: "jump",
+            },
+            scale: 1,
+            mass: 1.0, // Standard weight
+            height: 1.8,
+            radius: 0.6,
+            speed: {
+                inAir: 25.0,
+                onGround: 25.0,
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 2.0,
+            rotationSpeed: 0.05, // radians
+            rotationSmoothing: 0.2,
+            animationBlend: 200,
+            jumpDelay: 200
+        },
+        {
+            name: "Tech Girl",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/techGirl/tech_girl_2.glb",
+            animations: {
+                idle: "idle",
+                walk: "run",
+                jump: "jump"
+            },
+            scale: 1.3,
+            mass: 0.8, // Lighter weight for agile character
+            height: 1.8,
+            radius: 0.6,
+            speed: {
+                inAir: 30.0, // Faster in air
+                onGround: 30.0, // Faster on ground
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 2.5, // Higher jumps
+            rotationSpeed: 0.06, // Faster rotation
+            rotationSmoothing: 0.15, // Less smoothing for more responsive feel
+            animationBlend: 200,
+            jumpDelay: 200
+        },
+        {
+            name: "Zombie",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/zombie/zombie_2.glb",
+            animations: {
+                idle: "Idle",
+                walk: "Run_InPlace",
+                jump: "Jump"
+            },
+            scale: 1.35,
+            mass: 1.5, // Heavier weight for zombie character
+            height: 2.0,
+            radius: 0.6,
+            speed: {
+                inAir: 20.0, // Slower in air
+                onGround: 20.0, // Slower on ground
+                boostMultiplier: 8.0
+            },
+            jumpHeight: 2.5, // Lower jumps
+            rotationSpeed: 0.04, // Slower rotation
+            rotationSmoothing: 0.25, // More smoothing for sluggish feel
+            animationBlend: 200,
+            jumpDelay: 200
+        },
+        {
+            name: "Hulk",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/characters/hulk/hulk.glb",
+            animations: {
+                idle: "idle",
+                walk: "run",
+                jump: "jump"
+            },
+            scale: 2.0,
+            mass: 2.2,
+            height: 3.0,
+            radius: 1.2,
+            speed: {
+                inAir: 30.0,
+                onGround: 20.0, // Slower on ground
+                boostMultiplier: 15.0
+            },
+            jumpHeight: 11, // Lower jumps
+            rotationSpeed: 0.04, // Slower rotation
+            rotationSmoothing: 0.25, // More smoothing for sluggish feel
+            animationBlend: 200,
+            jumpDelay: 200
+        }
+    ] as readonly Character[],
+    ENVIRONMENTS: [
+        {
+            name: "Level Test",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/levelTest/levelTest.glb",
+            lightmap: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/levelTest/lightmap.jpg",
+            scale: 1,
+            lightmappedMeshes: [
+                { name: "level_primitive0", level: 1.6 },
+                { name: "level_primitive1", level: 1.6 },
+                { name: "level_primitive2", level: 1.6 }
+            ],
+            physicsObjects: [
+                { name: "Cube", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.001", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.002", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.003", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.004", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.005", mass: 0.1, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX },
+                { name: "Cube.006", mass: 0.01, scale: 1, role: OBJECT_ROLE.PIVOT_BEAM },
+                { name: "Cube.007", mass: 0, scale: 1, role: OBJECT_ROLE.DYNAMIC_BOX }
+            ],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/cartoon-river-with-orange-sky.jpg",
+                ROTATION_Y: 0,
+                BLUR: 0.3,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(3, 0.5, -8),
+            backgroundMusic: {
+                url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/bgm/CosmicWhispers.mp3",
+                volume: 0.03
+            },
+            ambientSounds: [
+                {
+                    url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/ambience/space-ambience.mp3",
+                    volume: 0.2,
+                    position: new BABYLON.Vector3(-2, 1, -6),
+                    rollOff: 2,
+                    maxDistance: 40
+                }
+            ],
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(-2, 0, -8), // Left of player start
+                    updateSpeed: 0.007
+                }
+            ],
+            items: [
+                {
+                    name: "Crate",
+                    url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/stylized_crate_asset.glb",
+                    collectible: true,
+                    creditValue: 100,
+                    minImpulseForCollection: 0.5,
+                    instances: [
+                        {
+                            position: new BABYLON.Vector3(1, 0.5, -8),
+                            scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        },
+                        {
+                            position: new BABYLON.Vector3(5, 0.5, -8),
+                            scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        },
+                        {
+                            position: new BABYLON.Vector3(0, 0.5, -5),
+                            scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        },
+                        {
+                            position: new BABYLON.Vector3(1, 0.5, -11),
+                            scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        },
+                        {
+                            position: new BABYLON.Vector3(5, 3.5, -11),
+                            scale: 0.5,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        }
+                    ]
+                },
+                {
+                    name: "Super Jump",
+                    url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/jump_collectible.glb",
+                    collectible: true,
+                    creditValue: 50,
+                    minImpulseForCollection: 0.5,
+                    inventory: true,
+                    thumbnail: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/thumbnails/jump_collectible_thumb.webp",
+                    itemEffectKind: "superJump",
+                    instances: [
+                        {
+                            position: new BABYLON.Vector3(-4, 0.5, -8),
+                            scale: 0.01,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        }
+                    ]
+                },
+                {
+                    name: "Invisibility",
+                    url: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/items/invisibility_collectible.glb",
+                    collectible: true,
+                    creditValue: 50,
+                    minImpulseForCollection: 0.5,
+                    inventory: true,
+                    thumbnail: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/thumbnails/invisibility_collectible_thumb.webp",
+                    itemEffectKind: "invisibility",
+                    instances: [
+                        {
+                            position: new BABYLON.Vector3(6, 0.5, -5),
+                            scale: 0.01,
+                            rotation: new BABYLON.Vector3(0, 0, 0),
+                            mass: 0.5
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Flat City",
+            model: "https://raw.githubusercontent.com/EricEisaman/assets/main/environment/city-flat.glb",
+            lightmap: "",
+            scale: 1.0,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(89, 15, -161.5),
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(83, 11.4, -156.5), // Fire on top of building 
+                    updateSpeed: 0.007
+                }
+            ]
+        },
+        {
+            name: "Dystopia",
+            model: "https://raw.githubusercontent.com/EricEisaman/assets/main/environment/dystopia.glb",
+            lightmap: "",
+            scale: 2,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(3, 0, 31),
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(83, 11.4, -156.5), // Fire on top of building 
+                    updateSpeed: 0.007
+                }
+            ]
+        },
+        {
+            name: "Firefox Reality",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/firefoxReality/firefox_reality.glb",
+            lightmap: "",
+            scale: 1.5,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/orange-desert-night.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(0, 5, 0) // Higher spawn point for Firefox Reality
+        },
+        {
+            name: "Joy Town",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/joyTown/joy_town.glb",
+            lightmap: "",
+            scale: 10,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(-15, 15, 0)
+        },
+        {
+            name: "Mansion",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/mansion/mansion.glb",
+            lightmap: "",
+            scale: 10,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(0, 15, -20)
+        },
+        {
+            name: "Island Town",
+            model: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/models/environments/islandTown/island_town.glb",
+            lightmap: "",
+            scale: 5,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(0, 77, -20)
+        }
+    ] as readonly Environment[]
+} as const;
