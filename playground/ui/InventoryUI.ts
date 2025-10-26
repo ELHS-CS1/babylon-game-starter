@@ -5,12 +5,7 @@
 
 import { CONFIG } from '../config/game-config';
 import type { SceneManager } from '../managers/SceneManager';
-
-// Forward declaration for InventoryManager
-declare class InventoryManager {
-    static getInventoryItems(): Map<string, { count: number; thumbnail: string }>;
-    static useInventoryItem(_itemName: string): boolean;
-}
+import { InventoryManager } from '../managers/InventoryManager';
 
 export class InventoryUI {
     private static inventoryButton: HTMLDivElement | null = null;

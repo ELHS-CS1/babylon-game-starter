@@ -27,6 +27,7 @@ export class SceneManager {
     private characterController: CharacterController | null = null;
     private smoothFollowController: SmoothFollowCameraController | null = null;
     private currentEnvironment: string = "Level Test"; // Track current environment
+    private readonly zeroVector = new BABYLON.Vector3(0, 0, 0);
 
     constructor(engine: BABYLON.Engine, _canvas: HTMLCanvasElement) {
         this.scene = new BABYLON.Scene(engine);
@@ -86,10 +87,10 @@ export class SceneManager {
         this.smoothFollowController.forceActivateSmoothFollow();
     }
 
-    private loadCharacterModel(): void {
-        // Load the first character from the CHARACTERS array
-        const character = ASSETS.CHARACTERS[0];
-        this.loadCharacter(character);
+    private loadCharacterModel(character?: Character): void {
+        // Load the specified character or the first character from the CHARACTERS array
+        const characterToLoad = character ?? ASSETS.CHARACTERS[0];
+        this.loadCharacter(characterToLoad);
     }
 
     private loadCharacter(character: Character): void {
@@ -405,6 +406,20 @@ export class SceneManager {
         }
     }
 
+    public changeCharacter(characterIndexOrName: number | string): void {
+        // Find character by index or name
+        let character;
+        if (typeof characterIndexOrName === 'number') {
+            character = ASSETS.CHARACTERS[characterIndexOrName];
+        } else {
+            character = ASSETS.CHARACTERS.find(c => c.name === characterIndexOrName);
+        }
+
+        if (character) {
+            this.loadCharacterModel(character);
+        }
+    }
+
     public clearEnvironment(): void {
         // Clear all environment-related meshes
         const environmentMeshes = this.scene.meshes.filter(mesh => 
@@ -452,6 +467,20 @@ export class SceneManager {
     public resumePhysics(): void {
         if (this.characterController) {
             this.characterController.resumePhysics();
+        }
+    }
+
+    public isPhysicsPaused(): boolean {
+        return this.characterController?.isPhysicsPaused() ?? false;
+    }
+
+    public resetToStartPosition(): void {
+        if (this.characterController) {
+            const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+            const spawnPoint = environment?.spawnPoint ?? this.zeroVector;
+            this.characterController.setPosition(spawnPoint);
+            this.characterController.setVelocity(this.zeroVector);
+            this.characterController.resetInputDirection();
         }
     }
 

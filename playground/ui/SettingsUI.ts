@@ -6,20 +6,7 @@
 import { CONFIG } from '../config/game-config';
 import { ASSETS } from '../config/assets';
 import type { SettingsSection, VisibilityType } from '../types/ui';
-// Forward declaration for SceneManager
-interface SceneManager {
-    changeCharacter(_characterIndexOrName: number | string): void;
-    pausePhysics(): void;
-    clearEnvironment(): void;
-    clearItems(): void;
-    clearParticles(): void;
-    loadEnvironment(_environmentName: string): Promise<void>;
-    setupEnvironmentItems(): Promise<void>;
-    repositionCharacter(): void;
-    forceActivateSmoothFollow(): void;
-    resumePhysics(): void;
-    getCurrentEnvironment(): string;
-}
+import type { SceneManager } from '../managers/SceneManager';
 
 export class SettingsUI {
     private static settingsButton: HTMLDivElement | null = null;

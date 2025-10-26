@@ -9,6 +9,7 @@ export interface InventoryItem {
     count: number;
     maxCount: number;
     effect?: string;
+    thumbnail: string;
 }
 
 export class InventoryManager {
@@ -30,7 +31,7 @@ export class InventoryManager {
     /**
      * Adds an item to the inventory
      */
-    public static addItem(itemName: string, count: number = 1): void {
+    public static addItem(itemName: string, count: number = 1, thumbnail: string = ''): void {
         const existingItem = this.inventoryItems.get(itemName);
         if (existingItem) {
             existingItem.count = Math.min(existingItem.count + count, existingItem.maxCount);
@@ -38,7 +39,8 @@ export class InventoryManager {
             this.inventoryItems.set(itemName, {
                 name: itemName,
                 count: count,
-                maxCount: 10 // Default max count
+                maxCount: 10, // Default max count
+                thumbnail: thumbnail
             });
         }
     }
