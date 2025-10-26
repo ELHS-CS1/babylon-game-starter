@@ -42,27 +42,8 @@ export class CollectiblesManager {
             return;
         }
 
-        // Remove all collectibles (like playground.ts)
-        for (const [id, mesh] of this.collectibles.entries()) {
-            this.removeCollectible(id);
-        }
-
-        // Clear collections but keep manager initialized
-        this.collectibles.clear();
-        this.collectibleBodies.clear();
-        this.itemConfigs.clear();
-        this.collectedItems.clear();
-
-        // Create collection sound if not already created
-        if (!this.collectionSound && this.scene) {
-            this.collectionSound = new BABYLON.Sound(
-                "collectionSound",
-                "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/sounds/effects/collect.m4a",
-                this.scene,
-                undefined,
-                { volume: 0.7 }
-            );
-        }
+        // Clear existing collectibles (dispose instances and instanceBasis)
+        this.clearCollectibles();
 
         // Set up collectibles for this environment
         await this.setupCollectiblesForEnvironment(environment);
@@ -72,26 +53,53 @@ export class CollectiblesManager {
      * Sets up collectibles for a specific environment
      */
     private static async setupCollectiblesForEnvironment(environment: Environment): Promise<void> {
-        if (!environment.items) {
+        if (!this.scene || !environment.items) {
             return;
         }
 
-        for (const item of environment.items) {
-            if (item.collectible) {
-                // Load the item model first
-                await this.loadItemModel(item);
+        // Wait for physics to be properly initialized
+        await this.waitForPhysicsInitialization();
 
-                // Create instances for each collectible
-                for (let i = 0; i < item.instances.length; i++) {
-                    const instance = item.instances[i];
-                    const instanceId = `${item.name.toLowerCase()}_instance_${i + 1}`;
-                    await this.createCollectibleInstance(instanceId, instance, item);
+        // Create collection sound (using default sound for now)
+        this.collectionSound = new BABYLON.Sound(
+            "collectionSound",
+            "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/sounds/effects/collect.m4a",
+            this.scene,
+            undefined,
+            { volume: 0.7 }
+        );
+
+        // Iterate through all items in environment
+        for (const itemConfig of environment.items) {
+            // Only process collectible items
+            if (itemConfig.collectible) {
+                await this.loadItemModel(itemConfig);
+
+                // Create instances for this item
+                for (let i = 0; i < itemConfig.instances.length; i++) {
+                    const instance = itemConfig.instances[i];
+                    const instanceId = `${itemConfig.name.toLowerCase()}_instance_${i + 1}`;
+                    await this.createCollectibleInstance(instanceId, instance, itemConfig);
                 }
             }
         }
 
-        // Set up physics collision detection
+        // Set up collision detection
         this.setupCollisionDetection();
+    }
+
+    /**
+     * Waits for physics to be properly initialized
+     */
+    private static async waitForPhysicsInitialization(): Promise<void> {
+        if (!this.scene) return;
+
+        // Simple delay to allow physics to initialize
+        return new Promise<void>((resolve) => {
+            setTimeout(() => {
+                resolve();
+            }, 100);
+        });
     }
 
     /**
@@ -102,10 +110,6 @@ export class CollectiblesManager {
             return;
         }
 
-        // Only load if we don't have an instanceBasis yet
-        if (this.instanceBasis) {
-            return;
-        }
 
         try {
             const result = await BABYLON.ImportMeshAsync(itemConfig.url, this.scene);
@@ -412,8 +416,11 @@ export class CollectiblesManager {
         });
         this.particleSystemPool.length = 0;
         
-        // Keep the instance basis mesh for reuse (don't dispose it)
-        // The instanceBasis will be reused for creating new instances
+        // Dispose instance basis (like playground.ts)
+        if (this.instanceBasis) {
+            this.instanceBasis.dispose();
+            this.instanceBasis = null;
+        }
         
         // Remove collision detection observer
         if (this.collectionObserver) {

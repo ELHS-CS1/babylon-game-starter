@@ -457,13 +457,29 @@ export class SceneManager {
     }
 
     public clearItems(): void {
-        // Clear all collectible items and interactive objects
-        const itemMeshes = this.scene.meshes.filter(mesh => 
-            mesh.name.includes('collectible') || 
-            mesh.name.includes('item') ||
-            mesh.name.includes('pickup')
+        // Clear collectibles without disposing of the CollectiblesManager
+        CollectiblesManager.clearCollectibles();
+
+        // Also clear any other item meshes that might not be managed by CollectiblesManager
+        const itemMeshes = this.scene.meshes.filter(mesh =>
+            (mesh.name.startsWith("fallback_") ||
+                mesh.name.startsWith("crate_") ||
+                mesh.name.startsWith("item_") ||
+                mesh.name.includes("collectible") ||
+                mesh.name.includes("pickup") ||
+                mesh.name.includes("treasure") ||
+                mesh.name.includes("coin") ||
+                mesh.name.includes("gem") ||
+                mesh.name.includes("crystal")) &&
+            !mesh.name.includes("player") && // Don't clear player character
+            !mesh.name.includes("CharacterDisplay") // Don't clear character display capsule
         );
+
         itemMeshes.forEach(mesh => {
+            // Dispose physics body if it exists
+            if ((mesh as any).physicsImpostor) {
+                (mesh as any).physicsImpostor.dispose();
+            }
             mesh.dispose();
         });
     }
