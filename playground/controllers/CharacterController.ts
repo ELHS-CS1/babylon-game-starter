@@ -846,15 +846,17 @@ export class CharacterController {
     private updateInvisibilityEffect(): void {
         if (!this.playerMesh) return;
         
-        // Apply invisibility by adjusting material alpha
-        const material = this.playerMesh.material;
-        if (material && 'alpha' in material) {
-            if (this.invisibilityActive) {
-                (material as any).alpha = 0.3;
-            } else {
-                (material as any).alpha = 1.0;
+        // Apply invisibility by adjusting material alpha on main mesh AND all child meshes
+        const allMeshes = [this.playerMesh, ...this.playerMesh.getChildMeshes()];
+        allMeshes.forEach(mesh => {
+            if (mesh.material) {
+                if (this.invisibilityActive) {
+                    (mesh.material as any).alpha = 0.25;
+                } else {
+                    (mesh.material as any).alpha = 1.0;
+                }
             }
-        }
+        });
     }
 
     /**

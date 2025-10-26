@@ -269,6 +269,9 @@ export class CollectiblesManager {
             // Refresh inventory UI to show the new item
             InventoryUI.refreshInventory();
         }
+        
+        // ALWAYS update inventory button opacity after ANY collection
+        InventoryUI.updateInventoryButton();
 
         // Add credits
         this.totalCredits += itemConfig.creditValue;

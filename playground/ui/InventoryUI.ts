@@ -66,6 +66,9 @@ export class InventoryUI {
         `;
 
         document.body.appendChild(this.inventoryButton);
+        
+        // Set initial button state based on inventory
+        this.updateInventoryButton();
     }
 
     /**
@@ -379,6 +382,9 @@ export class InventoryUI {
             const inventoryItems = InventoryManager.getInventoryItems();
             const totalItems = Array.from(inventoryItems.values()).reduce((sum, item) => sum + item.count, 0);
 
+            // DEBUG: Log inventory count
+            console.log(`Inventory count: ${totalItems}`);
+
             // Always show the button
             this.inventoryButton.style.display = 'block';
 
@@ -390,10 +396,12 @@ export class InventoryUI {
 
                 // Update styling based on whether there are items
                 if (totalItems > 0) {
+                    console.log('Setting opacity to 1.0 - HAS ITEMS');
                     innerDiv.style.opacity = '1';
                     innerDiv.style.borderColor = 'rgba(255, 255, 255, 0.6)';
                     innerDiv.style.color = 'white';
                 } else {
+                    console.log('Setting opacity to 0.5 - NO ITEMS');
                     innerDiv.style.opacity = '0.5';
                     innerDiv.style.borderColor = 'rgba(255, 255, 255, 0.2)';
                     innerDiv.style.color = 'rgba(255, 255, 255, 0.5)';

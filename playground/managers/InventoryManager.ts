@@ -91,8 +91,8 @@ export class InventoryManager {
 
         // Map item names to effects (this could be made more sophisticated)
         const effectMap: Record<string, () => boolean> = {
-            'jump_collectible': () => this.applySuperJumpEffect(),
-            'invisibility_collectible': () => this.applyInvisibilityEffect(),
+            'Super Jump': () => this.applySuperJumpEffect(),
+            'Invisibility': () => this.applyInvisibilityEffect(),
             // Add more item effects as needed
         };
 
@@ -100,7 +100,7 @@ export class InventoryManager {
         if (effectFunction) {
             return effectFunction();
         }
-
+        
         // Default effect - just return true for basic items
         return true;
     }

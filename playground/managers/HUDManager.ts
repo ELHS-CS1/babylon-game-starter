@@ -13,7 +13,6 @@ export class HUDManager {
     private static characterController: CharacterController | null = null;
     private static startTime: number = 0;
     private static lastUpdateTime: number = 0;
-    private static updateInterval: number | null = null;
     private static fpsCounter: number = 0;
     private static fpsLastTime: number = 0;
     private static currentFPS: number = 0;
@@ -207,7 +206,12 @@ export class HUDManager {
      * Starts the HUD update loop
      */
     private static startUpdateLoop(): void {
-        this.updateInterval = window.setInterval(() => this.updateHUD(), CONFIG.HUD.UPDATE_INTERVAL);
+        // Use Babylon.js scene observable instead of setInterval
+        if (this.scene) {
+            this.scene.onBeforeRenderObservable.add(() => {
+                this.updateHUD();
+            });
+        }
     }
 
     /**
@@ -215,10 +219,6 @@ export class HUDManager {
      */
     private static updateHUD(): void {
         if (!this.scene || !this.characterController) return;
-
-        const currentTime = Date.now();
-        if (currentTime - this.lastUpdateTime < CONFIG.HUD.UPDATE_INTERVAL) return;
-        this.lastUpdateTime = currentTime;
 
         // Detect if this is a mobile device
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -352,11 +352,18 @@ export class HUDManager {
         const element = this.hudElements.get('boost');
         if (!element || !this.characterController) return;
 
-        const boostStatus = this.characterController.getBoostStatus();
+        const isBoosting = this.characterController.isBoosting();
         const boostValue = element.querySelector('#hud-boost-value') as HTMLElement;
         if (boostValue) {
-            boostValue.textContent = boostStatus;
-            boostValue.style.color = this.getBoostColor(boostStatus);
+            if (isBoosting) {
+                boostValue.textContent = 'ACTIVE';
+                boostValue.style.color = '#44ff44';
+                element.style.animation = 'pulse 0.5s ease-in-out infinite alternate';
+            } else {
+                boostValue.textContent = 'Inactive';
+                boostValue.style.color = '#ff4444';
+                element.style.animation = 'none';
+            }
         }
     }
 
@@ -437,10 +444,6 @@ export class HUDManager {
      * Disposes of the HUD
      */
     public static dispose(): void {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-        }
         
         if (this.hudContainer) {
             this.hudContainer.remove();
@@ -477,7 +480,6 @@ export class HUDManager {
         this.characterController = null;
         this.startTime = 0;
         this.lastUpdateTime = 0;
-        this.updateInterval = null;
         this.fpsCounter = 0;
         this.fpsLastTime = 0;
         this.currentFPS = 0;
