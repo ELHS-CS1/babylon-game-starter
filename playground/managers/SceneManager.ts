@@ -207,7 +207,7 @@ export class SceneManager {
         }
 
         // Clear existing environment particles before creating new ones
-        this.clearParticles();
+        EffectsManager.removeEnvironmentParticles();
         // Also clear ambient sounds before switching
         EffectsManager.removeAmbientSounds();
 
@@ -466,8 +466,26 @@ export class SceneManager {
     }
 
     public clearParticles(): void {
-        // Clear all particle systems
-        EffectsManager.removeAllParticleSystems();
+        // Remove only environment-related particle systems
+        EffectsManager.removeEnvironmentParticles();
+
+        // Remove only item-related particle systems  
+        EffectsManager.removeItemParticles();
+
+        // Also clear any unmanaged particle systems that might not be in EffectsManager
+        const particleSystems = this.scene.particleSystems;
+        const unmanagedParticleSystems = particleSystems.filter(ps =>
+            !ps.name.includes("PLAYER") &&
+            !ps.name.includes("player") &&
+            !ps.name.includes("character") &&
+            !ps.name.includes("thruster") &&
+            !ps.name.includes("boost")
+        );
+
+        unmanagedParticleSystems.forEach(ps => {
+            ps.stop();
+            ps.dispose();
+        });
     }
 
     public repositionCharacter(): void {

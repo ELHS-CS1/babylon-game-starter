@@ -254,6 +254,7 @@ declare global {
         class Scene {
             constructor(engine: Engine);
             dispose(): void;
+            particleSystems: IParticleSystem[];
         }
 
         class TargetCamera {
