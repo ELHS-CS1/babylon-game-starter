@@ -103,12 +103,10 @@ export class AnimationController {
         let animation = this.scene.getAnimationGroupByName(animationName);
 
         // If not found, try to find it by partial name match
-        if (!animation) {
-            animation ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
-                anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
-                animationName.toLowerCase().includes(anim.name.toLowerCase())
-            ) ?? null;
-        }
+        animation ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
+            animationName.toLowerCase().includes(anim.name.toLowerCase())
+        ) ?? null;
 
         // If still not found, try common fallbacks
         if (!animation) {
@@ -160,12 +158,10 @@ export class AnimationController {
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
-        if (!targetAnim) {
-            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
-                anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
-                targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            ) ?? null;
-        }
+        targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
+            targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
+        ) ?? null;
 
         // If still not found, try common fallbacks
         if (!targetAnim) {
@@ -208,12 +204,10 @@ export class AnimationController {
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
-        if (!targetAnim) {
-            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
-                anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
-                targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            ) ?? null;
-        }
+        targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
+            targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
+        ) ?? null;
 
         // If still not found, try common fallbacks
         if (!targetAnim) {

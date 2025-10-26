@@ -387,7 +387,7 @@ export class SettingsUI {
                         </div>
                     </div>
                 `;
-            } else if (section.uiElement === 'dropdown') {
+            } else {
                 let defaultValue = section.options?.[0] ?? '';
                 if (typeof section.defaultValue === 'string') {
                     defaultValue = section.defaultValue;
@@ -434,29 +434,28 @@ export class SettingsUI {
                 const target = e.target;
                 if (!(target instanceof HTMLInputElement)) return;
                 const sectionIndexStr = target.dataset.sectionIndex;
-                if (!sectionIndexStr) return;
+                if (sectionIndexStr == null) return;
                 const sectionIndex = parseInt(sectionIndexStr);
                 const section: SettingsSection = CONFIG.SETTINGS.SECTIONS[sectionIndex];
 
-                if (section?.onChange) {
+                if (section.onChange) {
                     await section.onChange(target.checked);
                 }
             });
         });
 
         // Setup dropdown selects
-        if (!this.settingsPanel) return;
         const selects = this.settingsPanel.querySelectorAll('select');
         selects.forEach(select => {
             select.addEventListener('change', async (e) => {
                 const target = e.target;
                 if (!(target instanceof HTMLSelectElement)) return;
                 const sectionIndexStr = target.dataset.sectionIndex;
-                if (!sectionIndexStr) return;
+                if (sectionIndexStr == null) return;
                 const sectionIndex = parseInt(sectionIndexStr);
                 const section: SettingsSection = CONFIG.SETTINGS.SECTIONS[sectionIndex];
 
-                if (section?.onChange && !this.isInitializing) {
+                if (section.onChange && !this.isInitializing) {
                     await section.onChange(target.value);
                 }
             });
@@ -498,10 +497,13 @@ export class SettingsUI {
 
         // Close panel when clicking outside
         document.addEventListener('click', (e) => {
-            if (this.isPanelOpen &&
-                this.settingsPanel && !this.settingsPanel.contains(e.target as Node) &&
-                this.settingsButton && !this.settingsButton.contains(e.target as Node)) {
-                this.closePanel();
+            if (this.isPanelOpen && this.settingsPanel && this.settingsButton) {
+                const target = e.target;
+                if (target instanceof Node &&
+                    !this.settingsPanel.contains(target) &&
+                    !this.settingsButton.contains(target)) {
+                    this.closePanel();
+                }
             }
         });
 
