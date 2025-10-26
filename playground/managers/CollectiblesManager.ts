@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { CharacterController } from '../controllers/CharacterController';
-import type { Environment } from '../types/environment';
+import type { Environment, ItemConfig, ItemInstance } from '../types/environment';
 
 export class CollectiblesManager {
     private static scene: BABYLON.Scene | null = null;
@@ -14,6 +14,8 @@ export class CollectiblesManager {
     private static totalCredits: number = 0;
     private static collectionObserver: BABYLON.Observer<BABYLON.Scene> | null = null;
     private static collectedItems: Set<string> = new Set();
+    private static instanceBasis: BABYLON.Mesh | null = null;
+    private static itemConfigs: Map<string, ItemConfig> = new Map();
 
     /**
      * Initializes the CollectiblesManager with a scene and character controller
@@ -52,26 +54,199 @@ export class CollectiblesManager {
 
         for (const item of environment.items) {
             if (item.collectible) {
+                // Load the item model first
+                await this.loadItemModel(item);
+
                 // Create instances for each collectible
-                for (const instance of item.instances) {
-                    const collectibleId = `collectible_${item.name}_${instance.position.x}_${instance.position.y}_${instance.position.z}`;
-                    
-                    // Create collectible mesh
-                    if (!this.scene) return;
-                    const mesh = BABYLON.MeshBuilder.CreateSphere(collectibleId, { diameter: 0.5, segments: 16 }, this.scene);
-                    mesh.position = new BABYLON.Vector3(instance.position.x, instance.position.y, instance.position.z);
-                    mesh.name = collectibleId;
-                    
-                    // Add material
-                    const material = new BABYLON.StandardMaterial(`collectible_material_${item.name}`, this.scene);
-                    material.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
-                    mesh.material = material;
-                    
-                    // Store collectible
-                    this.collectibles.set(collectibleId, mesh);
+                for (let i = 0; i < item.instances.length; i++) {
+                    const instance = item.instances[i];
+                    const instanceId = `${item.name.toLowerCase()}_instance_${i + 1}`;
+                    await this.createCollectibleInstance(instanceId, instance, item);
                 }
             }
         }
+
+        // Set up physics collision detection
+        this.setupCollisionDetection();
+    }
+
+    /**
+     * Loads an item model to use as instance basis
+     */
+    private static async loadItemModel(itemConfig: ItemConfig): Promise<void> {
+        if (!this.scene) {
+            return;
+        }
+
+        try {
+            const result = await BABYLON.ImportMeshAsync(itemConfig.url, this.scene);
+
+            // Process node materials for item meshes
+            // await NodeMaterialManager.processImportResult(result);
+
+            // Rename the root node for better organization
+            if (result.meshes.length > 0) {
+                // Find the root mesh (the one without a parent)
+                const rootMesh = result.meshes.find(mesh => !mesh.parent);
+                if (rootMesh) {
+                    rootMesh.name = `${itemConfig.name.toLowerCase()}_basis`;
+                    rootMesh.setEnabled(false);
+                }
+            }
+
+            // Check if any mesh has proper geometry
+            const meshWithGeometry = result.meshes.find(mesh => {
+                if (mesh instanceof BABYLON.Mesh) {
+                    return mesh.geometry != null && mesh.geometry.getTotalVertices() > 0;
+                }
+                return false;
+            });
+
+            if (meshWithGeometry instanceof BABYLON.Mesh) {
+                // Use the first mesh with geometry as the instance basis
+                this.instanceBasis = meshWithGeometry;
+
+                // Make the instance basis invisible and disable it in the scene
+                this.instanceBasis.isVisible = false;
+                this.instanceBasis.setEnabled(false);
+            }
+        } catch (_error) {
+            // Ignore item loading errors for playground compatibility
+        }
+    }
+
+    /**
+     * Creates a collectible instance from the loaded model
+     */
+    private static async createCollectibleInstance(id: string, instance: ItemInstance, itemConfig: ItemConfig): Promise<void> {
+        if (!this.scene || !this.instanceBasis) {
+            return;
+        }
+
+        try {
+            // Create an instance from the loaded model
+            const meshInstance = this.instanceBasis.createInstance(id);
+
+            // Remove the instance from its parent to make it independent
+            if (meshInstance.parent) {
+                meshInstance.setParent(null);
+            }
+
+            // Apply instance properties
+            meshInstance.position = instance.position;
+            meshInstance.scaling.setAll(instance.scale);
+            meshInstance.rotation = instance.rotation;
+
+            // Make it visible and enabled
+            meshInstance.isVisible = true;
+            meshInstance.setEnabled(true);
+
+            // Get the scaled bounding box dimensions after applying instance scaling
+            // const boundingBox = meshInstance.getBoundingInfo();
+            // const scaledSize = boundingBox.boundingBox.extendSize.scale(2); // Multiply by 2 to get full size
+
+            // Create physics body with dynamic box shape based on scaled dimensions
+            const physicsAggregate = new BABYLON.PhysicsAggregate(
+                meshInstance,
+                BABYLON.PhysicsShapeType.BOX,
+                { mass: instance.mass }
+            );
+
+            // Store references
+            this.collectibles.set(id, meshInstance);
+            this.collectibleBodies.set(id, physicsAggregate.body);
+
+            // Store the item config for this collectible
+            this.itemConfigs.set(id, itemConfig);
+
+            // Add rotation animation
+            this.addRotationAnimation(meshInstance);
+        } catch (_error) {
+            // Ignore collectible creation errors for playground compatibility
+        }
+    }
+
+    /**
+     * Adds a rotation animation to make collectibles more visible
+     */
+    private static addRotationAnimation(mesh: BABYLON.AbstractMesh): void {
+        if (!this.scene) return;
+
+        const animation = new BABYLON.Animation(
+            "rotationAnimation",
+            "rotation.y",
+            30,
+            BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+        );
+
+        const keyFrames = [
+            { frame: 0, value: 0 },
+            { frame: 30, value: 2 * Math.PI }
+        ];
+
+        animation.setKeys(keyFrames);
+        mesh.animations = [animation];
+
+        this.scene.beginAnimation(mesh, 0, 30, true);
+    }
+
+    /**
+     * Sets up collision detection for collectibles
+     */
+    private static setupCollisionDetection(): void {
+        if (!this.scene || !this.characterController) return;
+
+        // Set up collision detection using scene collision observer
+        this.collectionObserver = this.scene.onBeforeRenderObservable.add(() => {
+            this.checkCollisions();
+        });
+    }
+
+    /**
+     * Checks for collisions between character and collectibles
+     */
+    private static checkCollisions(): void {
+        if (!this.characterController) return;
+
+        const characterPosition = this.characterController.getDisplayCapsule().position;
+        const collectionRadius = 1.5; // Default collection radius
+
+        for (const [id, collectible] of this.collectibles) {
+            if (this.collectedItems.has(id)) continue;
+
+            const distance = BABYLON.Vector3.Distance(characterPosition, collectible.position);
+            if (distance < collectionRadius) {
+                this.collectItem(id);
+            }
+        }
+    }
+
+    /**
+     * Collects an item and adds it to inventory
+     */
+    private static collectItem(id: string): void {
+        const collectible = this.collectibles.get(id);
+        const itemConfig = this.itemConfigs.get(id);
+        
+        if (collectible == null || itemConfig == null) return;
+
+        // Mark as collected
+        this.collectedItems.add(id);
+
+        // Hide the collectible
+        collectible.setEnabled(false);
+
+        // Play collection sound
+        if (this.collectionSound) {
+            this.collectionSound.play();
+        }
+
+        // Add to inventory (if inventory system is available)
+        // InventoryManager.addItem(itemConfig.name, itemConfig.creditValue);
+
+        // Add credits
+        this.totalCredits += itemConfig.creditValue;
     }
 
     /**

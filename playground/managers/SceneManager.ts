@@ -390,7 +390,7 @@ export class SceneManager {
 
     public async setupEnvironmentItems(): Promise<void> {
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
-        if (environment) {
+        if (environment?.items) {
             try {
                 await CollectiblesManager.setupEnvironmentItems(environment);
             } catch (_error) {

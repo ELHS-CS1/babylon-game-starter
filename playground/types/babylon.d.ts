@@ -48,9 +48,10 @@ declare global {
             onKeyboardObservable: Observable<KeyboardInfo>;
             enablePhysics(gravity: Vector3, plugin: PhysicsPlugin): void;
             getAnimationGroupByName(name: string): AnimationGroup | null;
-            getMeshByName(name: string): AbstractMesh | null;
-            getEngine(): Engine;
-            getRenderingCanvas(): HTMLCanvasElement | null;
+        getMeshByName(name: string): AbstractMesh | null;
+        getEngine(): Engine;
+        getRenderingCanvas(): HTMLCanvasElement | null;
+        beginAnimation(target: AbstractMesh, from: number, to: number, loop?: boolean): void;
         }
 
         interface Engine {
@@ -222,16 +223,6 @@ declare global {
         }
 
         // Static classes
-        class Vector3 {
-            constructor(x: number, y: number, z: number);
-            setAll(value: number): void;
-            static Zero(): Vector3;
-            static Up(): Vector3;
-            static Down(): Vector3;
-            static Right(): Vector3;
-            static Forward(): Vector3;
-            static LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
-        }
 
         class Scene {
             constructor(engine: Engine);
@@ -281,25 +272,26 @@ declare global {
             static ParseFromSnippetAsync(snippetId: string, scene: Scene, rootUrl?: string): Promise<IParticleSystem>;
         }
 
-        class AbstractMesh {
-            constructor(name: string, scene: Scene);
-            name: string;
-            position: Vector3;
-            rotation: Vector3;
-            scaling: Vector3;
-            parent: AbstractMesh | null;
-            isVisible: boolean;
-            isPickable: boolean;
-            material: Material | null;
-            getChildMeshes(): AbstractMesh[];
-            setEnabled(enabled: boolean): void;
-            setParent(parent: AbstractMesh | null): void;
-            createInstance(name: string): AbstractMesh;
-            getBoundingInfo(): BoundingInfo;
-            freezeWorldMatrix(): void;
-            doNotSyncBoundingInfo: boolean;
-            dispose(): void;
-        }
+    class AbstractMesh {
+        constructor(name: string, scene: Scene);
+        name: string;
+        position: Vector3;
+        rotation: Vector3;
+        scaling: Vector3;
+        parent: AbstractMesh | null;
+        isVisible: boolean;
+        isPickable: boolean;
+        material: Material | null;
+        animations: Animation[];
+        getChildMeshes(): AbstractMesh[];
+        setEnabled(enabled: boolean): void;
+        setParent(parent: AbstractMesh | null): void;
+        createInstance(name: string): AbstractMesh;
+        getBoundingInfo(): BoundingInfo;
+        freezeWorldMatrix(): void;
+        doNotSyncBoundingInfo: boolean;
+        dispose(): void;
+    }
 
     class Geometry {
         dispose(): void;
@@ -363,6 +355,7 @@ declare global {
         static Backward(): Vector3;
         static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
         static LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
+        static Distance(value1: Vector3, value2: Vector3): number;
     }
 
     class Quaternion {
@@ -415,6 +408,21 @@ declare global {
     class PBRMaterial extends Material {
         lightmapTexture: Texture | null;
         useLightmapAsShadowmap: boolean;
+    }
+
+    class Animation {
+        constructor(name: string, targetProperty: string, framePerSecond: number, dataType: number, loopMode: number);
+        setKeys(keys: Array<{ frame: number; value: number }>): void;
+        static readonly ANIMATIONTYPE_FLOAT: number;
+        static readonly ANIMATIONLOOPMODE_CYCLE: number;
+    }
+
+    class BoundingInfo {
+        boundingBox: BoundingBox;
+    }
+
+    class BoundingBox {
+        extendSize: Vector3;
     }
 
         // Import utilities
