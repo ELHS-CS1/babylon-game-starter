@@ -2,7 +2,7 @@
 // SCENE MANAGER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
+// /// <reference path="../types/babylon.d.ts" />
 
 import { CONFIG } from '../config/game-config';
 import { CharacterController } from '../controllers/CharacterController';

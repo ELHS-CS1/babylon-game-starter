@@ -2,7 +2,7 @@
 // EFFECTS MANAGER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
+// /// <reference path="../types/babylon.d.ts" />
 
 import type { ParticleSnippet } from '../types/effects';
 import type { AmbientSoundConfig } from '../types/environment';

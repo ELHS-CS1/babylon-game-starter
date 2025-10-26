@@ -2,7 +2,6 @@
 // SETTINGS UI
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
 
 import { CONFIG } from '../config/game-config';
 import { ASSETS } from '../config/assets';

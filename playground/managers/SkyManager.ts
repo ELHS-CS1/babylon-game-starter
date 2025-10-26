@@ -2,7 +2,6 @@
 // SKY MANAGER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
 
 import type { SkyConfig } from '../types/environment';
 

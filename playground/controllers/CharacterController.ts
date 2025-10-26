@@ -2,7 +2,7 @@
 // CHARACTER CONTROLLER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
+// /// <reference path="../types/babylon.d.ts" />
 
 import type { Character } from '../types/character';
 import type { CharacterState } from '../config/character-states';

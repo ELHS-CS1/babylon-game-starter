@@ -2,7 +2,6 @@
 // SMOOTH FOLLOW CAMERA CONTROLLER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
 
 import { CONFIG } from '../config/game-config';
 

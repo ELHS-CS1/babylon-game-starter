@@ -2,7 +2,6 @@
 // MOBILE INPUT MANAGER
 // ============================================================================
 
-/// <reference path="../types/babylon.d.ts" />
 
 import { MOBILE_CONTROLS } from '../config/mobile-controls';
 
