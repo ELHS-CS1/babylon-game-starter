@@ -52,180 +52,156 @@ export class HUDManager {
      * Creates the HUD elements
      */
     private static createHUD(): void {
+        if (!this.scene) return;
+
+        const canvas = this.scene.getEngine().getRenderingCanvas();
+        if (!canvas) return;
+
         // Create HUD container
         this.hudContainer = document.createElement('div');
         this.hudContainer.id = 'game-hud';
-        this.hudContainer.style.position = 'absolute';
-        this.hudContainer.style.top = '0';
-        this.hudContainer.style.left = '0';
-        this.hudContainer.style.width = '100%';
-        this.hudContainer.style.height = '100%';
-        this.hudContainer.style.pointerEvents = 'none';
-        this.hudContainer.style.zIndex = '1000';
-        this.hudContainer.style.fontFamily = CONFIG.HUD.FONT_FAMILY;
-        this.hudContainer.style.color = CONFIG.HUD.PRIMARY_COLOR;
-        document.body.appendChild(this.hudContainer);
+        this.hudContainer.style.cssText = this.getHUDContainerStyles();
 
-        // Create all HUD elements
-        this.createCoordinates();
-        this.createTime();
-        this.createFPS();
-        this.createState();
-        this.createBoostStatus();
-        this.createCredits();
-        this.createCrosshair();
+        // Create HUD elements
+        this.createHUDElement('coordinates', 'Coordinates');
+        this.createHUDElement('time', 'Time');
+        this.createHUDElement('fps', 'FPS');
+        this.createHUDElement('state', 'State');
+        this.createHUDElement('boost', 'Boost');
+        this.createHUDElement('credits', 'Credits');
+
+        // Add CSS animations
+        this.addHUDAnimations();
+
+        // Add HUD to canvas parent
+        const canvasParent = canvas.parentElement;
+        if (canvasParent) {
+            canvasParent.appendChild(this.hudContainer);
+        }
+
+        // Set up FPS counter
+        this.scene.onBeforeRenderObservable.add(() => {
+            this.fpsCounter++;
+            const currentTime = Date.now();
+            if (currentTime - this.fpsLastTime >= 1000) {
+                this.currentFPS = this.fpsCounter;
+                this.fpsCounter = 0;
+                this.fpsLastTime = currentTime;
+            }
+        });
     }
 
     /**
-     * Creates the coordinates display
+     * Gets the HUD container styles based on CONFIG.HUD.POSITION
      */
-    private static createCoordinates(): void {
-        const coords = document.createElement('div');
-        coords.id = 'hud-coordinates';
-        coords.className = 'hud-element';
-        coords.style.position = 'absolute';
-        coords.style.top = '20px';
-        coords.style.left = '20px';
-        coords.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        coords.style.padding = `${CONFIG.HUD.PADDING}px`;
-        coords.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        coords.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        coords.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">Position</div>
-            <div id="hud-coordinates-value" style="color: ${CONFIG.HUD.PRIMARY_COLOR}; font-size: 14px; font-weight: bold;">0.0, 0.0, 0.0</div>
+    private static getHUDContainerStyles(): string {
+        const config = CONFIG.HUD;
+        const position = config.POSITION;
+
+        let positionStyles = '';
+        switch (position) {
+            case 'top':
+                positionStyles = 'top: 0; left: 0; right: 0; flex-direction: row; justify-content: space-between;';
+                break;
+            case 'bottom':
+                positionStyles = 'bottom: 0; left: 0; right: 0; flex-direction: row; justify-content: space-between;';
+                break;
+            case 'left':
+                positionStyles = 'top: 0; left: 0; bottom: 0; flex-direction: column; justify-content: flex-start;';
+                break;
+            case 'right':
+                positionStyles = 'top: 0; right: 0; bottom: 0; flex-direction: column; justify-content: flex-start;';
+                break;
+        }
+
+        return `
+            position: absolute;
+            ${positionStyles}
+            display: flex;
+            padding: ${config.PADDING}px;
+            font-family: ${config.FONT_FAMILY};
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            pointer-events: none;
         `;
-        this.hudContainer?.appendChild(coords);
-        this.hudElements.set('coordinates', coords);
     }
 
     /**
-     * Creates the time display
+     * Creates a HUD element with proper styling
      */
-    private static createTime(): void {
-        const time = document.createElement('div');
-        time.id = 'hud-time';
-        time.className = 'hud-element';
-        time.style.position = 'absolute';
-        time.style.top = '20px';
-        time.style.right = '20px';
-        time.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        time.style.padding = `${CONFIG.HUD.PADDING}px`;
-        time.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        time.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        time.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">Time</div>
-            <div id="hud-time-value" style="color: ${CONFIG.HUD.PRIMARY_COLOR}; font-size: 14px; font-weight: bold;">00:00</div>
+    private static createHUDElement(id: string, label: string): void {
+        if (!this.hudContainer) return;
+
+        const element = document.createElement('div');
+        element.id = `hud-${id}`;
+        element.className = 'hud-element';
+        element.style.cssText = this.getHUDElementStyles() + 'display: none;'; // Start hidden
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'hud-label';
+        labelSpan.textContent = label;
+        labelSpan.style.color = CONFIG.HUD.SECONDARY_COLOR;
+
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'hud-value';
+        valueSpan.id = `hud-${id}-value`;
+        valueSpan.style.color = CONFIG.HUD.PRIMARY_COLOR;
+
+        element.appendChild(labelSpan);
+        // Add <br> for all elements to put value under title
+        element.appendChild(document.createElement('br'));
+        element.appendChild(valueSpan);
+
+        this.hudContainer.appendChild(element);
+        this.hudElements.set(id, element);
+    }
+
+    /**
+     * Gets the HUD element styles
+     */
+    private static getHUDElementStyles(): string {
+        const config = CONFIG.HUD;
+        return `
+            background-color: ${config.BACKGROUND_COLOR};
+            background-opacity: ${config.BACKGROUND_OPACITY};
+            background: rgba(0, 0, 0, ${config.BACKGROUND_OPACITY});
+            color: ${config.PRIMARY_COLOR};
+            padding: 8px 12px;
+            margin: 2px;
+            border-radius: ${config.BORDER_RADIUS}px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.2s ease;
         `;
-        this.hudContainer?.appendChild(time);
-        this.hudElements.set('time', time);
     }
 
     /**
-     * Creates the FPS display
+     * Adds CSS animations for HUD effects
      */
-    private static createFPS(): void {
-        const fps = document.createElement('div');
-        fps.id = 'hud-fps';
-        fps.className = 'hud-element';
-        fps.style.position = 'absolute';
-        fps.style.top = '80px';
-        fps.style.right = '20px';
-        fps.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        fps.style.padding = `${CONFIG.HUD.PADDING}px`;
-        fps.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        fps.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        fps.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">FPS</div>
-            <div id="hud-fps-value" style="color: ${CONFIG.HUD.PRIMARY_COLOR}; font-size: 14px; font-weight: bold;">60</div>
+    private static addHUDAnimations(): void {
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.8; transform: scale(1.05); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .hud-element {
+                animation: fadeIn 0.3s ease-out;
+            }
+            .hud-element:hover {
+                animation: pulse 0.5s ease-in-out;
+            }
         `;
-        this.hudContainer?.appendChild(fps);
-        this.hudElements.set('fps', fps);
-    }
-
-    /**
-     * Creates the character state display
-     */
-    private static createState(): void {
-        const state = document.createElement('div');
-        state.id = 'hud-state';
-        state.className = 'hud-element';
-        state.style.position = 'absolute';
-        state.style.bottom = '20px';
-        state.style.left = '20px';
-        state.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        state.style.padding = `${CONFIG.HUD.PADDING}px`;
-        state.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        state.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        state.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">State</div>
-            <div id="hud-state-value" style="color: ${CONFIG.HUD.PRIMARY_COLOR}; font-size: 14px; font-weight: bold;">Idle</div>
-        `;
-        this.hudContainer?.appendChild(state);
-        this.hudElements.set('state', state);
-    }
-
-    /**
-     * Creates the boost status display
-     */
-    private static createBoostStatus(): void {
-        const boost = document.createElement('div');
-        boost.id = 'hud-boost';
-        boost.className = 'hud-element';
-        boost.style.position = 'absolute';
-        boost.style.bottom = '20px';
-        boost.style.right = '20px';
-        boost.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        boost.style.padding = `${CONFIG.HUD.PADDING}px`;
-        boost.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        boost.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        boost.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">Boost</div>
-            <div id="hud-boost-value" style="color: ${CONFIG.HUD.PRIMARY_COLOR}; font-size: 14px; font-weight: bold;">Ready</div>
-        `;
-        this.hudContainer?.appendChild(boost);
-        this.hudElements.set('boost', boost);
-    }
-
-    /**
-     * Creates the credits display
-     */
-    private static createCredits(): void {
-        const credits = document.createElement('div');
-        credits.id = 'hud-credits';
-        credits.className = 'hud-element';
-        credits.style.position = 'absolute';
-        credits.style.top = '50%';
-        credits.style.left = '20px';
-        credits.style.transform = 'translateY(-50%)';
-        credits.style.backgroundColor = `rgba(${this.hexToRgb(CONFIG.HUD.BACKGROUND_COLOR)}, ${CONFIG.HUD.BACKGROUND_OPACITY})`;
-        credits.style.padding = `${CONFIG.HUD.PADDING}px`;
-        credits.style.borderRadius = `${CONFIG.HUD.BORDER_RADIUS}px`;
-        credits.style.border = `1px solid ${CONFIG.HUD.SECONDARY_COLOR}`;
-        credits.innerHTML = `
-            <div style="color: ${CONFIG.HUD.SECONDARY_COLOR}; font-size: 12px; margin-bottom: 5px;">Credits</div>
-            <div id="hud-credits-value" style="color: ${CONFIG.HUD.HIGHLIGHT_COLOR}; font-size: 16px; font-weight: bold;">0</div>
-        `;
-        this.hudContainer?.appendChild(credits);
-        this.hudElements.set('credits', credits);
-    }
-
-    /**
-     * Creates the crosshair element
-     */
-    private static createCrosshair(): void {
-        const crosshair = document.createElement('div');
-        crosshair.id = 'crosshair';
-        crosshair.style.position = 'absolute';
-        crosshair.style.top = '50%';
-        crosshair.style.left = '50%';
-        crosshair.style.width = '20px';
-        crosshair.style.height = '20px';
-        crosshair.style.transform = 'translate(-50%, -50%)';
-        crosshair.style.border = `2px solid ${CONFIG.HUD.PRIMARY_COLOR}`;
-        crosshair.style.borderRadius = '50%';
-        crosshair.style.pointerEvents = 'none';
-        this.hudContainer?.appendChild(crosshair);
-        this.hudElements.set('crosshair', crosshair);
+        document.head.appendChild(style);
     }
 
     /**
