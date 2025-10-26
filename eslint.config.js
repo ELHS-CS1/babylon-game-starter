@@ -503,6 +503,16 @@ export default [
       
       // === PLAYGROUND-SPECIFIC RULES ===
       'no-console': 'error', // No console logs in playground
+      'no-unused-vars': 'off', // Disable base rule
+      '@typescript-eslint/no-unused-vars': ['error', {
+        'vars': 'all',
+        'args': 'after-used',
+        'caughtErrors': 'all',
+        'ignoreRestSiblings': true,
+        'argsIgnorePattern': '^_',
+        'varsIgnorePattern': '^_',
+        'caughtErrorsIgnorePattern': '^_'
+      }],
       'no-restricted-globals': ['error', {
         name: 'setTimeout',
         message: 'setTimeout is not allowed in playground. Use Babylon.js observables instead.'

@@ -108,7 +108,7 @@ export class SkyManager {
      * Removes the sky from the scene
      * @param scene The Babylon.js scene
      */
-    public static removeSky(scene: BABYLON.Scene): void {
+    public static removeSky(_scene: BABYLON.Scene): void {
         if (this.sky) {
             this.sky.dispose();
             this.sky = null;

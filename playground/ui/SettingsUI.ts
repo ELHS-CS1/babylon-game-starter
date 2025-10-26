@@ -128,15 +128,19 @@ export class SettingsUI {
 
         // Add hover effects
         this.settingsButton.addEventListener('mouseenter', () => {
-            this.settingsButton!.style.background = 'rgba(0, 0, 0, 0.9)';
-            this.settingsButton!.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-            this.settingsButton!.style.transform = 'scale(1.1)';
+            if (this.settingsButton) {
+                this.settingsButton.style.background = 'rgba(0, 0, 0, 0.9)';
+                this.settingsButton.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                this.settingsButton.style.transform = 'scale(1.1)';
+            }
         });
 
         this.settingsButton.addEventListener('mouseleave', () => {
-            this.settingsButton!.style.background = 'rgba(0, 0, 0, 0.7)';
-            this.settingsButton!.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-            this.settingsButton!.style.transform = 'scale(1)';
+            if (this.settingsButton) {
+                this.settingsButton.style.background = 'rgba(0, 0, 0, 0.7)';
+                this.settingsButton.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                this.settingsButton.style.transform = 'scale(1)';
+            }
         });
 
         document.body.appendChild(this.settingsButton);

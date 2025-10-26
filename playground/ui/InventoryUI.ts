@@ -209,9 +209,12 @@ export class InventoryUI {
         const itemElements = this.inventoryPanel.querySelectorAll('.inventory-item');
         itemElements.forEach(element => {
             element.addEventListener('click', (e) => {
-                const itemName = (e.currentTarget as HTMLElement).getAttribute('data-item-name');
-                if (itemName) {
-                    this.useItem(itemName);
+                const target = e.currentTarget;
+                if (target instanceof HTMLElement) {
+                    const itemName = target.getAttribute('data-item-name');
+                    if (itemName != null) {
+                        this.useItem(itemName);
+                    }
                 }
             });
         });
@@ -280,10 +283,13 @@ export class InventoryUI {
 
         // Close panel when clicking outside
         document.addEventListener('click', (e) => {
-            if (this.isPanelOpen &&
-                !this.inventoryPanel!.contains(e.target as Node) &&
-                !this.inventoryButton!.contains(e.target as Node)) {
-                this.closePanel();
+            if (this.isPanelOpen && this.inventoryPanel && this.inventoryButton) {
+                const target = e.target;
+                if (target instanceof Node &&
+                    !this.inventoryPanel.contains(target) &&
+                    !this.inventoryButton.contains(target)) {
+                    this.closePanel();
+                }
             }
         });
 
@@ -316,8 +322,10 @@ export class InventoryUI {
             this.updateInventoryContent();
             this.updateInventoryButton();
             // Keep the button visible and on top - no transform animation
-            this.inventoryButton!.style.background = 'rgba(0, 0, 0, 0.9)';
-            this.inventoryButton!.style.zIndex = '9999';
+            if (this.inventoryButton) {
+                this.inventoryButton.style.background = 'rgba(0, 0, 0, 0.9)';
+                this.inventoryButton.style.zIndex = '9999';
+            }
         }
     }
 
@@ -328,8 +336,10 @@ export class InventoryUI {
         if (this.inventoryPanel) {
             this.inventoryPanel.style.right = '-100%';
             this.isPanelOpen = false;
-            this.inventoryButton!.style.background = 'rgba(0, 0, 0, 0.7)';
-            this.inventoryButton!.style.zIndex = '9999';
+            if (this.inventoryButton) {
+                this.inventoryButton.style.background = 'rgba(0, 0, 0, 0.7)';
+                this.inventoryButton.style.zIndex = '9999';
+            }
         }
     }
 
