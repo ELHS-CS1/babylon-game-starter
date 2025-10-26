@@ -32,16 +32,9 @@ declare global {
         const SUPPORTED: number;
 
         // Static methods
-        function Down(): Vector3;
         function FromEulerAngles(x: number, y: number, z: number): Quaternion;
-        function Forward(): Vector3;
-        function Zero(): Vector3;
-        function Right(): Vector3;
-        function Up(): Vector3;
         function Clamp(value: number, min: number, max: number): number;
         function Lerp(start: number, end: number, amount: number): number;
-        function LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
-        function FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
         function ParseFromSnippetAsync(snippetId: string, scene: Scene, rootUrl?: string): Promise<IParticleSystem>;
 
         interface Scene {
@@ -181,6 +174,7 @@ declare global {
             direction1: Vector3;
             direction2: Vector3;
             targetStopDuration?: number;
+            updateSpeed: number;
             start(): void;
             stop(): void;
             dispose(): void;
@@ -289,38 +283,96 @@ declare global {
 
         class AbstractMesh {
             constructor(name: string, scene: Scene);
-        }
-
-        class Mesh extends AbstractMesh {
+            name: string;
+            position: Vector3;
+            rotation: Vector3;
+            scaling: Vector3;
+            parent: AbstractMesh | null;
+            isVisible: boolean;
+            isPickable: boolean;
             material: Material | null;
+            getChildMeshes(): AbstractMesh[];
+            setEnabled(enabled: boolean): void;
+            setParent(parent: AbstractMesh | null): void;
+            createInstance(name: string): AbstractMesh;
+            getBoundingInfo(): BoundingInfo;
+            freezeWorldMatrix(): void;
+            doNotSyncBoundingInfo: boolean;
             dispose(): void;
         }
+
+    class Geometry {
+        dispose(): void;
+        getTotalVertices(): number;
+    }
+
+    class Mesh extends AbstractMesh {
+        material: Material | null;
+        geometry: Geometry | null;
+        dispose(): void;
+    }
 
         class Material {
             dispose(): void;
         }
 
-        class StandardMaterial extends Material {
-            constructor(name: string, scene: Scene);
-            backFaceCulling: boolean;
-            diffuseTexture: Texture | null;
-            disableLighting: boolean;
-            emissiveTexture: Texture | null;
-            emissiveColor: Color3;
-            lightmapTexture: Texture | null;
-        }
+    class StandardMaterial extends Material {
+        constructor(name: string, scene: Scene);
+        backFaceCulling: boolean;
+        diffuseTexture: Texture | null;
+        disableLighting: boolean;
+        emissiveTexture: Texture | null;
+        emissiveColor: Color3;
+        lightmapTexture: Texture | null;
+        useLightmapAsShadowmap: boolean;
+    }
 
-        class Texture {
-            constructor(url: string, scene: Scene);
-            level: number;
-            coordinatesMode: number;
-            dispose(): void;
-            static readonly SKYBOX_MODE: number;
-        }
+    class Texture {
+        constructor(url: string, scene: Scene);
+        level: number;
+        coordinatesMode: number;
+        uAng: number;
+        coordinatesIndex: number;
+        dispose(): void;
+        static readonly SKYBOX_MODE: number;
+    }
 
-        class Color3 {
-            constructor(r: number, g: number, b: number);
-        }
+    class Color3 {
+        constructor(r: number, g: number, b: number);
+    }
+
+    class Color4 {
+        constructor(r: number, g: number, b: number, a: number);
+    }
+
+    class Vector3 {
+        constructor(x: number, y: number, z: number);
+        x: number;
+        y: number;
+        z: number;
+        set(x: number, y: number, z: number): void;
+        setAll(value: number): void;
+        copyFrom(other: Vector3): void;
+        scale(factor: number): Vector3;
+        static Zero(): Vector3;
+        static Up(): Vector3;
+        static Down(): Vector3;
+        static Left(): Vector3;
+        static Right(): Vector3;
+        static Forward(): Vector3;
+        static Backward(): Vector3;
+        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
+        static LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
+    }
+
+    class Quaternion {
+        constructor(x: number, y: number, z: number, w: number);
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        static FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
+    }
 
         class NodeMaterial {
             constructor(name: string, scene: Scene);
@@ -328,9 +380,42 @@ declare global {
             dispose(): void;
         }
 
-        class PhysicsBody {
-            dispose(): void;
-        }
+    class PhysicsBody {
+        dispose(): void;
+        addConstraint(otherBody: PhysicsBody, constraint: HingeConstraint): void;
+    }
+
+    class PhysicsAggregate {
+        constructor(mesh: AbstractMesh, shapeType: PhysicsShapeType, options?: { mass?: number });
+        body: PhysicsBody;
+    }
+
+    enum PhysicsShapeType {
+        MESH = 0,
+        BOX = 1,
+        SPHERE = 2,
+        CAPSULE = 3,
+        CYLINDER = 4,
+        CONVEX_HULL = 5,
+        CONTAINER = 6,
+        HEIGHTFIELD = 7,
+        PLANE = 8
+    }
+
+    class HingeConstraint {
+        constructor(
+            pivotA: Vector3,
+            pivotB: Vector3,
+            axisA: Vector3,
+            axisB: Vector3,
+            scene: Scene
+        );
+    }
+
+    class PBRMaterial extends Material {
+        lightmapTexture: Texture | null;
+        useLightmapAsShadowmap: boolean;
+    }
 
         // Import utilities
         function ImportMeshAsync(modelUrl: string, scene: Scene): Promise<{ meshes: AbstractMesh[]; particleSystems: IParticleSystem[]; skeletons: any[]; animationGroups: AnimationGroup[] }>;

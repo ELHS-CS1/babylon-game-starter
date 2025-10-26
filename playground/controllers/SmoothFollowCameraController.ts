@@ -101,10 +101,10 @@ export class SmoothFollowCameraController {
     }
 
     private updateCameraPosition(): void {
-        const right = this.camera.getDirection(BABYLON.Right());
+        const right = this.camera.getDirection(BABYLON.Vector3.Right());
         this.camera.position.addInPlace(right.scale(this.dragDeltaX));
 
-        const up = this.camera.getDirection(BABYLON.Up());
+        const up = this.camera.getDirection(BABYLON.Vector3.Up());
         this.camera.position.addInPlace(up.scale(this.dragDeltaZ));
 
         this.camera.setTarget(this.target.position);
@@ -154,8 +154,8 @@ export class SmoothFollowCameraController {
         const deltaX = currMidX - lastMidX;
         const deltaY = currMidY - lastMidY;
 
-        const right = this.camera.getDirection(BABYLON.Right());
-        const forward = this.camera.getDirection(BABYLON.Forward());
+        const right = this.camera.getDirection(BABYLON.Vector3.Right());
+        const forward = this.camera.getDirection(BABYLON.Vector3.Forward());
 
         this.offset.addInPlace(right.scale(-deltaX * this.dragSensitivity * 4));
         this.offset.addInPlace(forward.scale(deltaY * this.dragSensitivity * 4));
@@ -191,7 +191,7 @@ export class SmoothFollowCameraController {
         }
 
         const yRot = BABYLON.FromEulerAngles(0, this.target.rotation.y, 0);
-        const rotatedOffset = this.offset.rotateByQuaternionToRef(yRot, BABYLON.Zero());
+        const rotatedOffset = this.offset.rotateByQuaternionToRef(yRot, BABYLON.Vector3.Zero());
         const desiredPos = this.target.position.add(rotatedOffset);
 
         // Calculate dynamic smoothing based on offset.z
@@ -200,7 +200,7 @@ export class SmoothFollowCameraController {
         const normalizedOffset = (this.offset.z - CONFIG.CAMERA.ZOOM_MIN) / (CONFIG.CAMERA.ZOOM_MAX - CONFIG.CAMERA.ZOOM_MIN);
         const dynamicSmoothing = BABYLON.Lerp(0.05, 0.25, normalizedOffset);
 
-        BABYLON.LerpToRef(
+        BABYLON.Vector3.LerpToRef(
             this.camera.position,
             desiredPos,
             dynamicSmoothing,
@@ -257,7 +257,7 @@ export class SmoothFollowCameraController {
 
         // Update quaternion if needed
         if (this.target.rotationQuaternion) {
-            BABYLON.FromEulerAnglesToRef(
+            BABYLON.Quaternion.FromEulerAnglesToRef(
                 this.target.rotation.x,
                 currentRotation,
                 this.target.rotation.z,

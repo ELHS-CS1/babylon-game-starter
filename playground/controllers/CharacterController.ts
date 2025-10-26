@@ -515,7 +515,7 @@ export class CharacterController {
         // Skip physics updates if paused
         if (this.physicsPaused) return;
 
-        const down = BABYLON.Down();
+        const down = BABYLON.Vector3.Down();
         const support = this.characterController.checkSupport(deltaTime, down);
 
         const characterOrientation = BABYLON.FromEulerAngles(0, this.displayCapsule.rotation.y, 0);
@@ -538,7 +538,7 @@ export class CharacterController {
         const upWorld = CONFIG.PHYSICS.CHARACTER_GRAVITY.normalizeToNew();
         upWorld.scaleInPlace(-1.0);
 
-        const forwardLocalSpace = BABYLON.Forward();
+        const forwardLocalSpace = BABYLON.Vector3.Forward();
         const forwardWorld = forwardLocalSpace.applyRotationQuaternion(characterOrientation);
         const currentVelocity = this.characterController.getVelocity();
 
@@ -553,7 +553,7 @@ export class CharacterController {
                 return this.calculateJumpVelocity(currentVelocity, upWorld);
 
             default:
-                return BABYLON.Zero();
+                return BABYLON.Vector3.Zero();
         }
     }
 
@@ -581,7 +581,7 @@ export class CharacterController {
             const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
             outputVelocity = this.characterController.calculateMovement(
                 deltaTime, forwardWorld, upWorld, currentVelocity,
-                BABYLON.Zero(), desiredVelocity, upWorld
+                BABYLON.Vector3.Zero(), desiredVelocity, upWorld
             );
         } else {
             // Maintain initial jump velocity while in air - no input-based velocity modification

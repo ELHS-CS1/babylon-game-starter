@@ -14,6 +14,12 @@ import { CollectiblesManager } from './CollectiblesManager';
 import { InventoryManager } from './InventoryManager';
 import { NodeMaterialManager } from './NodeMaterialManager';
 import type { Character } from '../types/character';
+import type { Environment } from '../types/environment';
+import { SkyManager } from './SkyManager';
+import { OBJECT_ROLE } from '../types/environment';
+
+// Animation Groups - Global object for managing player animations
+const playerAnimations: Record<string, BABYLON.AnimationGroup | undefined> = {};
 
 export class SceneManager {
     private readonly scene: BABYLON.Scene;
@@ -124,18 +130,18 @@ export class SceneManager {
                     this.characterController.updateCharacterPhysics(character, characterPosition);
 
                     // Setup animations using character's animation mapping with fallbacks
-                    const walkAnimation = result.animationGroups.find(a => a.name === character.animations.walk) ??
+                    playerAnimations.walk = result.animationGroups.find(a => a.name === character.animations.walk) ??
                         result.animationGroups.find(a => a.name.toLowerCase().includes('walk')) ??
                         result.animationGroups.find(a => a.name.toLowerCase().includes('run')) ??
                         result.animationGroups.find(a => a.name.toLowerCase().includes('move'));
 
-                    const idleAnimation = result.animationGroups.find(a => a.name === character.animations.idle) ??
+                    playerAnimations.idle = result.animationGroups.find(a => a.name === character.animations.idle) ??
                         result.animationGroups.find(a => a.name.toLowerCase().includes('idle')) ??
                         result.animationGroups.find(a => a.name.toLowerCase().includes('stand'));
 
                     // Stop animations initially
-                    walkAnimation?.stop();
-                    idleAnimation?.stop();
+                    playerAnimations.walk?.stop();
+                    playerAnimations.idle?.stop();
 
                     // Set character in animation controller
                     this.characterController.animationController.setCharacter(character);
@@ -174,6 +180,7 @@ export class SceneManager {
     }
 
     public async loadEnvironment(environmentName: string): Promise<void> {
+        // Find the environment by name
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === environmentName);
         if (!environment) {
             return;
@@ -185,37 +192,65 @@ export class SceneManager {
         EffectsManager.removeAmbientSounds();
 
         try {
-            // Import the environment model
             const result = await BABYLON.ImportMeshAsync(environment.model, this.scene);
-            
-            // Find the root environment mesh and rename it
-            const rootMesh = result.meshes[0];
-            rootMesh.name = "environment";
 
-            // Set up physics for environment objects
-            for (const physicsObj of environment.physicsObjects) {
-                    const mesh = this.scene.getMeshByName(physicsObj.name);
-                    if (mesh != null) {
-                        // Apply physics properties
-                        mesh.scaling = new BABYLON.Vector3(physicsObj.scale, physicsObj.scale, physicsObj.scale);
+            // Process node materials for environment meshes
+            await NodeMaterialManager.processImportResult(result);
+
+            // Rename the root node to "environment" for better organization
+            if (result.meshes.length > 0) {
+                // Find the root mesh (the one without a parent)
+                const rootMesh = result.meshes.find(mesh => !mesh.parent);
+                if (rootMesh) {
+                    rootMesh.name = "environment";
+                    if (environment.scale !== 1) {
+                        rootMesh.scaling.x = -environment.scale; // invert X-axis to fix handedness
+                        rootMesh.scaling.y = environment.scale;
+                        rootMesh.scaling.z = environment.scale;
                     }
                 }
+            }
 
-            // Set up lighting
-            if (environment.lightmap) {
-                // Apply lightmap texture to meshes
-                const lightmapTexture = new BABYLON.Texture(environment.lightmap, this.scene);
-                lightmapTexture.level = 1;
-                lightmapTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-                
-                // Apply to lightmapped meshes
-                for (const lightmappedMesh of environment.lightmappedMeshes) {
-                        const mesh = this.scene.getMeshByName(lightmappedMesh.name);
-                        if (mesh?.material instanceof BABYLON.StandardMaterial) {
-                            mesh.material.lightmapTexture = lightmapTexture;
+            // Handle background music crossfade
+            try {
+                if (environment.backgroundMusic) {
+                    await EffectsManager.crossfadeBackgroundMusic(environment.backgroundMusic.url, environment.backgroundMusic.volume, 1000);
+                } else {
+                    await EffectsManager.stopAndDisposeBackgroundMusic(1000);
+                }
+            } catch (_error) {
+                // Ignore background music errors
+            }
+
+            // Set up environment-specific sky if configured
+            if (environment.sky !== undefined) {
+                try {
+                    SkyManager.createSky(this.scene, environment.sky);
+                } catch (_error) {
+                    // Ignore sky creation errors
+                }
+            }
+
+            this.setupEnvironmentPhysics(environment);
+
+            // Set up environment-specific particles if configured
+            if (environment.particles) {
+                try {
+                    for (const particle of environment.particles) {
+                        const particleSystem = await EffectsManager.createParticleSystem(particle.name, particle.position);
+
+                        // Apply environment-specific settings if provided
+                        if (particleSystem != null && particle.updateSpeed !== undefined) {
+                            particleSystem.updateSpeed = particle.updateSpeed;
                         }
                     }
+                } catch (_error) {
+                    // Ignore particle creation errors
+                }
             }
+
+            // Process any existing meshes for node materials
+            await NodeMaterialManager.processMeshesForNodeMaterials();
 
             // Ambient sounds setup (positional, looped)
             if (environment.ambientSounds && environment.ambientSounds.length > 0) {
@@ -226,10 +261,123 @@ export class SceneManager {
                 }
             }
 
+            // Environment items will be set up after character is fully loaded
+            // This ensures CollectiblesManager is properly initialized
+
+            // Update current environment tracking
             this.currentEnvironment = environmentName;
         } catch (_error) {
             // Ignore environment loading errors for playground compatibility
         }
+    }
+
+    private setupEnvironmentPhysics(environment: Environment): void {
+        this.setupLightmappedMeshes(environment);
+        this.setupPhysicsObjects(environment);
+        this.setupJoints(environment);
+
+        // Fallback: If no physics objects or lightmapped meshes are configured,
+        // create physics bodies for all environment meshes to prevent falling through
+        if (environment.physicsObjects.length === 0 && environment.lightmappedMeshes.length === 0) {
+            this.setupFallbackPhysics(environment);
+        }
+    }
+
+    private setupLightmappedMeshes(environment: Environment): void {
+        if (!environment.lightmap) return;
+        
+        const lightmap = new BABYLON.Texture(environment.lightmap, this.scene);
+
+        environment.lightmappedMeshes.forEach(lightmappedMesh => {
+            const mesh = this.scene.getMeshByName(lightmappedMesh.name);
+            if (!mesh) return;
+
+            new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.MESH);
+            mesh.isPickable = false;
+
+            if (mesh.material != null && (mesh.material instanceof BABYLON.StandardMaterial || mesh.material instanceof BABYLON.PBRMaterial)) {
+                mesh.material.lightmapTexture = lightmap;
+                mesh.material.useLightmapAsShadowmap = true;
+                mesh.material.lightmapTexture.uAng = Math.PI;
+                mesh.material.lightmapTexture.level = lightmappedMesh.level;
+                mesh.material.lightmapTexture.coordinatesIndex = 1;
+            }
+
+            mesh.freezeWorldMatrix();
+            mesh.doNotSyncBoundingInfo = true;
+        });
+    }
+
+    private setupPhysicsObjects(environment: Environment): void {
+        environment.physicsObjects.forEach(physicsObject => {
+            const mesh = this.scene.getMeshByName(physicsObject.name);
+            if (mesh) {
+                // Apply scaling if specified
+                if (physicsObject.scale !== 1) {
+                    mesh.scaling.setAll(physicsObject.scale);
+                }
+
+                new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.BOX, { mass: physicsObject.mass });
+            }
+        });
+    }
+
+    private setupJoints(environment: Environment): void {
+        // Find objects with PIVOT_BEAM role
+        const pivotBeams = environment.physicsObjects.filter(obj => obj.role === OBJECT_ROLE.PIVOT_BEAM);
+
+        pivotBeams.forEach(pivotBeam => {
+            const beamMesh = this.scene.getMeshByName(pivotBeam.name);
+            if (!beamMesh) return;
+            
+            beamMesh.scaling.set(3, 0.05, 1);
+
+            // Find a fixed mass object to attach the hinge to
+            const fixedMassObject = environment.physicsObjects.find(obj => obj.role === OBJECT_ROLE.DYNAMIC_BOX && obj.mass === 0);
+            if (!fixedMassObject) return;
+
+            const fixedMesh = this.scene.getMeshByName(fixedMassObject.name);
+            if (!fixedMesh) return;
+
+            // Create physics aggregates if they don't exist
+            const fixedMass = new BABYLON.PhysicsAggregate(fixedMesh, BABYLON.PhysicsShapeType.BOX, { mass: 0 });
+            const beam = new BABYLON.PhysicsAggregate(beamMesh, BABYLON.PhysicsShapeType.BOX, { mass: pivotBeam.mass });
+
+            // Create hinge constraint
+            const joint = new BABYLON.HingeConstraint(
+                new BABYLON.Vector3(0.75, 0, 0),
+                new BABYLON.Vector3(-0.25, 0, 0),
+                new BABYLON.Vector3(0, 0, -1),
+                new BABYLON.Vector3(0, 0, 1),
+                this.scene
+            );
+
+            fixedMass.body.addConstraint(beam.body, joint);
+        });
+    }
+
+    private setupFallbackPhysics(_environment: Environment): void {
+        // Find the root environment mesh
+        const rootEnvironmentMesh = this.scene.getMeshByName("environment");
+        if (!rootEnvironmentMesh) return;
+
+        // Collect all meshes in the environment
+        const allEnvironmentMeshes: BABYLON.AbstractMesh[] = [];
+        const collectMeshes = (mesh: BABYLON.AbstractMesh) => {
+            allEnvironmentMeshes.push(mesh);
+            mesh.getChildMeshes().forEach(collectMeshes);
+        };
+        collectMeshes(rootEnvironmentMesh);
+
+        // Create physics bodies for all meshes with geometry
+        allEnvironmentMeshes.forEach(mesh => {
+            if (mesh instanceof BABYLON.Mesh && mesh.geometry != null && mesh.geometry.getTotalVertices() > 0) {
+                // Create a static physics body (mass = 0) for environment geometry
+                // The physics shape will automatically account for the mesh's current scaling
+                new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.MESH, { mass: 0 });
+                mesh.isPickable = false;
+            }
+        });
     }
 
     public async setupEnvironmentItems(): Promise<void> {
