@@ -805,10 +805,17 @@ export class CharacterController {
         // Activate super jump effect
         this.superJumpActive = true;
         
-        // Reset after 5 seconds
-        setTimeout(() => {
-            this.superJumpActive = false;
-        }, 5000);
+        // Reset after 5 seconds using scene observable
+        let frameCount = 0;
+        const maxFrames = 300; // 5 seconds at 60fps
+        
+        const observer = this.scene.onBeforeRenderObservable.add(() => {
+            frameCount++;
+            if (frameCount >= maxFrames) {
+                this.superJumpActive = false;
+                this.scene.onBeforeRenderObservable.remove(observer);
+            }
+        });
     }
 
     /**
@@ -820,10 +827,17 @@ export class CharacterController {
         // Activate invisibility effect
         this.invisibilityActive = true;
         
-        // Reset after 10 seconds
-        setTimeout(() => {
-            this.invisibilityActive = false;
-        }, 10000);
+        // Reset after 10 seconds using scene observable
+        let frameCount = 0;
+        const maxFrames = 600; // 10 seconds at 60fps
+        
+        const observer = this.scene.onBeforeRenderObservable.add(() => {
+            frameCount++;
+            if (frameCount >= maxFrames) {
+                this.invisibilityActive = false;
+                this.scene.onBeforeRenderObservable.remove(observer);
+            }
+        });
     }
 
     /**
@@ -913,7 +927,12 @@ export class CharacterController {
     }
 
     public getBoostStatus(): string {
-        // Return boost status - for now, always ready
+        if (this.superJumpActive) {
+            return 'Super Jump Active';
+        }
+        if (this.invisibilityActive) {
+            return 'Invisibility Active';
+        }
         return 'Ready';
     }
 

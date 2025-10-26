@@ -263,11 +263,12 @@ export class CollectiblesManager {
         // Show collection effects
         this.showCollectionEffects(collectible.position);
 
-        // Add to inventory
-        InventoryManager.addItem(itemConfig.name, 1, itemConfig.thumbnail || '');
-
-        // Refresh inventory UI to show the new item
-        InventoryUI.refreshInventory();
+        // Add to inventory only if it's an inventory item
+        if (itemConfig.inventory && itemConfig.itemEffectKind && itemConfig.thumbnail) {
+            InventoryManager.addItem(itemConfig.name, 1, itemConfig.thumbnail);
+            // Refresh inventory UI to show the new item
+            InventoryUI.refreshInventory();
+        }
 
         // Add credits
         this.totalCredits += itemConfig.creditValue;
@@ -361,12 +362,44 @@ export class CollectiblesManager {
      * Clears all collectibles
      */
     public static clearCollectibles(): void {
+        // Dispose all collectible meshes
         this.collectibles.forEach(mesh => {
             mesh.dispose();
         });
         this.collectibles.clear();
+        
+        // Dispose all physics bodies
+        this.collectibleBodies.forEach(body => {
+            if (body) {
+                body.dispose();
+            }
+        });
         this.collectibleBodies.clear();
+        
+        // Clear collected items tracking
         this.collectedItems.clear();
+        
+        // Clear item configs
+        this.itemConfigs.clear();
+        
+        // Stop and dispose any active particle systems from collection effects
+        this.particleSystemPool.forEach(ps => {
+            ps.stop();
+            ps.dispose();
+        });
+        this.particleSystemPool.length = 0;
+        
+        // Dispose the instance basis mesh
+        if (this.instanceBasis) {
+            this.instanceBasis.dispose();
+            this.instanceBasis = null;
+        }
+        
+        // Remove collision detection observer
+        if (this.collectionObserver) {
+            this.scene?.onBeforeRenderObservable.remove(this.collectionObserver);
+            this.collectionObserver = null;
+        }
     }
 
     /**

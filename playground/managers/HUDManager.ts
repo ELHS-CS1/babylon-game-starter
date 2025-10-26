@@ -4,6 +4,7 @@
 
 import { CONFIG } from '../config/game-config';
 import type { CharacterController } from '../controllers/CharacterController';
+import { CollectiblesManager } from './CollectiblesManager';
 
 export class HUDManager {
     private static hudContainer: HTMLDivElement | null = null;
@@ -366,8 +367,8 @@ export class HUDManager {
         const element = this.hudElements.get('credits');
         if (!element) return;
 
-        // Get credits from CollectiblesManager or other source
-        const credits = 0; // TODO: Get actual credits
+        // Get credits from CollectiblesManager
+        const credits = CollectiblesManager.getTotalCredits();
         const creditsValue = element.querySelector('#hud-credits-value');
         if (creditsValue) {
             creditsValue.textContent = credits.toString();
