@@ -836,6 +836,30 @@ export class CharacterController {
         this.inputDirection.setAll(0);
     }
 
+    public getCurrentState(): string {
+        // Return current character state based on movement and physics
+        const velocity = this.characterController.getVelocity();
+        const isMoving = velocity.length() > 0.1;
+        const isJumping = velocity.y > 0.1;
+        const isFalling = velocity.y < -0.1;
+        const isRunning = isMoving && this.inputDirection.length() > 0.5;
+
+        if (isJumping) {
+            return 'Jumping';
+        } else if (isFalling) {
+            return 'Falling';
+        } else if (isMoving) {
+            return isRunning ? 'Running' : 'Walking';
+        } else {
+            return 'Idle';
+        }
+    }
+
+    public getBoostStatus(): string {
+        // Return boost status - for now, always ready
+        return 'Ready';
+    }
+
     /**
      * Pauses physics updates for the character
      */
