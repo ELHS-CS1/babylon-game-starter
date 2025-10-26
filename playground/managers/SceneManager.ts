@@ -295,12 +295,20 @@ export class SceneManager {
             new BABYLON.PhysicsAggregate(mesh, BABYLON.PhysicsShapeType.MESH);
             mesh.isPickable = false;
 
-            if (mesh.material != null && (mesh.material instanceof BABYLON.StandardMaterial || mesh.material instanceof BABYLON.PBRMaterial)) {
-                mesh.material.lightmapTexture = lightmap;
-                mesh.material.useLightmapAsShadowmap = true;
-                mesh.material.lightmapTexture.uAng = Math.PI;
-                mesh.material.lightmapTexture.level = lightmappedMesh.level;
-                mesh.material.lightmapTexture.coordinatesIndex = 1;
+            if (mesh.material != null) {
+                if (mesh.material instanceof BABYLON.StandardMaterial) {
+                    mesh.material.lightmapTexture = lightmap;
+                    mesh.material.useLightmapAsShadowmap = true;
+                    mesh.material.lightmapTexture.uAng = Math.PI;
+                    mesh.material.lightmapTexture.level = lightmappedMesh.level;
+                    mesh.material.lightmapTexture.coordinatesIndex = 1;
+                } else if (mesh.material instanceof BABYLON.PBRMaterial) {
+                    mesh.material.lightmapTexture = lightmap;
+                    mesh.material.useLightmapAsShadowmap = true;
+                    mesh.material.lightmapTexture.uAng = Math.PI;
+                    mesh.material.lightmapTexture.level = lightmappedMesh.level;
+                    mesh.material.lightmapTexture.coordinatesIndex = 1;
+                }
             }
 
             mesh.freezeWorldMatrix();
