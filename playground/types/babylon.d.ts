@@ -55,6 +55,7 @@ declare global {
             onKeyboardObservable: Observable<KeyboardInfo>;
             enablePhysics(gravity: Vector3, plugin: PhysicsPlugin): void;
             getAnimationGroupByName(name: string): AnimationGroup | null;
+            getMeshByName(name: string): AbstractMesh | null;
             getEngine(): Engine;
             getRenderingCanvas(): HTMLCanvasElement | null;
         }
@@ -306,6 +307,7 @@ declare global {
             disableLighting: boolean;
             emissiveTexture: Texture | null;
             emissiveColor: Color3;
+            lightmapTexture: Texture | null;
         }
 
         class Texture {
@@ -326,7 +328,7 @@ declare global {
         }
 
         // Import utilities
-        function ImportMeshAsync(meshNames: string, rootUrl: string, sceneFilename: string, scene: Scene): Promise<{ meshes: AbstractMesh[]; particleSystems: IParticleSystem[]; skeletons: any[]; animationGroups: AnimationGroup[] }>;
+        function ImportMeshAsync(modelUrl: string, scene: Scene): Promise<{ meshes: AbstractMesh[]; particleSystems: IParticleSystem[]; skeletons: any[]; animationGroups: AnimationGroup[] }>;
     }
 
     // Forward declaration for SceneManager
