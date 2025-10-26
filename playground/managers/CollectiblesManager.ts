@@ -139,30 +139,11 @@ export class CollectiblesManager {
                 this.instanceBasis.isVisible = false;
                 this.instanceBasis.setEnabled(false);
             } else {
-                this.createFallbackInstanceBasis();
+                alert('No mesh with geometry found in item model');
             }
         } catch (_error) {
-            this.createFallbackInstanceBasis();
+            alert('Error loading item model');
         }
-    }
-
-    /**
-     * Creates a fallback instance basis using a simple box
-     */
-    private static createFallbackInstanceBasis(): void {
-        if (!this.scene) return;
-
-        // Create a fallback item using a simple box
-        this.instanceBasis = BABYLON.MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene);
-
-        // Create a bright baby blue material to make it very visible
-        const material = new BABYLON.StandardMaterial("fallback_item_basis_material", this.scene);
-        material.emissiveColor = new BABYLON.Color3(0.5, 0.8, 1); // Baby blue
-        this.instanceBasis.material = material;
-
-        // Make the instance basis invisible and disable it in the scene
-        this.instanceBasis.isVisible = false;
-        this.instanceBasis.setEnabled(false);
     }
 
     /**
