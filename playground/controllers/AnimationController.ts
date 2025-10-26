@@ -58,7 +58,7 @@ export class AnimationController {
         // Handle jump delay logic
         this.handleJumpDelay(characterState);
 
-        let targetAnimationName: string | null = null;
+        let targetAnimationName: string;
 
         // Determine animation based on character state first, then movement
         if (characterState === CHARACTER_STATES.IN_AIR && !this.isJumpDelayed) {
@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation) {
+        if (this.currentAnimation == null) {
             this.startAnimation(targetAnimationName);
             return;
         }
@@ -104,7 +104,7 @@ export class AnimationController {
 
         // If not found, try to find it by partial name match
         if (!animation) {
-            animation ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
                 animationName.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -112,7 +112,7 @@ export class AnimationController {
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName?.toLowerCase().includes('idle')) {
+            if (animationName && animationName.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
@@ -155,13 +155,13 @@ export class AnimationController {
      * Switches animation directly without blending
      */
     private switchAnimationDirectly(targetAnimation: string): void {
-        if (!this.currentAnimation) return;
+        if (this.currentAnimation == null) return;
         const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -203,13 +203,13 @@ export class AnimationController {
      * Starts weighted blending between two animations
      */
     private startWeightedBlend(targetAnimation: string): void {
-        if (!this.currentAnimation) return;
+        if (this.currentAnimation == null) return;
         const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -292,7 +292,7 @@ export class AnimationController {
      * Completes the animation blend
      */
     private completeBlend(): void {
-        if (!this.currentAnimation) return;
+        if (this.currentAnimation == null) return;
 
         // Stop the previous animation
         if (this.previousAnimation != null) {
