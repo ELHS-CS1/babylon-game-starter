@@ -89,8 +89,8 @@ export class SmoothFollowCameraController {
     };
 
     private handlePointerMove(pointerInfo: BABYLON.PointerInfo): void {
-        const deltaX = pointerInfo.event.movementX ?? (pointerInfo.event.clientX - this.lastPointerX);
-        const deltaY = pointerInfo.event.movementY ?? (pointerInfo.event.clientY - this.lastPointerY);
+        const deltaX = pointerInfo.event.movementX || (pointerInfo.event.clientX - this.lastPointerX);
+        const deltaY = pointerInfo.event.movementY || (pointerInfo.event.clientY - this.lastPointerY);
 
         this.lastPointerX = pointerInfo.event.clientX;
         this.lastPointerY = pointerInfo.event.clientY;
@@ -141,13 +141,14 @@ export class SmoothFollowCameraController {
     };
 
     private handleTwoFingerPan(e: TouchEvent): void {
-        const currentPositions = [
+        const currentPositions: [number, number, number, number] = [
             e.touches[0].clientX, e.touches[0].clientY,
             e.touches[1].clientX, e.touches[1].clientY
-        ] as [number, number, number, number];
+        ];
 
-        const lastMidX = (this.lastPanPositions![0] + this.lastPanPositions![2]) / 2;
-        const lastMidY = (this.lastPanPositions![1] + this.lastPanPositions![3]) / 2;
+        if (!this.lastPanPositions) return;
+        const lastMidX = (this.lastPanPositions[0] + this.lastPanPositions[2]) / 2;
+        const lastMidY = (this.lastPanPositions[1] + this.lastPanPositions[3]) / 2;
         const currMidX = (currentPositions[0] + currentPositions[2]) / 2;
         const currMidY = (currentPositions[1] + currentPositions[3]) / 2;
 

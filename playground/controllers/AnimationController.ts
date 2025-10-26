@@ -58,7 +58,7 @@ export class AnimationController {
         // Handle jump delay logic
         this.handleJumpDelay(characterState);
 
-        let targetAnimationName: string;
+        let targetAnimationName: string | null = null;
 
         // Determine animation based on character state first, then movement
         if (characterState === CHARACTER_STATES.IN_AIR && !this.isJumpDelayed) {
@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation && targetAnimationName != null) {
+        if (!this.currentAnimation && targetAnimationName) {
             this.startAnimation(targetAnimationName);
             return;
         }

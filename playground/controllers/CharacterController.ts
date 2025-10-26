@@ -710,16 +710,16 @@ export class CharacterController {
         }
     }
 
-    public setPlayerMesh(mesh: any): void {
+    public setPlayerMesh(mesh: BABYLON.AbstractMesh): void {
         this.playerMesh = mesh;
         mesh.scaling.setAll(CONFIG.ANIMATION.PLAYER_SCALE);
     }
 
-    public getPlayerMesh(): any {
+    public getPlayerMesh(): BABYLON.AbstractMesh | null {
         return this.playerMesh;
     }
 
-    public getPhysicsCharacterController(): any {
+    public getPhysicsCharacterController(): BABYLON.PhysicsCharacterController {
         return this.characterController;
     }
 
@@ -727,7 +727,7 @@ export class CharacterController {
         return this.currentCharacter;
     }
 
-    public updateCharacterPhysics(character: Character, spawnPosition: any): void {
+    public updateCharacterPhysics(character: Character, spawnPosition: BABYLON.Vector3): void {
         // Update character position to spawn point
         this.characterController.setPosition(spawnPosition);
 
@@ -750,7 +750,7 @@ export class CharacterController {
         this.state = CHARACTER_STATES.IN_AIR;
     }
 
-    public getDisplayCapsule(): any {
+    public getDisplayCapsule(): BABYLON.AbstractMesh {
         return this.displayCapsule;
     }
 
@@ -758,19 +758,19 @@ export class CharacterController {
         this.cameraController = cameraController;
     }
 
-    public setPlayerParticleSystem(particleSystem: any | null): void {
+    public setPlayerParticleSystem(particleSystem: BABYLON.IParticleSystem | null): void {
         this.playerParticleSystem = particleSystem;
         // Start with particle system stopped if it exists
-        if (particleSystem) {
+        if (particleSystem != null) {
             particleSystem.stop();
         }
     }
 
-    public getPlayerParticleSystem(): any | null {
+    public getPlayerParticleSystem(): BABYLON.IParticleSystem | null {
         return this.playerParticleSystem;
     }
 
-    public setThrusterSound(sound: any): void {
+    public setThrusterSound(sound: BABYLON.Sound): void {
         this.thrusterSound = sound;
         // Start with sound stopped
         sound.stop();
@@ -812,7 +812,7 @@ export class CharacterController {
      * Gets the physics body of the character controller
      * @returns The physics body or null if not available
      */
-    public getPhysicsBody(): any | null {
+    public getPhysicsBody(): null {
         // PhysicsCharacterController doesn't expose its physics body directly
         // We'll use the display capsule for collision detection instead
         return null;
@@ -822,19 +822,19 @@ export class CharacterController {
      * Gets the current velocity of the character
      * @returns The current velocity vector
      */
-    public getVelocity(): any {
+    public getVelocity(): BABYLON.Vector3 {
         return this.characterController.getVelocity();
     }
 
-    public getPosition(): any {
+    public getPosition(): BABYLON.Vector3 {
         return this.characterController.getPosition();
     }
 
-    public setPosition(position: any): void {
+    public setPosition(position: BABYLON.Vector3): void {
         this.characterController.setPosition(position);
     }
 
-    public setVelocity(velocity: any): void {
+    public setVelocity(velocity: BABYLON.Vector3): void {
         this.characterController.setVelocity(velocity);
     }
 

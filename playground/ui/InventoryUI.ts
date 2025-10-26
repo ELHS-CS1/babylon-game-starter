@@ -10,7 +10,7 @@ import type { SceneManager } from '../managers/SceneManager';
 // Forward declaration for InventoryManager
 declare class InventoryManager {
     static getInventoryItems(): Map<string, { count: number; thumbnail: string }>;
-    static useInventoryItem(itemName: string): boolean;
+    static useInventoryItem(_itemName: string): boolean;
 }
 
 export class InventoryUI {

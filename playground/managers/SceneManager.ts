@@ -52,14 +52,12 @@ export class SceneManager {
     private setupCharacter(): void {
         this.characterController = new CharacterController(this.scene);
         
-        if (this.characterController) {
-            this.smoothFollowController = new SmoothFollowCameraController(
-                this.scene,
-                this.camera,
-                this.characterController.getDisplayCapsule()
-            );
-            this.characterController.setCameraController(this.smoothFollowController);
-        }
+        this.smoothFollowController = new SmoothFollowCameraController(
+            this.scene,
+            this.camera,
+            this.characterController.getDisplayCapsule()
+        );
+        this.characterController.setCameraController(this.smoothFollowController);
     }
 
     public getScene(): BABYLON.Scene {

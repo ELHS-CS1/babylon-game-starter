@@ -34,14 +34,15 @@ export class EffectsManager {
         const startTime = Date.now();
         sound.setVolume(from);
         return new Promise<void>((resolve) => {
-            const obs = this.scene!.onBeforeRenderObservable.add(() => {
+            if (!this.scene) return Promise.resolve();
+            const obs = this.scene.onBeforeRenderObservable.add(() => {
                 const elapsed = Date.now() - startTime;
                 const t = Math.min(1, elapsed / ms);
                 const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
                 const current = from + (to - from) * eased;
                 sound.setVolume(current);
                 if (t >= 1) {
-                    this.scene!.onBeforeRenderObservable.remove(obs);
+                    if (this.scene) this.scene.onBeforeRenderObservable.remove(obs);
                     resolve();
                 }
             });
@@ -101,11 +102,12 @@ export class EffectsManager {
                 if (typeof s.rolloffFactor === 'number') {
                     s.rolloffFactor = (cfg.rollOff ?? 2);
                 }
-                if (typeof s.maxDistance === 'number' || s.maxDistance === undefined) {
+                if (typeof s.maxDistance === 'number') {
                     s.maxDistance = (cfg.maxDistance ?? 40);
                 }
                 this.ambientSounds.push(s);
             } catch (_e) {
+                // Ignore sound loading errors
             }
         }
     }
@@ -144,32 +146,30 @@ export class EffectsManager {
             // Parse the snippet from the online editor
             const particleSystem = await BABYLON.ParseFromSnippetAsync(snippet.snippetId, this.scene);
 
-            if (particleSystem && emitter) {
+            if (emitter) {
                 particleSystem.emitter = emitter;
             }
 
-            if (particleSystem) {
-                // Set automatic stop duration if provided
-                if (options?.targetStopDuration) {
-                    particleSystem.targetStopDuration = options.targetStopDuration;
-                }
-
-                // Special handling for Magic Sparkles - if it has a mesh emitter, it's for the player
-                let usageCategory = this.determineUsageCategory(snippetName, snippet.category);
-                if (snippetName === "Magic Sparkles" && emitter && emitter instanceof BABYLON.AbstractMesh) {
-                    usageCategory = "PLAYER";
-                }
-
-                const descriptiveName = `${snippetName}_${usageCategory}`;
-
-                // Set a descriptive name for the particle system
-                particleSystem.name = descriptiveName;
-
-                this.activeParticleSystems.set(descriptiveName, particleSystem);
-
-                // Categorize the particle system based on its usage
-                this.categorizeParticleSystem(descriptiveName, particleSystem, snippet.category);
+            // Set automatic stop duration if provided
+            if (options?.targetStopDuration != null) {
+                particleSystem.targetStopDuration = options.targetStopDuration;
             }
+
+            // Special handling for Magic Sparkles - if it has a mesh emitter, it's for the player
+            let usageCategory = this.determineUsageCategory(snippetName, snippet.category);
+            if (snippetName === "Magic Sparkles" && emitter && emitter instanceof BABYLON.AbstractMesh) {
+                usageCategory = "PLAYER";
+            }
+
+            const descriptiveName = `${snippetName}_${usageCategory}`;
+
+            // Set a descriptive name for the particle system
+            particleSystem.name = descriptiveName;
+
+            this.activeParticleSystems.set(descriptiveName, particleSystem);
+
+            // Categorize the particle system based on its usage
+            this.categorizeParticleSystem(descriptiveName, particleSystem, snippet.category);
 
             return particleSystem;
         } catch (_error) {
@@ -353,7 +353,7 @@ export class EffectsManager {
      * @returns Snippet details or null if not found
      */
     public static getSnippetDetails(snippetName: string): ParticleSnippet | null {
-        return CONFIG.EFFECTS.PARTICLE_SNIPPETS.find(snippet => snippet.name === snippetName) || null;
+        return CONFIG.EFFECTS.PARTICLE_SNIPPETS.find(snippet => snippet.name === snippetName) ?? null;
     }
 
     /**
@@ -443,7 +443,7 @@ export class EffectsManager {
      */
     public static stopSound(soundName: string): void {
         const sound = this.activeSounds.get(soundName);
-        if (sound?.isPlaying) {
+        if (sound?.isPlaying === true) {
             sound.stop();
         }
     }
@@ -454,7 +454,7 @@ export class EffectsManager {
      * @returns The sound or null if not found
      */
     public static getSound(soundName: string): BABYLON.Sound | null {
-        return this.activeSounds.get(soundName) || null;
+        return this.activeSounds.get(soundName) ?? null;
     }
 
     /**

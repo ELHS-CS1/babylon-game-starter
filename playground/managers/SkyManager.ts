@@ -38,7 +38,8 @@ export class SkyManager {
             this.createSkyBox(scene, skyConfig.ROTATION_Y);
         }
 
-        return this.sky!;
+        if (!this.sky) throw new Error('Sky not initialized');
+        return this.sky;
     }
 
     /**
@@ -80,7 +81,8 @@ export class SkyManager {
      */
     private static createSkyBox(scene: BABYLON.Scene, rotationY: number): void {
         // Set texture coordinates mode for cube skybox
-        this.skyTexture!.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        if (!this.skyTexture) throw new Error('Sky texture not initialized');
+        this.skyTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
 
         // Create box mesh
         this.sky = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
