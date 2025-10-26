@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation) {
+        if (!this.currentAnimation && targetAnimationName != null) {
             this.startAnimation(targetAnimationName);
             return;
         }
@@ -112,18 +112,18 @@ export class AnimationController {
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName?.toLowerCase().includes('idle')) {
+            if (animationName && animationName.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 ) ?? null;
-            } else if (animationName?.toLowerCase().includes('walk')) {
+            } else if (animationName && animationName.toLowerCase().includes('walk')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 ) ?? null;
-            } else if (animationName?.toLowerCase().includes('jump')) {
+            } else if (animationName && animationName.toLowerCase().includes('jump')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||

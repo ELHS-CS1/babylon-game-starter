@@ -420,7 +420,7 @@ export class CharacterController {
 
     private updateRotation(): void {
         // If camera is controlling rotation, don't interfere
-        if (this.cameraController?.isRotatingCharacter) {
+        if (this.cameraController?.isRotatingCharacter === true) {
             // Update target rotation to match current rotation to prevent jerking
             this.targetRotationY = this.displayCapsule.rotation.y;
             return;
@@ -456,9 +456,7 @@ export class CharacterController {
 
             // Update player mesh rotation
             if (this.displayCapsule.rotationQuaternion) {
-                if (!this.playerMesh.rotationQuaternion) {
-                    this.playerMesh.rotationQuaternion = new BABYLON.Quaternion(0, 0, 0, 1);
-                }
+                this.playerMesh.rotationQuaternion ??= new BABYLON.Quaternion(0, 0, 0, 1);
                 this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
             } else {
                 this.playerMesh.rotationQuaternion = null;
@@ -529,9 +527,9 @@ export class CharacterController {
 
     private calculateDesiredVelocity(
         deltaTime: number,
-        supportInfo: any,
-        characterOrientation: any
-    ): any {
+        supportInfo: BABYLON.CharacterSurfaceInfo,
+        characterOrientation: BABYLON.Quaternion
+    ): BABYLON.Vector3 {
         const nextState = this.getNextState(supportInfo);
         if (nextState !== this.state) {
             this.state = nextState;
@@ -561,11 +559,11 @@ export class CharacterController {
 
     private calculateAirVelocity(
         deltaTime: number,
-        forwardWorld: any,
-        upWorld: any,
-        currentVelocity: any,
-        characterOrientation: any
-    ): any {
+        forwardWorld: BABYLON.Vector3,
+        upWorld: BABYLON.Vector3,
+        currentVelocity: BABYLON.Vector3,
+        characterOrientation: BABYLON.Quaternion
+    ): BABYLON.Vector3 {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
@@ -608,12 +606,12 @@ export class CharacterController {
 
     private calculateGroundVelocity(
         deltaTime: number,
-        forwardWorld: any,
-        upWorld: any,
-        currentVelocity: any,
-        supportInfo: any,
-        characterOrientation: any
-    ): any {
+        forwardWorld: BABYLON.Vector3,
+        upWorld: BABYLON.Vector3,
+        currentVelocity: BABYLON.Vector3,
+        supportInfo: BABYLON.CharacterSurfaceInfo,
+        characterOrientation: BABYLON.Quaternion
+    ): BABYLON.Vector3 {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
@@ -671,7 +669,7 @@ export class CharacterController {
         return outputVelocity;
     }
 
-    private calculateJumpVelocity(currentVelocity: any, upWorld: any): any {
+    private calculateJumpVelocity(currentVelocity: BABYLON.Vector3, upWorld: BABYLON.Vector3): BABYLON.Vector3 {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
@@ -691,7 +689,7 @@ export class CharacterController {
         return currentVelocity.add(upWorld.scale(u - curRelVel));
     }
 
-    private getNextState(supportInfo: any): CharacterState {
+    private getNextState(supportInfo: BABYLON.CharacterSurfaceInfo): CharacterState {
         switch (this.state) {
             case CHARACTER_STATES.IN_AIR:
                 return supportInfo.supportedState === BABYLON.SUPPORTED
