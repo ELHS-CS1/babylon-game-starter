@@ -27,6 +27,10 @@ export class SceneManager {
     private characterController: CharacterController | null = null;
     private smoothFollowController: SmoothFollowCameraController | null = null;
     private currentEnvironment: string = "Level Test"; // Track current environment
+    
+    // Character caching for performance
+    private characterCache: Map<string, BABYLON.AbstractMesh[]> = new Map();
+    private currentCharacterName: string | null = null;
     private readonly zeroVector = new BABYLON.Vector3(0, 0, 0);
 
     constructor(engine: BABYLON.Engine, _canvas: HTMLCanvasElement) {
@@ -98,6 +102,17 @@ export class SceneManager {
             return;
         }
 
+        // Check if character is already cached
+        if (this.currentCharacterName === character.name && this.characterCache.has(character.name)) {
+            this.activateCachedCharacter(character);
+            return;
+        }
+
+        // Disable current character if switching
+        if (this.currentCharacterName && this.currentCharacterName !== character.name) {
+            this.disableCurrentCharacter();
+        }
+
         // Remove all animation groups from the scene before loading a new character
         this.scene.animationGroups.slice().forEach(group => { group.dispose(); });
 
@@ -120,6 +135,10 @@ export class SceneManager {
                     result.meshes.forEach(mesh => {
                         mesh.scaling.setAll(character.scale);
                     });
+
+                    // Cache the character meshes
+                    this.characterCache.set(character.name, result.meshes);
+                    this.currentCharacterName = character.name;
 
                     this.characterController.setPlayerMesh(result.meshes[0]);
 
@@ -300,13 +319,15 @@ export class SceneManager {
                 if (mesh.material instanceof BABYLON.StandardMaterial) {
                     mesh.material.lightmapTexture = lightmap;
                     mesh.material.useLightmapAsShadowmap = true;
-                    mesh.material.lightmapTexture.uAng = Math.PI;
+                    // @ts-ignore
+                    (mesh.material.lightmapTexture as BABYLON.Texture).uAng = Math.PI;
                     mesh.material.lightmapTexture.level = lightmappedMesh.level;
                     mesh.material.lightmapTexture.coordinatesIndex = 1;
                 } else if (mesh.material instanceof BABYLON.PBRMaterial) {
                     mesh.material.lightmapTexture = lightmap;
                     mesh.material.useLightmapAsShadowmap = true;
-                    mesh.material.lightmapTexture.uAng = Math.PI;
+                    // @ts-ignore
+                    (mesh.material.lightmapTexture as BABYLON.Texture).uAng = Math.PI;
                     mesh.material.lightmapTexture.level = lightmappedMesh.level;
                     mesh.material.lightmapTexture.coordinatesIndex = 1;
                 }
@@ -484,6 +505,48 @@ export class SceneManager {
         }
     }
 
+    /**
+     * Disables the current character by hiding all its meshes
+     */
+    private disableCurrentCharacter(): void {
+        if (this.currentCharacterName && this.characterCache.has(this.currentCharacterName)) {
+            const cachedMeshes = this.characterCache.get(this.currentCharacterName)!;
+            cachedMeshes.forEach(mesh => {
+                mesh.setEnabled(false);
+            });
+        }
+    }
+
+    /**
+     * Activates a cached character by showing its meshes and setting up the controller
+     */
+    private activateCachedCharacter(character: Character): void {
+        if (!this.characterController || !this.characterCache.has(character.name)) return;
+
+        const cachedMeshes = this.characterCache.get(character.name)!;
+        
+        // Enable all cached meshes
+        cachedMeshes.forEach(mesh => {
+            mesh.setEnabled(true);
+        });
+
+        // Set up the character controller with cached mesh
+        this.characterController.setPlayerMesh(cachedMeshes[0]);
+
+        // Determine position for character
+        const currentEnvironment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
+        const characterPosition = currentEnvironment?.spawnPoint ?? new BABYLON.Vector3(0, 0, 0);
+
+        // Update character physics with determined position
+        this.characterController.updateCharacterPhysics(character, characterPosition);
+
+        // Note: Animation groups are handled by the original loadCharacter method
+        // For cached characters, we rely on the existing animation setup
+
+        // Set character in animation controller
+        this.characterController.animationController.setCharacter(character);
+    }
+
     public dispose(): void {
         if (this.characterController) {
             this.characterController.dispose();
@@ -491,6 +554,13 @@ export class SceneManager {
         if (this.smoothFollowController) {
             this.smoothFollowController.dispose();
         }
+        
+        // Dispose cached character meshes
+        this.characterCache.forEach(meshes => {
+            meshes.forEach(mesh => mesh.dispose());
+        });
+        this.characterCache.clear();
+        
         EffectsManager.removeAllSounds();
         this.scene.dispose();
     }
