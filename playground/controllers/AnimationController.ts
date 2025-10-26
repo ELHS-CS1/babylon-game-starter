@@ -32,7 +32,7 @@ export class AnimationController {
      */
     public setCharacter(character: Character): void {
         this.currentCharacter = character;
-        this.blendDuration = character.animationBlend || 400;
+        this.blendDuration = character.animationBlend ?? 400;
 
         // Reset animation state when character changes
         this.currentAnimation = null;
@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation) {
+        if (!this.currentAnimation && targetAnimationName != null) {
             this.startAnimation(targetAnimationName);
             return;
         }
@@ -104,31 +104,31 @@ export class AnimationController {
 
         // If not found, try to find it by partial name match
         if (!animation) {
-            animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            animation ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
                 animationName.toLowerCase().includes(anim.name.toLowerCase())
-            ) || null;
+            ) ?? null;
         }
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName.toLowerCase().includes('idle')) {
+            if (animationName && animationName.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                ) || null;
-            } else if (animationName.toLowerCase().includes('walk')) {
+                ) ?? null;
+            } else if (animationName && animationName.toLowerCase().includes('walk')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                ) || null;
-            } else if (animationName.toLowerCase().includes('jump')) {
+                ) ?? null;
+            } else if (animationName && animationName.toLowerCase().includes('jump')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
-                ) || null;
+                ) ?? null;
             }
         }
 
@@ -155,7 +155,8 @@ export class AnimationController {
      * Switches animation directly without blending
      */
     private switchAnimationDirectly(targetAnimation: string): void {
-        const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation!);
+        if (!this.currentAnimation) return;
+        const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
@@ -163,7 +164,7 @@ export class AnimationController {
             targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            ) || null;
+            ) ?? null;
         }
 
         // If still not found, try common fallbacks
@@ -172,13 +173,13 @@ export class AnimationController {
                 targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                ) || null;
+                ) ?? null;
             } else if (targetAnimation.toLowerCase().includes('walk')) {
                 targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                ) || null;
+                ) ?? null;
             }
         }
 
@@ -202,7 +203,8 @@ export class AnimationController {
      * Starts weighted blending between two animations
      */
     private startWeightedBlend(targetAnimation: string): void {
-        const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation!);
+        if (!this.currentAnimation) return;
+        const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
         let targetAnim = this.scene.getAnimationGroupByName(targetAnimation);
 
         // If target animation not found, try partial match
@@ -210,7 +212,7 @@ export class AnimationController {
             targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            ) || null;
+            ) ?? null;
         }
 
         // If still not found, try common fallbacks
@@ -219,19 +221,19 @@ export class AnimationController {
                 targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                ) || null;
+                ) ?? null;
             } else if (targetAnimation.toLowerCase().includes('walk')) {
                 targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                ) || null;
+                ) ?? null;
             } else if (targetAnimation.toLowerCase().includes('jump')) {
                 targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
-                ) || null;
+                ) ?? null;
             }
         }
 
@@ -339,7 +341,7 @@ export class AnimationController {
     private handleJumpDelay(characterState?: CharacterState): void {
         if (!this.currentCharacter || !characterState) return;
 
-        const jumpDelay = this.currentCharacter.jumpDelay || 100; // Default to 100ms
+        const jumpDelay = this.currentCharacter.jumpDelay ?? 100; // Default to 100ms
 
         // Check if we just entered IN_AIR state
         if (characterState === CHARACTER_STATES.IN_AIR && this.lastCharacterState !== CHARACTER_STATES.IN_AIR) {

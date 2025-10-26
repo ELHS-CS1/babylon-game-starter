@@ -64,7 +64,7 @@ export class SmoothFollowCameraController {
 
     private handlePointer = (pointerInfo: BABYLON.PointerInfo): void => {
         switch (pointerInfo.type) {
-            case BABYLON.POINTERDOWN:
+            case BABYLON.PointerEventTypes.POINTERDOWN:
                 this.isDragging = true;
                 this.lastPointerX = pointerInfo.event.clientX;
                 this.lastPointerY = pointerInfo.event.clientY;
@@ -72,7 +72,7 @@ export class SmoothFollowCameraController {
                 this.dragDeltaZ = 0;
                 break;
 
-            case BABYLON.POINTERUP:
+            case BABYLON.PointerEventTypes.POINTERUP:
                 this.isDragging = false;
                 this.dragDeltaX = 0;
                 this.dragDeltaZ = 0;
@@ -80,7 +80,7 @@ export class SmoothFollowCameraController {
                 this.shouldStartRotationOnWalk = true;
                 break;
 
-            case BABYLON.POINTERMOVE:
+            case BABYLON.PointerEventTypes.POINTERMOVE:
                 if (this.isDragging) {
                     this.handlePointerMove(pointerInfo);
                 }
@@ -89,8 +89,8 @@ export class SmoothFollowCameraController {
     };
 
     private handlePointerMove(pointerInfo: BABYLON.PointerInfo): void {
-        const deltaX = pointerInfo.event.movementX || (pointerInfo.event.clientX - this.lastPointerX);
-        const deltaY = pointerInfo.event.movementY || (pointerInfo.event.clientY - this.lastPointerY);
+        const deltaX = pointerInfo.event.movementX ?? (pointerInfo.event.clientX - this.lastPointerX);
+        const deltaY = pointerInfo.event.movementY ?? (pointerInfo.event.clientY - this.lastPointerY);
 
         this.lastPointerX = pointerInfo.event.clientX;
         this.lastPointerY = pointerInfo.event.clientY;

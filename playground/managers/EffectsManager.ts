@@ -262,7 +262,7 @@ export class EffectsManager {
      * Stops and removes all active particle systems
      */
     public static removeAllParticleSystems(): void {
-        this.activeParticleSystems.forEach((particleSystem, name) => {
+        this.activeParticleSystems.forEach((particleSystem, _name) => {
             particleSystem.stop();
             particleSystem.dispose();
         });
@@ -461,7 +461,7 @@ export class EffectsManager {
      * Stops and removes all active sounds
      */
     public static removeAllSounds(): void {
-        this.activeSounds.forEach((sound, name) => {
+        this.activeSounds.forEach((sound, _name) => {
             sound.stop();
             sound.dispose();
         });

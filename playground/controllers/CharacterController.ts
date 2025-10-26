@@ -87,7 +87,10 @@ export class CharacterController {
 
         // Initialize mobile controls if on mobile device
         if (this.isMobileDevice) {
-            MobileInputManager.initialize(this.scene.getEngine().getRenderingCanvas()!);
+            const canvas = this.scene.getEngine().getRenderingCanvas();
+            if (canvas) {
+                MobileInputManager.initialize(canvas);
+            }
         }
     }
 
@@ -173,12 +176,12 @@ export class CharacterController {
         const key = kbInfo.event.key.toLowerCase();
 
         switch (kbInfo.type) {
-            case BABYLON.KEYDOWN:
+            case BABYLON.KeyboardEventTypes.KEYDOWN:
                 this.keysDown.add(key);
                 this.handleKeyDown(key);
                 break;
 
-            case BABYLON.KEYUP:
+            case BABYLON.KeyboardEventTypes.KEYUP:
                 this.keysDown.delete(key);
                 this.handleKeyUp(key);
                 break;
@@ -187,51 +190,51 @@ export class CharacterController {
 
     // Type guard functions for INPUT_KEYS
     private isForwardKey = (k: string): k is typeof INPUT_KEYS.FORWARD[number] => {
-        return (INPUT_KEYS.FORWARD as readonly string[]).includes(k);
+        return INPUT_KEYS.FORWARD.some(key => key === k);
     };
 
     private isBackwardKey = (k: string): k is typeof INPUT_KEYS.BACKWARD[number] => {
-        return (INPUT_KEYS.BACKWARD as readonly string[]).includes(k);
+        return INPUT_KEYS.BACKWARD.some(key => key === k);
     };
 
     private isStrafeLeftKey = (k: string): k is typeof INPUT_KEYS.STRAFE_LEFT[number] => {
-        return (INPUT_KEYS.STRAFE_LEFT as readonly string[]).includes(k);
+        return INPUT_KEYS.STRAFE_LEFT.some(key => key === k);
     };
 
     private isStrafeRightKey = (k: string): k is typeof INPUT_KEYS.STRAFE_RIGHT[number] => {
-        return (INPUT_KEYS.STRAFE_RIGHT as readonly string[]).includes(k);
+        return INPUT_KEYS.STRAFE_RIGHT.some(key => key === k);
     };
 
     private isJumpKey = (k: string): k is typeof INPUT_KEYS.JUMP[number] => {
-        return (INPUT_KEYS.JUMP as readonly string[]).includes(k);
+        return INPUT_KEYS.JUMP.some(key => key === k);
     };
 
     private isBoostKey = (k: string): k is typeof INPUT_KEYS.BOOST[number] => {
-        return (INPUT_KEYS.BOOST as readonly string[]).includes(k);
+        return INPUT_KEYS.BOOST.some(key => key === k);
     };
 
     private isDebugKey = (k: string): k is typeof INPUT_KEYS.DEBUG[number] => {
-        return (INPUT_KEYS.DEBUG as readonly string[]).includes(k);
+        return INPUT_KEYS.DEBUG.some(key => key === k);
     };
 
     private isHUDToggleKey = (k: string): k is typeof INPUT_KEYS.HUD_TOGGLE[number] => {
-        return (INPUT_KEYS.HUD_TOGGLE as readonly string[]).includes(k);
+        return INPUT_KEYS.HUD_TOGGLE.some(key => key === k);
     };
 
     private isHUDPositionKey = (k: string): k is typeof INPUT_KEYS.HUD_POSITION[number] => {
-        return (INPUT_KEYS.HUD_POSITION as readonly string[]).includes(k);
+        return INPUT_KEYS.HUD_POSITION.some(key => key === k);
     };
 
     private isResetCameraKey = (k: string): k is typeof INPUT_KEYS.RESET_CAMERA[number] => {
-        return (INPUT_KEYS.RESET_CAMERA as readonly string[]).includes(k);
+        return INPUT_KEYS.RESET_CAMERA.some(key => key === k);
     };
 
     private isLeftKey = (k: string): k is typeof INPUT_KEYS.LEFT[number] => {
-        return (INPUT_KEYS.LEFT as readonly string[]).includes(k);
+        return INPUT_KEYS.LEFT.some(key => key === k);
     };
 
     private isRightKey = (k: string): k is typeof INPUT_KEYS.RIGHT[number] => {
-        return (INPUT_KEYS.RIGHT as readonly string[]).includes(k);
+        return INPUT_KEYS.RIGHT.some(key => key === k);
     };
 
     private handleKeyDown(key: string): void {
@@ -304,7 +307,7 @@ export class CharacterController {
             if (this.isIPadWithKeyboard) {
                 // Only allow touch input for rotation (X-axis) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+                    const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
                     this.targetRotationY += mobileDirection.x * rotationSpeed;
                 }
 
@@ -341,7 +344,7 @@ export class CharacterController {
 
                 // Only update player rotation based on X-axis (left/right) when not in air
                 if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
-                    const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+                    const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
                     this.targetRotationY += mobileDirection.x * rotationSpeed;
                 }
 
@@ -429,8 +432,8 @@ export class CharacterController {
         }
 
         // Handle rotation based on input using active character's properties
-        const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
-        const rotationSmoothing = this.currentCharacter?.rotationSmoothing || 0.2;
+        const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
+        const rotationSmoothing = this.currentCharacter?.rotationSmoothing ?? 0.2;
 
         if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
             this.targetRotationY -= rotationSpeed;
@@ -866,7 +869,7 @@ export class CharacterController {
     public resetToStartPosition(): void {
         // Use environment spawn point instead of character start position
         const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
-        const spawnPoint = environment?.spawnPoint || new BABYLON.Vector3(0, 0, 0);
+        const spawnPoint = environment?.spawnPoint ?? new BABYLON.Vector3(0, 0, 0);
         this.characterController.setPosition(spawnPoint);
         this.characterController.setVelocity(new BABYLON.Vector3(0, 0, 0));
         this.inputDirection.setAll(0);

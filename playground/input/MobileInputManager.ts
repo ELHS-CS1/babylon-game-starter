@@ -140,13 +140,13 @@ export class MobileInputManager {
      * Sets up orientation change handling for mobile
      * @param canvas The canvas element
      */
-    private static setupOrientationHandler(canvas: HTMLCanvasElement): void {
+    private static setupOrientationHandler(_canvas: HTMLCanvasElement): void {
         const handleOrientationChange = () => {
-            // Small delay to ensure orientation change is complete
-            setTimeout(() => {
+            // Use requestAnimationFrame to ensure orientation change is complete
+            requestAnimationFrame(() => {
                 // Force canvas resize using window resize event
                 window.dispatchEvent(new Event('resize'));
-            }, 100);
+            });
         };
 
         // Listen for orientation changes
@@ -200,7 +200,8 @@ export class MobileInputManager {
         container.appendChild(this.joystickContainer);
 
         // Store center position after element is in DOM
-        setTimeout(() => {
+        // Use requestAnimationFrame instead of setTimeout
+        requestAnimationFrame(() => {
             const rect = this.joystickContainer?.getBoundingClientRect();
             if (rect) {
                 this.joystickCenter = {
@@ -208,7 +209,7 @@ export class MobileInputManager {
                     y: rect.top + rect.height / 2
                 };
             }
-        }, 0);
+        });
     }
 
     /**

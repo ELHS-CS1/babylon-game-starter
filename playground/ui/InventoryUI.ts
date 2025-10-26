@@ -25,7 +25,7 @@ export class InventoryUI {
      * @param sceneManager The scene manager
      */
     public static initialize(canvas: HTMLCanvasElement, sceneManager?: SceneManager): void {
-        this.sceneManager = sceneManager || null;
+        this.sceneManager = sceneManager ?? null;
         this.createInventoryButton(canvas);
         this.createInventoryPanel(canvas);
         this.setupEventListeners();
@@ -253,9 +253,19 @@ export class InventoryUI {
         feedback.textContent = `Used ${itemName}!`;
         document.body.appendChild(feedback);
 
-        setTimeout(() => {
-            feedback.remove();
-        }, 2000);
+        // Use requestAnimationFrame for cleanup instead of setTimeout
+        let frameCount = 0;
+        const maxFrames = 120; // Approximately 2 seconds at 60fps
+        
+        const cleanup = () => {
+            frameCount++;
+            if (frameCount >= maxFrames) {
+                feedback.remove();
+            } else {
+                requestAnimationFrame(cleanup);
+            }
+        };
+        requestAnimationFrame(cleanup);
     }
 
     /**

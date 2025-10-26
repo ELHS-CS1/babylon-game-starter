@@ -9,12 +9,12 @@ import { ASSETS } from '../config/assets';
 import type { SettingsSection, VisibilityType } from '../types/ui';
 // Forward declaration for SceneManager
 interface SceneManager {
-    changeCharacter(characterIndexOrName: number | string): void;
+    changeCharacter(_characterIndexOrName: number | string): void;
     pausePhysics(): void;
     clearEnvironment(): void;
     clearItems(): void;
     clearParticles(): void;
-    loadEnvironment(environmentName: string): Promise<void>;
+    loadEnvironment(_environmentName: string): Promise<void>;
     setupEnvironmentItems(): Promise<void>;
     repositionCharacter(): void;
     forceActivateSmoothFollow(): void;
@@ -88,7 +88,7 @@ export class SettingsUI {
 
     public static initialize(canvas: HTMLCanvasElement, sceneManager?: SceneManager): void {
         this.isInitializing = true; // Prevent onChange during initialization
-        this.sceneManager = sceneManager || null;
+        this.sceneManager = sceneManager ?? null;
         this.createSettingsButton(canvas);
         this.createSettingsPanel(canvas);
         this.setupEventListeners();
@@ -304,9 +304,9 @@ export class SettingsUI {
 
         // Listen for orientation changes to re-evaluate section visibility
         window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 this.regenerateSections();
-            }, 100); // Small delay to ensure orientation change is complete
+            });
         });
 
         // Also listen for resize events
@@ -343,7 +343,7 @@ export class SettingsUI {
 
             if (section.uiElement === 'toggle') {
                 // Get current state for mobile controls
-                let defaultValue = section.defaultValue as boolean ?? false;
+                let defaultValue = (section.defaultValue as boolean) ?? false;
                 if (section.title === "Screen Controls") {
                     // For Screen Controls, always default to true (visible) since controls are shown by default
                     defaultValue = true;
@@ -361,7 +361,7 @@ export class SettingsUI {
                     </div>
                 `;
             } else if (section.uiElement === 'dropdown') {
-                const defaultValue = section.defaultValue as string ?? (section.options?.[0] ?? '');
+                const defaultValue = (section.defaultValue as string) ?? (section.options?.[0] ?? '');
 
                 // Special handling for Character and Environment dropdowns to show names
                 let optionsHTML = '';
@@ -397,7 +397,8 @@ export class SettingsUI {
 
     private static setupSectionEventListeners(): void {
         // Setup toggle switches
-        const toggles = this.settingsPanel!.querySelectorAll('input[type="checkbox"]');
+        if (!this.settingsPanel) return;
+        const toggles = this.settingsPanel.querySelectorAll('input[type="checkbox"]');
         toggles.forEach(toggle => {
             toggle.addEventListener('change', async (e) => {
                 const target = e.target as HTMLInputElement;
@@ -411,7 +412,8 @@ export class SettingsUI {
         });
 
         // Setup dropdown selects
-        const selects = this.settingsPanel!.querySelectorAll('select');
+        if (!this.settingsPanel) return;
+        const selects = this.settingsPanel.querySelectorAll('select');
         selects.forEach(select => {
             select.addEventListener('change', async (e) => {
                 const target = e.target as HTMLSelectElement;
@@ -429,7 +431,8 @@ export class SettingsUI {
     }
 
     private static setupToggleStateHandlers(): void {
-        const toggleInputs = this.settingsPanel!.querySelectorAll('.toggle-switch input');
+        if (!this.settingsPanel) return;
+        const toggleInputs = this.settingsPanel.querySelectorAll('.toggle-switch input');
         toggleInputs.forEach(input => {
             input.addEventListener('change', (e) => {
                 const target = e.target as HTMLInputElement;
@@ -449,15 +452,16 @@ export class SettingsUI {
 
     private static setupEventListeners(): void {
         // Settings button click
-        this.settingsButton!.addEventListener('click', () => {
+        if (!this.settingsButton) return;
+        this.settingsButton.addEventListener('click', () => {
             this.togglePanel();
         });
 
         // Close panel when clicking outside
         document.addEventListener('click', (e) => {
             if (this.isPanelOpen &&
-                !this.settingsPanel!.contains(e.target as Node) &&
-                !this.settingsButton!.contains(e.target as Node)) {
+                this.settingsPanel && !this.settingsPanel.contains(e.target as Node) &&
+                this.settingsButton && !this.settingsButton.contains(e.target as Node)) {
                 this.closePanel();
             }
         });
@@ -479,46 +483,49 @@ export class SettingsUI {
     }
 
     private static openPanel(): void {
-        this.settingsPanel!.style.left = '0px';
+        if (!this.settingsPanel || !this.settingsButton) return;
+        this.settingsPanel.style.left = '0px';
         this.isPanelOpen = true;
         // Keep the button visible and on top
-        this.settingsButton!.style.transform = 'scale(1.1)';
-        this.settingsButton!.style.background = 'rgba(0, 0, 0, 0.9)';
-        this.settingsButton!.style.zIndex = CONFIG.SETTINGS.BUTTON_Z_INDEX.toString(); // Ensure button stays on top
+        this.settingsButton.style.transform = 'scale(1.1)';
+        this.settingsButton.style.background = 'rgba(0, 0, 0, 0.9)';
+        this.settingsButton.style.zIndex = CONFIG.SETTINGS.BUTTON_Z_INDEX.toString(); // Ensure button stays on top
     }
 
     private static closePanel(): void {
-        const panelWidth = this.settingsPanel!.offsetWidth;
-        this.settingsPanel!.style.left = `-${panelWidth}px`;
+        if (!this.settingsPanel || !this.settingsButton) return;
+        const panelWidth = this.settingsPanel.offsetWidth;
+        this.settingsPanel.style.left = `-${panelWidth}px`;
         this.isPanelOpen = false;
-        this.settingsButton!.style.transform = 'scale(1)';
-        this.settingsButton!.style.background = 'rgba(0, 0, 0, 0.7)';
-        this.settingsButton!.style.zIndex = CONFIG.SETTINGS.BUTTON_Z_INDEX.toString(); // Reset z-index
+        this.settingsButton.style.transform = 'scale(1)';
+        this.settingsButton.style.background = 'rgba(0, 0, 0, 0.7)';
+        this.settingsButton.style.zIndex = CONFIG.SETTINGS.BUTTON_Z_INDEX.toString(); // Reset z-index
     }
 
     private static updatePanelWidth(): void {
+        if (!this.settingsPanel) return;
         const viewWidth = window.innerWidth;
 
         // If screen width is less than threshold, use full viewport width (100vw)
         // Otherwise use the configured ratio
         if (viewWidth < CONFIG.SETTINGS.FULL_SCREEN_THRESHOLD) {
-            this.settingsPanel!.style.width = '100vw';
+            this.settingsPanel.style.width = '100vw';
             // Ensure no horizontal overflow on small screens
-            this.settingsPanel!.style.boxSizing = 'border-box';
-            this.settingsPanel!.style.padding = '0';
-            this.settingsPanel!.style.margin = '0';
+            this.settingsPanel.style.boxSizing = 'border-box';
+            this.settingsPanel.style.padding = '0';
+            this.settingsPanel.style.margin = '0';
         } else {
             const panelWidth = Math.max(viewWidth * CONFIG.SETTINGS.PANEL_WIDTH_RATIO, CONFIG.SETTINGS.FULL_SCREEN_THRESHOLD);
-            this.settingsPanel!.style.width = `${panelWidth}px`;
+            this.settingsPanel.style.width = `${panelWidth}px`;
             // Reset to normal styling for larger screens
-            this.settingsPanel!.style.boxSizing = '';
-            this.settingsPanel!.style.padding = '';
-            this.settingsPanel!.style.margin = '';
+            this.settingsPanel.style.boxSizing = '';
+            this.settingsPanel.style.padding = '';
+            this.settingsPanel.style.margin = '';
         }
 
         if (!this.isPanelOpen) {
-            const currentWidth = this.settingsPanel!.style.width;
-            this.settingsPanel!.style.left = `-${currentWidth}`;
+            const currentWidth = this.settingsPanel.style.width;
+            this.settingsPanel.style.left = `-${currentWidth}`;
         }
     }
 
