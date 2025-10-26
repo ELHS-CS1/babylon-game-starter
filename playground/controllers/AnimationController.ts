@@ -104,7 +104,7 @@ export class AnimationController {
 
         // If not found, try to find it by partial name match
         if (!animation) {
-            animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            animation ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
                 animationName.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -161,7 +161,7 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -209,7 +209,7 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;

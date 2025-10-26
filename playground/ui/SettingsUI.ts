@@ -367,7 +367,10 @@ export class SettingsUI {
 
             if (section.uiElement === 'toggle') {
                 // Get current state for mobile controls
-                let defaultValue = (section.defaultValue as boolean) ?? false;
+                let defaultValue = false;
+                if (typeof section.defaultValue === 'boolean') {
+                    defaultValue = section.defaultValue;
+                }
                 if (section.title === "Screen Controls") {
                     // For Screen Controls, always default to true (visible) since controls are shown by default
                     defaultValue = true;
@@ -385,7 +388,10 @@ export class SettingsUI {
                     </div>
                 `;
             } else if (section.uiElement === 'dropdown') {
-                const defaultValue = (section.defaultValue as string) ?? (section.options?.[0] ?? '');
+                let defaultValue = section.options?.[0] ?? '';
+                if (typeof section.defaultValue === 'string') {
+                    defaultValue = section.defaultValue;
+                }
 
                 // Special handling for Character and Environment dropdowns to show names
                 let optionsHTML = '';
@@ -400,7 +406,7 @@ export class SettingsUI {
                 } else {
                     optionsHTML = section.options?.map(option =>
                         `<option value="${option}" ${option === defaultValue ? 'selected' : ''}>${option}</option>`
-                    ).join('') || '';
+                    ).join('') ?? '';
                 }
 
                 sectionsHTML += `
@@ -425,11 +431,14 @@ export class SettingsUI {
         const toggles = this.settingsPanel.querySelectorAll('input[type="checkbox"]');
         toggles.forEach(toggle => {
             toggle.addEventListener('change', async (e) => {
-                const target = e.target as HTMLInputElement;
-                const sectionIndex = parseInt(target.dataset.sectionIndex!);
+                const target = e.target;
+                if (!(target instanceof HTMLInputElement)) return;
+                const sectionIndexStr = target.dataset.sectionIndex;
+                if (!sectionIndexStr) return;
+                const sectionIndex = parseInt(sectionIndexStr);
                 const section: SettingsSection = CONFIG.SETTINGS.SECTIONS[sectionIndex];
 
-                if (section && section.onChange) {
+                if (section?.onChange) {
                     await section.onChange(target.checked);
                 }
             });
@@ -440,11 +449,14 @@ export class SettingsUI {
         const selects = this.settingsPanel.querySelectorAll('select');
         selects.forEach(select => {
             select.addEventListener('change', async (e) => {
-                const target = e.target as HTMLSelectElement;
-                const sectionIndex = parseInt(target.dataset.sectionIndex!);
+                const target = e.target;
+                if (!(target instanceof HTMLSelectElement)) return;
+                const sectionIndexStr = target.dataset.sectionIndex;
+                if (!sectionIndexStr) return;
+                const sectionIndex = parseInt(sectionIndexStr);
                 const section: SettingsSection = CONFIG.SETTINGS.SECTIONS[sectionIndex];
 
-                if (section && section.onChange && !this.isInitializing) {
+                if (section?.onChange && !this.isInitializing) {
                     await section.onChange(target.value);
                 }
             });
@@ -459,9 +471,12 @@ export class SettingsUI {
         const toggleInputs = this.settingsPanel.querySelectorAll('.toggle-switch input');
         toggleInputs.forEach(input => {
             input.addEventListener('change', (e) => {
-                const target = e.target as HTMLInputElement;
-                const slider = target.nextElementSibling as HTMLElement;
-                const toggleCircle = slider.querySelector('span') as HTMLElement;
+                const target = e.target;
+                if (!(target instanceof HTMLInputElement)) return;
+                const slider = target.nextElementSibling;
+                if (!(slider instanceof HTMLElement)) return;
+                const toggleCircle = slider.querySelector('span');
+                if (!(toggleCircle instanceof HTMLElement)) return;
 
                 if (target.checked) {
                     slider.style.backgroundColor = 'rgba(0, 255, 136, 0.8)';
