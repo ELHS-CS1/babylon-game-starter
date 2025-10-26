@@ -4,21 +4,58 @@
 
 // Global BABYLON namespace is available in Playground v2
 declare global {
-    const BABYLON: any;
     
     namespace BABYLON {
+        // Enums
+        enum KeyboardEventTypes {
+            KEYDOWN = 1,
+            KEYUP = 2
+        }
+
+        enum PointerEventTypes {
+            POINTERDOWN = 1,
+            POINTERUP = 2,
+            POINTERMOVE = 3
+        }
+
+        enum CharacterSupportedState {
+            SUPPORTED = 1,
+            UNSUPPORTED = 2
+        }
+
+        // Constants
+        const POINTERDOWN: number;
+        const POINTERUP: number;
+        const POINTERMOVE: number;
+        const KEYDOWN: number;
+        const KEYUP: number;
+        const SUPPORTED: number;
+
+        // Static methods
+        function Down(): Vector3;
+        function FromEulerAngles(x: number, y: number, z: number): Quaternion;
+        function Forward(): Vector3;
+        function Zero(): Vector3;
+        function Right(): Vector3;
+        function Up(): Vector3;
+        function Clamp(value: number, min: number, max: number): number;
+        function Lerp(start: number, end: number, amount: number): number;
+        function LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
+        function FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
+        function ParseFromSnippetAsync(snippetId: string, scene: Scene, rootUrl?: string): Promise<IParticleSystem>;
+
         interface Scene {
-            engine: any;
-            meshes: any[];
-            animationGroups: any[];
+            engine: Engine;
+            meshes: AbstractMesh[];
+            animationGroups: AnimationGroup[];
             deltaTime: number;
-            onPointerObservable: any;
-            onBeforeRenderObservable: any;
-            onAfterPhysicsObservable: any;
-            onKeyboardObservable: any;
-            enablePhysics(gravity: any, plugin: any): void;
-            getAnimationGroupByName(name: string): any;
-            getEngine(): any;
+            onPointerObservable: Observable<PointerInfo>;
+            onBeforeRenderObservable: Observable<Scene>;
+            onAfterPhysicsObservable: Observable<Scene>;
+            onKeyboardObservable: Observable<KeyboardInfo>;
+            enablePhysics(gravity: Vector3, plugin: PhysicsPlugin): void;
+            getAnimationGroupByName(name: string): AnimationGroup | null;
+            getEngine(): Engine;
             getRenderingCanvas(): HTMLCanvasElement | null;
         }
 
@@ -26,11 +63,15 @@ declare global {
             getRenderingCanvas(): HTMLCanvasElement | null;
         }
 
+        interface PhysicsPlugin {
+            // Physics plugin interface
+        }
+
         interface TargetCamera {
-            position: any;
-            lockedTarget: any;
-            setTarget(target: any): void;
-            getDirection(direction: any): any;
+            position: Vector3;
+            lockedTarget: Vector3 | null;
+            setTarget(target: Vector3): void;
+            getDirection(direction: Vector3): Vector3;
         }
 
         interface Vector3 {
@@ -38,21 +79,21 @@ declare global {
             y: number;
             z: number;
             length(): number;
-            normalize(): any;
-            normalizeToNew(): any;
+            normalize(): Vector3;
+            normalizeToNew(): Vector3;
             normalizeFromLength(length: number): void;
-            add(other: any): any;
-            addInPlace(other: any): void;
-            subtract(other: any): any;
-            subtractInPlace(other: any): void;
-            scale(factor: number): any;
+            add(other: Vector3): Vector3;
+            addInPlace(other: Vector3): void;
+            subtract(other: Vector3): Vector3;
+            subtractInPlace(other: Vector3): void;
+            scale(factor: number): Vector3;
             scaleInPlace(factor: number): void;
-            copyFrom(other: any): void;
-            clone(): any;
-            dot(other: any): number;
-            cross(other: any): any;
-            applyRotationQuaternion(quaternion: any): any;
-            rotateByQuaternionToRef(quaternion: any, result: any): any;
+            copyFrom(other: Vector3): void;
+            clone(): Vector3;
+            dot(other: Vector3): number;
+            cross(other: Vector3): Vector3;
+            applyRotationQuaternion(quaternion: Quaternion): Vector3;
+            rotateByQuaternionToRef(quaternion: Quaternion, result: Vector3): Vector3;
         }
 
         interface Quaternion {
@@ -60,42 +101,61 @@ declare global {
             y: number;
             z: number;
             w: number;
-            copyFrom(other: any): void;
+            copyFrom(other: Quaternion): void;
         }
 
         interface Mesh {
-            geometry: any;
-            material: any;
-            scaling: any;
-            rotation: any;
-            rotationQuaternion: any;
-            position: any;
+            geometry: Geometry;
+            material: Material | null;
+            scaling: Vector3;
+            rotation: Vector3;
+            rotationQuaternion: Quaternion | null;
+            position: Vector3;
             isVisible: boolean;
-            parent: any;
+            parent: AbstractMesh | null;
             name: string;
             dispose(): void;
         }
 
         interface AbstractMesh {
             name: string;
-            position: any;
-            rotation: any;
-            rotationQuaternion: any;
-            scaling: any;
+            position: Vector3;
+            rotation: Vector3;
+            rotationQuaternion: Quaternion | null;
+            scaling: Vector3;
             isVisible: boolean;
-            parent: any;
-            material: any;
+            parent: AbstractMesh | null;
+            material: Material | null;
             dispose(): void;
         }
 
+        interface Geometry {
+            // Geometry interface
+        }
+
+        interface Material {
+            // Material interface
+        }
+
+        interface Texture {
+            // Texture interface
+        }
+
+        interface Color4 {
+            r: number;
+            g: number;
+            b: number;
+            a: number;
+        }
+
         interface PhysicsCharacterController {
-            getPosition(): any;
-            setPosition(position: any): void;
-            getVelocity(): any;
-            setVelocity(velocity: any): void;
-            checkSupport(deltaTime: number, direction: any): any;
-            calculateMovement(deltaTime: number, forward: any, up: any, currentVelocity: any, surfaceVelocity: any, desiredVelocity: any, gravity: any): any;
-            integrate(deltaTime: number, supportInfo: any, gravity: any): void;
+            getPosition(): Vector3;
+            setPosition(position: Vector3): void;
+            getVelocity(): Vector3;
+            setVelocity(velocity: Vector3): void;
+            checkSupport(deltaTime: number, direction: Vector3): CharacterSurfaceInfo;
+            calculateMovement(deltaTime: number, forward: Vector3, up: Vector3, currentVelocity: Vector3, surfaceVelocity: Vector3, desiredVelocity: Vector3, gravity: Vector3): Vector3;
+            integrate(deltaTime: number, supportInfo: CharacterSurfaceInfo, gravity: Vector3): void;
         }
 
         interface AnimationGroup {
@@ -108,16 +168,17 @@ declare global {
 
         interface ParticleSystem {
             name: string;
-            emitter: any;
-            particleTexture: any;
-            minEmitBox: any;
-            maxEmitBox: any;
-            color1: any;
-            color2: any;
-            colorDead: any;
-            gravity: any;
-            direction1: any;
-            direction2: any;
+            emitter: AbstractMesh | Vector3;
+            particleTexture: Texture | null;
+            minEmitBox: Vector3;
+            maxEmitBox: Vector3;
+            color1: Color4;
+            color2: Color4;
+            colorDead: Color4;
+            gravity: Vector3;
+            direction1: Vector3;
+            direction2: Vector3;
+            targetStopDuration?: number;
             start(): void;
             stop(): void;
             dispose(): void;
@@ -129,75 +190,110 @@ declare global {
             name: string;
             isPlaying: boolean;
             onended: (() => void) | null;
+            rolloffFactor?: number;
+            maxDistance?: number;
             play(): void;
             stop(): void;
             dispose(): void;
             setVolume(volume: number): void;
             getVolume(): number;
-            setPosition(position: any): void;
+            setPosition(position: Vector3): void;
         }
 
         interface CharacterSurfaceInfo {
-            supportedState: any;
-            averageSurfaceNormal: any;
-            averageSurfaceVelocity: any;
+            supportedState: CharacterSupportedState;
+            averageSurfaceNormal: Vector3;
+            averageSurfaceVelocity: Vector3;
         }
 
         interface Observable<T> {
-            add(callback: (data: T) => void): any;
-            remove(observer: any): void;
+            add(callback: (data: T) => void): Observer<T>;
+            remove(observer: Observer<T>): void;
         }
 
-        interface Observer<T> {}
+        interface Observer<T> {
+            // Observer interface
+        }
 
         interface PointerInfo {
-            type: any;
+            type: PointerEventTypes;
             event: PointerEvent;
         }
 
         interface KeyboardInfo {
-            type: any;
+            type: KeyboardEventTypes;
             event: KeyboardEvent;
         }
 
         // Static classes
         class Vector3 {
             constructor(x: number, y: number, z: number);
-            static Zero(): any;
-            static Up(): any;
-            static Down(): any;
-            static Right(): any;
-            static Forward(): any;
-            static LerpToRef(from: any, to: any, amount: number, result: any): void;
+            setAll(value: number): void;
+            static Zero(): Vector3;
+            static Up(): Vector3;
+            static Down(): Vector3;
+            static Right(): Vector3;
+            static Forward(): Vector3;
+            static LerpToRef(from: Vector3, to: Vector3, amount: number, result: Vector3): void;
+        }
+
+        class Scene {
+            constructor(engine: Engine);
+            dispose(): void;
+        }
+
+        class TargetCamera {
+            constructor(name: string, position: Vector3, scene: Scene);
+            lockedTarget: Vector3 | null;
+        }
+
+        class HemisphericLight {
+            constructor(name: string, direction: Vector3, scene: Scene);
+        }
+
+        class HavokPlugin {
+            constructor(useSharedArrayBuffer?: boolean);
+        }
+
+        class Sound {
+            constructor(name: string, url: string, scene: Scene, readyToPlayCallback?: () => void, options?: { loop?: boolean; volume?: number; autoplay?: boolean; spatialSound?: boolean });
+        }
+
+        class PhysicsCharacterController {
+            constructor(position: Vector3, options: { capsuleHeight: number; capsuleRadius: number }, scene: Scene);
         }
 
         class Quaternion {
             constructor(x: number, y: number, z: number, w: number);
-            static FromEulerAngles(x: number, y: number, z: number): any;
-            static FromEulerAnglesToRef(x: number, y: number, z: number, result: any): void;
+            static FromEulerAngles(x: number, y: number, z: number): Quaternion;
+            static FromEulerAnglesToRef(x: number, y: number, z: number, result: Quaternion): void;
         }
 
         class Scalar {
             static Clamp(value: number, min: number, max: number): number;
             static Lerp(start: number, end: number, amount: number): number;
-            static LerpToRef(start: number, end: number, amount: number, result: any): void;
+            static LerpToRef(start: number, end: number, amount: number, result: number): void;
         }
 
         class MeshBuilder {
-            static CreateCapsule(name: string, options: { height: number; radius: number }, scene: any): any;
+            static CreateCapsule(name: string, options: { height: number; radius: number }, scene: Scene): AbstractMesh;
         }
 
         class ParticleHelper {
-            static ParseFromSnippetAsync(snippetId: string, scene: any, rootUrl?: string): Promise<any>;
+            static ParseFromSnippetAsync(snippetId: string, scene: Scene, rootUrl?: string): Promise<IParticleSystem>;
+        }
+
+        class AbstractMesh {
+            constructor(name: string, scene: Scene);
         }
 
         class NodeMaterial {
-            constructor(name: string, scene: any);
-            static ParseFromSnippetAsync(snippetId: string, scene: any): Promise<any>;
+            constructor(name: string, scene: Scene);
+            static ParseFromSnippetAsync(snippetId: string, scene: Scene): Promise<NodeMaterial>;
         }
 
         // Import utilities
-        function ImportMeshAsync(meshNames: string, rootUrl: string, sceneFilename: string, scene: any): Promise<{ meshes: any[]; particleSystems: any[]; skeletons: any[]; animationGroups: any[] }>;
+        function ImportMeshAsync(meshNames: string, rootUrl: string, sceneFilename: string, scene: Scene): Promise<{ meshes: AbstractMesh[]; particleSystems: IParticleSystem[]; skeletons: any[]; animationGroups: AnimationGroup[] }>;
     }
 }
 

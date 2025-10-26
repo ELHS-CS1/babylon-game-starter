@@ -10,15 +10,15 @@ import { SmoothFollowCameraController } from '../controllers/SmoothFollowCameraC
 import { EffectsManager } from './EffectsManager';
 
 export class SceneManager {
-    private readonly scene: any;
-    private readonly camera: any;
+    private readonly scene: BABYLON.Scene;
+    private readonly camera: BABYLON.TargetCamera;
     private characterController: CharacterController | null = null;
     private smoothFollowController: SmoothFollowCameraController | null = null;
     private currentEnvironment: string = "Level Test"; // Track current environment
 
-    constructor(engine: any, canvas: HTMLCanvasElement) {
-        this.scene = new BABYLON.Vector3(engine);
-        this.camera = new BABYLON.Vector3("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
+    constructor(engine: BABYLON.Engine, canvas: HTMLCanvasElement) {
+        this.scene = new BABYLON.Scene(engine);
+        this.camera = new BABYLON.TargetCamera("camera1", CONFIG.CAMERA.START_POSITION, this.scene);
         
         this.initializeScene();
     }
@@ -32,11 +32,11 @@ export class SceneManager {
     }
 
     private setupLighting(): void {
-        const light = new BABYLON.Vector3("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
     }
 
     private setupPhysics(): void {
-        const hk = new BABYLON.Vector3(false);
+        const hk = new BABYLON.HavokPlugin(false);
         this.scene.enablePhysics(CONFIG.PHYSICS.GRAVITY, hk);
     }
 

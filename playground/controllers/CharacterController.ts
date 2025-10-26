@@ -11,12 +11,12 @@ import { CONFIG } from '../config/game-config';
 import { INPUT_KEYS } from '../config/input-keys';
 import { ASSETS } from '../config/assets';
 import { AnimationController } from './AnimationController';
-import { SmoothFollowCameraController } from './SmoothFollowCameraController';
+import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
 
 // Forward declaration for MobileInputManager
 declare class MobileInputManager {
     static initialize(canvas: HTMLCanvasElement): void;
-    static getInputDirection(): any;
+    static getInputDirection(): BABYLON.Vector3;
     static getWantJump(): boolean;
     static getWantBoost(): boolean;
     static isMobileActive(): boolean;
@@ -24,10 +24,10 @@ declare class MobileInputManager {
 }
 
 export class CharacterController {
-    private readonly scene: any;
-    private readonly characterController: any;
-    private readonly displayCapsule: any;
-    private playerMesh: any;
+    private readonly scene: BABYLON.Scene;
+    private readonly characterController: BABYLON.PhysicsCharacterController;
+    private readonly displayCapsule: BABYLON.AbstractMesh;
+    private playerMesh: BABYLON.AbstractMesh | null;
 
     private state: CharacterState = CHARACTER_STATES.IN_AIR;
     private wantJump = false;
@@ -36,8 +36,8 @@ export class CharacterController {
     private keysDown = new Set<string>();
     private cameraController: SmoothFollowCameraController | null = null;
     private boostActive = false;
-    private playerParticleSystem: any | null = null;
-    private thrusterSound: any | null = null;
+    private playerParticleSystem: BABYLON.IParticleSystem | null = null;
+    private thrusterSound: BABYLON.Sound | null = null;
     public animationController: AnimationController;
 
     // Mobile device detection - computed once at initialization
@@ -45,11 +45,12 @@ export class CharacterController {
     private readonly isIPadWithKeyboard: boolean;
     private readonly isIPad: boolean;
     private keyboardEventCount: number = 0;
-    private keyboardDetectionTimeout: number | null = null;
+    private keyboardDetectionFrameCount: number = 0;
+    private keyboardDetectionObserver: BABYLON.Observer<BABYLON.Scene> | null = null;
     private physicsPaused: boolean = false;
     private currentCharacter: Character | null = null;
 
-    constructor(scene: any) {
+    constructor(scene: BABYLON.Scene) {
         this.scene = scene;
 
         // Enhanced device detection
@@ -58,7 +59,7 @@ export class CharacterController {
         this.isIPadWithKeyboard = this.detectIPadWithKeyboard();
 
         // Create character physics controller with default position (will be updated when character is loaded)
-        this.characterController = new BABYLON.Vector3(
+        this.characterController = new BABYLON.PhysicsCharacterController(
             new BABYLON.Vector3(0, 0, 0), // Default position, will be updated
             {
                 capsuleHeight: 1.8, // Default height, will be updated when character is loaded
@@ -134,7 +135,9 @@ export class CharacterController {
         // Method 2: Check for external keyboard events
         // We'll track if we receive keyboard events that suggest an external keyboard
         this.keyboardEventCount = 0;
+        this.keyboardDetectionFrameCount = 0;
         const keyboardThreshold = 3; // Number of events to consider keyboard present
+        const maxFrames = 300; // 5 seconds at 60fps
 
         const checkKeyboardEvents = (event: KeyboardEvent) => {
             // Only count events that are likely from a physical keyboard
@@ -146,8 +149,9 @@ export class CharacterController {
                 if (this.keyboardEventCount >= keyboardThreshold) {
                     // Remove the listener once we've confirmed keyboard presence
                     document.removeEventListener('keydown', checkKeyboardEvents);
-                    if (this.keyboardDetectionTimeout) {
-                        clearTimeout(this.keyboardDetectionTimeout);
+                    if (this.keyboardDetectionObserver) {
+                        this.scene.onBeforeRenderObservable.remove(this.keyboardDetectionObserver);
+                        this.keyboardDetectionObserver = null;
                     }
                     return true;
                 }
@@ -158,15 +162,22 @@ export class CharacterController {
         // Add listener for a short period to detect keyboard
         document.addEventListener('keydown', checkKeyboardEvents);
 
-        // Remove listener after 5 seconds if no keyboard detected
-        this.keyboardDetectionTimeout = window.setTimeout(() => {
-            document.removeEventListener('keydown', checkKeyboardEvents);
-        }, 5000);
+        // Use scene observable instead of setTimeout for frame counting
+        this.keyboardDetectionObserver = this.scene.onBeforeRenderObservable.add(() => {
+            this.keyboardDetectionFrameCount++;
+            if (this.keyboardDetectionFrameCount >= maxFrames) {
+                document.removeEventListener('keydown', checkKeyboardEvents);
+                if (this.keyboardDetectionObserver) {
+                    this.scene.onBeforeRenderObservable.remove(this.keyboardDetectionObserver);
+                    this.keyboardDetectionObserver = null;
+                }
+            }
+        });
 
         return false; // Will be updated by the event listener
     }
 
-    private handleKeyboard = (kbInfo: any): void => {
+    private handleKeyboard = (kbInfo: BABYLON.KeyboardInfo): void => {
         const key = kbInfo.event.key.toLowerCase();
 
         switch (kbInfo.type) {
@@ -182,32 +193,81 @@ export class CharacterController {
         }
     };
 
+    // Type guard functions for INPUT_KEYS
+    private isForwardKey = (k: string): k is typeof INPUT_KEYS.FORWARD[number] => {
+        return (INPUT_KEYS.FORWARD as readonly string[]).includes(k);
+    };
+
+    private isBackwardKey = (k: string): k is typeof INPUT_KEYS.BACKWARD[number] => {
+        return (INPUT_KEYS.BACKWARD as readonly string[]).includes(k);
+    };
+
+    private isStrafeLeftKey = (k: string): k is typeof INPUT_KEYS.STRAFE_LEFT[number] => {
+        return (INPUT_KEYS.STRAFE_LEFT as readonly string[]).includes(k);
+    };
+
+    private isStrafeRightKey = (k: string): k is typeof INPUT_KEYS.STRAFE_RIGHT[number] => {
+        return (INPUT_KEYS.STRAFE_RIGHT as readonly string[]).includes(k);
+    };
+
+    private isJumpKey = (k: string): k is typeof INPUT_KEYS.JUMP[number] => {
+        return (INPUT_KEYS.JUMP as readonly string[]).includes(k);
+    };
+
+    private isBoostKey = (k: string): k is typeof INPUT_KEYS.BOOST[number] => {
+        return (INPUT_KEYS.BOOST as readonly string[]).includes(k);
+    };
+
+    private isDebugKey = (k: string): k is typeof INPUT_KEYS.DEBUG[number] => {
+        return (INPUT_KEYS.DEBUG as readonly string[]).includes(k);
+    };
+
+    private isHUDToggleKey = (k: string): k is typeof INPUT_KEYS.HUD_TOGGLE[number] => {
+        return (INPUT_KEYS.HUD_TOGGLE as readonly string[]).includes(k);
+    };
+
+    private isHUDPositionKey = (k: string): k is typeof INPUT_KEYS.HUD_POSITION[number] => {
+        return (INPUT_KEYS.HUD_POSITION as readonly string[]).includes(k);
+    };
+
+    private isResetCameraKey = (k: string): k is typeof INPUT_KEYS.RESET_CAMERA[number] => {
+        return (INPUT_KEYS.RESET_CAMERA as readonly string[]).includes(k);
+    };
+
+    private isLeftKey = (k: string): k is typeof INPUT_KEYS.LEFT[number] => {
+        return (INPUT_KEYS.LEFT as readonly string[]).includes(k);
+    };
+
+    private isRightKey = (k: string): k is typeof INPUT_KEYS.RIGHT[number] => {
+        return (INPUT_KEYS.RIGHT as readonly string[]).includes(k);
+    };
+
     private handleKeyDown(key: string): void {
         // Movement input
-        if (INPUT_KEYS.FORWARD.includes(key as any)) {
+        if (this.isForwardKey(key)) {
             this.inputDirection.z = 1;
 
-        } else if (INPUT_KEYS.BACKWARD.includes(key as any)) {
+        } else if (this.isBackwardKey(key)) {
             this.inputDirection.z = -1;
 
-        } else if (INPUT_KEYS.STRAFE_LEFT.includes(key as any)) {
+        } else if (this.isStrafeLeftKey(key)) {
             this.inputDirection.x = -1;
 
-        } else if (INPUT_KEYS.STRAFE_RIGHT.includes(key as any)) {
+        } else if (this.isStrafeRightKey(key)) {
             this.inputDirection.x = 1;
 
-        } else if (INPUT_KEYS.JUMP.includes(key as any)) {
+        } else if (this.isJumpKey(key)) {
             this.wantJump = true;
-        } else if (INPUT_KEYS.BOOST.includes(key as any)) {
+        } else if (this.isBoostKey(key)) {
             this.boostActive = true;
             this.updateParticleSystem();
-        } else if (INPUT_KEYS.DEBUG.includes(key as any)) {
+        } else if (this.isDebugKey(key)) {
             this.toggleDebugDisplay();
-        } else if (INPUT_KEYS.HUD_TOGGLE.includes(key as any)) {
+        } else if (this.isHUDToggleKey(key)) {
             this.toggleHUD();
-        } else if (INPUT_KEYS.HUD_POSITION.includes(key as any)) {
+        } else if (this.isHUDPositionKey(key)) {
             this.cycleHUDPosition();
-        } else if (INPUT_KEYS.RESET_CAMERA.includes(key as any)) {
+        } else if (this.isResetCameraKey(key)) {
             this.resetCameraToDefaultOffset();
         }
 
@@ -219,19 +279,19 @@ export class CharacterController {
 
     private handleKeyUp(key: string): void {
         // Reset movement input
-        if (INPUT_KEYS.FORWARD.includes(key as any) || INPUT_KEYS.BACKWARD.includes(key as any)) {
+        if (this.isForwardKey(key) || this.isBackwardKey(key)) {
             this.inputDirection.z = 0;
         }
-        if (INPUT_KEYS.LEFT.includes(key as any) || INPUT_KEYS.RIGHT.includes(key as any)) {
+        if (this.isLeftKey(key) || this.isRightKey(key)) {
             this.inputDirection.x = 0;
         }
-        if (INPUT_KEYS.STRAFE_LEFT.includes(key as any) || INPUT_KEYS.STRAFE_RIGHT.includes(key as any)) {
+        if (this.isStrafeLeftKey(key) || this.isStrafeRightKey(key)) {
             this.inputDirection.x = 0;
         }
-        if (INPUT_KEYS.JUMP.includes(key as any)) {
+        if (this.isJumpKey(key)) {
             this.wantJump = false;
         }
-        if (INPUT_KEYS.BOOST.includes(key as any)) {
+        if (this.isBoostKey(key)) {
             this.boostActive = false;
             this.updateParticleSystem();
         }
@@ -395,18 +455,20 @@ export class CharacterController {
         this.displayCapsule.position.copyFrom(this.characterController.getPosition());
 
         // Update player mesh position
-        this.playerMesh.position.copyFrom(this.characterController.getPosition());
-        this.playerMesh.position.y += CONFIG.ANIMATION.PLAYER_Y_OFFSET;
+        if (this.playerMesh) {
+            this.playerMesh.position.copyFrom(this.characterController.getPosition());
+            this.playerMesh.position.y += CONFIG.ANIMATION.PLAYER_Y_OFFSET;
 
-        // Update player mesh rotation
-        if (this.displayCapsule.rotationQuaternion) {
-            if (!this.playerMesh.rotationQuaternion) {
-                this.playerMesh.rotationQuaternion = new BABYLON.Vector3();
+            // Update player mesh rotation
+            if (this.displayCapsule.rotationQuaternion) {
+                if (!this.playerMesh.rotationQuaternion) {
+                    this.playerMesh.rotationQuaternion = new BABYLON.Quaternion(0, 0, 0, 1);
+                }
+                this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
+            } else {
+                this.playerMesh.rotationQuaternion = null;
+                this.playerMesh.rotation.copyFrom(this.displayCapsule.rotation);
             }
-            this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
-        } else {
-            this.playerMesh.rotationQuaternion = null;
-            this.playerMesh.rotation.copyFrom(this.displayCapsule.rotation);
         }
     }
 
@@ -512,7 +574,6 @@ export class CharacterController {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
-            console.warn("No character set for air physics calculations");
             return currentVelocity;
         }
 
@@ -561,7 +622,6 @@ export class CharacterController {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
-            console.warn("No character set for physics calculations");
             return currentVelocity;
         }
 
@@ -620,7 +680,6 @@ export class CharacterController {
         // Get character-specific physics attributes
         const character = this.currentCharacter;
         if (!character) {
-            console.warn("No character set for jump physics calculations");
             return currentVelocity;
         }
 
@@ -825,6 +884,12 @@ export class CharacterController {
     }
 
     public dispose(): void {
+        // Clean up keyboard detection observer
+        if (this.keyboardDetectionObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.keyboardDetectionObserver);
+            this.keyboardDetectionObserver = null;
+        }
+        
         // Dispose mobile input manager
         MobileInputManager.dispose();
     }

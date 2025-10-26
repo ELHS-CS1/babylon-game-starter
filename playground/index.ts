@@ -7,7 +7,7 @@
 import { SceneManager } from './managers/SceneManager';
 
 class Playground {
-    public static CreateScene(engine: any, canvas: HTMLCanvasElement): any {
+    public static CreateScene(engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON.Scene {
         const sceneManager = new SceneManager(engine, canvas);
         return sceneManager.getScene();
     }

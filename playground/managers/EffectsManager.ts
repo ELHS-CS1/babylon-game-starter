@@ -9,24 +9,24 @@ import type { AmbientSoundConfig } from '../types/environment';
 import { CONFIG } from '../config/game-config';
 
 export class EffectsManager {
-    private static activeParticleSystems: Map<string, any> = new Map();
-    private static environmentParticleSystems: Map<string, any> = new Map();
-    private static itemParticleSystems: Map<string, any> = new Map();
-    private static activeSounds: Map<string, any> = new Map();
-    private static scene: any | null = null;
-    private static backgroundMusic: any | null = null;
-    private static ambientSounds: any[] = [];
+    private static activeParticleSystems: Map<string, BABYLON.IParticleSystem> = new Map();
+    private static environmentParticleSystems: Map<string, BABYLON.IParticleSystem> = new Map();
+    private static itemParticleSystems: Map<string, BABYLON.IParticleSystem> = new Map();
+    private static activeSounds: Map<string, BABYLON.Sound> = new Map();
+    private static scene: BABYLON.Scene | null = null;
+    private static backgroundMusic: BABYLON.Sound | null = null;
+    private static ambientSounds: BABYLON.Sound[] = [];
 
     /**
      * Initializes the EffectsManager with a scene
      * @param scene The Babylon.js scene
      */
-    public static initialize(scene: any): void {
+    public static initialize(scene: BABYLON.Scene): void {
         this.scene = scene;
     }
 
     // Fades a sound's volume from -> to over ms; resolves when complete
-    private static async fade(sound: any, from: number, to: number, ms: number): Promise<void> {
+    private static async fade(sound: BABYLON.Sound, from: number, to: number, ms: number): Promise<void> {
         if (!this.scene || ms <= 0) {
             sound.setVolume(to);
             return Promise.resolve();
@@ -50,7 +50,6 @@ export class EffectsManager {
 
     public static async crossfadeBackgroundMusic(url: string, volume: number, fadeMs: number = 1000): Promise<void> {
         if (!this.scene) {
-            console.warn("EffectsManager not initialized. Call initialize() first.");
             return;
         }
         // Fade out and dispose existing
@@ -63,7 +62,7 @@ export class EffectsManager {
             this.backgroundMusic = null;
         }
         // Create new non-positional looping sound
-        const bgm = new BABYLON.Vector3("environment_bgm", url, this.scene, null, {
+        const bgm = new BABYLON.Sound("environment_bgm", url, this.scene, undefined, {
             loop: true,
             autoplay: true,
             spatialSound: false,
@@ -85,14 +84,13 @@ export class EffectsManager {
 
     public static async setupAmbientSounds(configs: readonly AmbientSoundConfig[]): Promise<void> {
         if (!this.scene) {
-            console.warn("EffectsManager not initialized. Call initialize() first.");
             return;
         }
         // Ensure previous are cleared first
         this.removeAmbientSounds();
         for (const cfg of configs) {
             try {
-                const s = new BABYLON.Vector3("ambient", cfg.url, this.scene, null, {
+                const s = new BABYLON.Sound("ambient", cfg.url, this.scene, undefined, {
                     loop: true,
                     autoplay: true,
                     spatialSound: true,
@@ -100,15 +98,14 @@ export class EffectsManager {
                 });
                 s.setPosition(cfg.position);
                 // Defaults: rollOff=2, maxDistance=40
-                if (typeof (s as any).rolloffFactor === 'number') {
-                    (s as any).rolloffFactor = (cfg.rollOff ?? 2);
+                if (typeof s.rolloffFactor === 'number') {
+                    s.rolloffFactor = (cfg.rollOff ?? 2);
                 }
-                if (typeof (s as any).maxDistance === 'number' || (s as any).maxDistance === undefined) {
-                    (s as any).maxDistance = (cfg.maxDistance ?? 40);
+                if (typeof s.maxDistance === 'number' || s.maxDistance === undefined) {
+                    s.maxDistance = (cfg.maxDistance ?? 40);
                 }
                 this.ambientSounds.push(s);
             } catch (e) {
-                console.warn("Failed to create ambient sound:", e);
             }
         }
     }
@@ -126,29 +123,37 @@ export class EffectsManager {
      * Creates a particle system from a snippet by name
      * @param snippetName Name of the particle snippet to create
      * @param emitter Optional emitter (mesh or position) for the particle system
+     * @param options Optional configuration including targetStopDuration
      * @returns The created particle system or null if not found
      */
-    public static async createParticleSystem(snippetName: string, emitter?: any | any): Promise<any | null> {
+    public static async createParticleSystem(
+        snippetName: string, 
+        emitter?: BABYLON.AbstractMesh | BABYLON.Vector3,
+        options?: { targetStopDuration?: number }
+    ): Promise<BABYLON.IParticleSystem | null> {
         if (!this.scene) {
-            console.warn("EffectsManager not initialized. Call initialize() first.");
             return null;
         }
 
         const snippet = CONFIG.EFFECTS.PARTICLE_SNIPPETS.find(s => s.name === snippetName);
         if (!snippet) {
-            console.warn(`Particle snippet "${snippetName}" not found.`);
             return null;
         }
 
         try {
             // Parse the snippet from the online editor
-            const particleSystem = await BABYLON.ParseFromSnippetAsync(snippet.snippetId, this.scene, false);
+            const particleSystem = await BABYLON.ParseFromSnippetAsync(snippet.snippetId, this.scene);
 
             if (particleSystem && emitter) {
                 particleSystem.emitter = emitter;
             }
 
             if (particleSystem) {
+                // Set automatic stop duration if provided
+                if (options?.targetStopDuration) {
+                    particleSystem.targetStopDuration = options.targetStopDuration;
+                }
+
                 // Special handling for Magic Sparkles - if it has a mesh emitter, it's for the player
                 let usageCategory = this.determineUsageCategory(snippetName, snippet.category);
                 if (snippetName === "Magic Sparkles" && emitter && emitter instanceof BABYLON.AbstractMesh) {
@@ -168,7 +173,6 @@ export class EffectsManager {
 
             return particleSystem;
         } catch (error) {
-            console.error(`Failed to create particle system "${snippetName}":`, error);
             return null;
         }
     }
@@ -230,10 +234,15 @@ export class EffectsManager {
      * Creates a particle system at a specific position
      * @param snippetName Name of the particle snippet
      * @param position Position for the particle system
+     * @param options Optional configuration including targetStopDuration
      * @returns The created particle system
      */
-    public static async createParticleSystemAt(snippetName: string, position: any): Promise<any | null> {
-        return this.createParticleSystem(snippetName, position);
+    public static async createParticleSystemAt(
+        snippetName: string, 
+        position: BABYLON.Vector3,
+        options?: { targetStopDuration?: number }
+    ): Promise<BABYLON.IParticleSystem | null> {
+        return this.createParticleSystem(snippetName, position, options);
     }
 
     /**
@@ -390,18 +399,16 @@ export class EffectsManager {
      */
     public static async createSound(soundName: string): Promise<any | null> {
         if (!this.scene) {
-            console.warn("EffectsManager not initialized. Call initialize() first.");
             return null;
         }
 
         const soundConfig = CONFIG.EFFECTS.SOUND_EFFECTS.find(s => s.name === soundName);
         if (!soundConfig) {
-            console.warn(`Sound effect "${soundName}" not found.`);
             return null;
         }
 
         try {
-            const sound = new BABYLON.Vector3(soundName, soundConfig.url, this.scene, null, {
+            const sound = new BABYLON.Sound(soundName, soundConfig.url, this.scene, undefined, {
                 volume: soundConfig.volume,
                 loop: soundConfig.loop
             });
@@ -415,7 +422,6 @@ export class EffectsManager {
 
             return sound;
         } catch (error) {
-            console.error(`Failed to create sound "${soundName}":`, error);
             return null;
         }
     }
@@ -437,7 +443,7 @@ export class EffectsManager {
      */
     public static stopSound(soundName: string): void {
         const sound = this.activeSounds.get(soundName);
-        if (sound && sound.isPlaying) {
+        if (sound?.isPlaying) {
             sound.stop();
         }
     }

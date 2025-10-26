@@ -7,18 +7,18 @@
 import { CONFIG } from '../config/game-config';
 
 export class SmoothFollowCameraController {
-    private readonly scene: any;
-    private readonly camera: any;
-    private readonly target: any;
-    private readonly offset: any;
+    private readonly scene: BABYLON.Scene;
+    private readonly camera: BABYLON.TargetCamera;
+    private readonly target: BABYLON.AbstractMesh;
+    private readonly offset: BABYLON.Vector3;
     private readonly dragSensitivity: number;
 
     public isDragging = false;
     public dragDeltaX = 0;
     public dragDeltaZ = 0;
 
-    private pointerObserver: any;
-    private beforeRenderObserver: any;
+    private pointerObserver: BABYLON.Observer<BABYLON.PointerInfo> | null = null;
+    private beforeRenderObserver: BABYLON.Observer<BABYLON.Scene> | null = null;
     private lastPointerX = 0;
     private lastPointerY = 0;
     private isTwoFingerPanning = false;
@@ -34,10 +34,10 @@ export class SmoothFollowCameraController {
     private shouldStartRotationOnWalk = false;
 
     constructor(
-        scene: any,
-        camera: any,
-        target: any,
-        offset: any = CONFIG.CAMERA.OFFSET,
+        scene: BABYLON.Scene,
+        camera: BABYLON.TargetCamera,
+        target: BABYLON.AbstractMesh,
+        offset: BABYLON.Vector3 = CONFIG.CAMERA.OFFSET,
         dragSensitivity: number = CONFIG.CAMERA.DRAG_SENSITIVITY
     ) {
         this.scene = scene;
@@ -62,7 +62,7 @@ export class SmoothFollowCameraController {
         }
     }
 
-    private handlePointer = (pointerInfo: any): void => {
+    private handlePointer = (pointerInfo: BABYLON.PointerInfo): void => {
         switch (pointerInfo.type) {
             case BABYLON.POINTERDOWN:
                 this.isDragging = true;
@@ -88,7 +88,7 @@ export class SmoothFollowCameraController {
         }
     };
 
-    private handlePointerMove(pointerInfo: any): void {
+    private handlePointerMove(pointerInfo: BABYLON.PointerInfo): void {
         const deltaX = pointerInfo.event.movementX || (pointerInfo.event.clientX - this.lastPointerX);
         const deltaY = pointerInfo.event.movementY || (pointerInfo.event.clientY - this.lastPointerY);
 
@@ -127,7 +127,7 @@ export class SmoothFollowCameraController {
             this.lastPanPositions = [
                 e.touches[0].clientX, e.touches[0].clientY,
                 e.touches[1].clientX, e.touches[1].clientY
-            ] as [number, number, number, number];
+            ] as const;
         }
     };
 
@@ -207,7 +207,7 @@ export class SmoothFollowCameraController {
             this.camera.position
         );
 
-        this.camera.lockedTarget = this.target;
+        this.camera.lockedTarget = this.target.position;
     }
 
     private updateOffsetY(): void {
@@ -305,8 +305,12 @@ export class SmoothFollowCameraController {
     }
 
     public dispose(): void {
-        this.scene.onPointerObservable.remove(this.pointerObserver);
-        this.scene.onBeforeRenderObservable.remove(this.beforeRenderObserver);
+        if (this.pointerObserver) {
+            this.scene.onPointerObservable.remove(this.pointerObserver);
+        }
+        if (this.beforeRenderObserver) {
+            this.scene.onBeforeRenderObservable.remove(this.beforeRenderObserver);
+        }
 
         if (this.canvas) {
             this.canvas.removeEventListener("touchstart", this.handleTouchStart);

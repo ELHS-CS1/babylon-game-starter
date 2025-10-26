@@ -9,21 +9,21 @@ import type { CharacterState } from '../config/character-states';
 import { CHARACTER_STATES } from '../config/character-states';
 
 export class AnimationController {
-    private scene: any;
+    private scene: BABYLON.Scene;
     private currentCharacter: Character | null = null;
     private currentAnimation: string | null = null;
     private previousAnimation: string | null = null;
     private blendStartTime: number = 0;
     private blendDuration: number = 400; // Default blend duration in milliseconds
     private isBlending: boolean = false;
-    private weightedAnimation: any | null = null;
+    private weightedAnimation: BABYLON.AnimationGroup | null = null;
 
     // Jump delay tracking
     private jumpDelayStartTime: number = 0;
     private isJumpDelayed: boolean = false;
     private lastCharacterState: CharacterState | null = null;
 
-    constructor(scene: any) {
+    constructor(scene: BABYLON.Scene) {
         this.scene = scene;
     }
 
@@ -104,42 +104,40 @@ export class AnimationController {
 
         // If not found, try to find it by partial name match
         if (!animation) {
-            animation = this.scene.animationGroups.find((anim: any) =>
+            animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(animationName.toLowerCase()) ||
                 animationName.toLowerCase().includes(anim.name.toLowerCase())
-            );
+            ) || null;
         }
 
         // If still not found, try common fallbacks
         if (!animation) {
             if (animationName.toLowerCase().includes('idle')) {
-                animation = this.scene.animationGroups.find((anim: any) =>
+                animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                );
+                ) || null;
             } else if (animationName.toLowerCase().includes('walk')) {
-                animation = this.scene.animationGroups.find((anim: any) =>
+                animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                );
+                ) || null;
             } else if (animationName.toLowerCase().includes('jump')) {
-                animation = this.scene.animationGroups.find((anim: any) =>
+                animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
-                );
+                ) || null;
             }
         }
 
         if (!animation) {
-            console.warn(`Animation not found: ${animationName}. Available animations:`,
-                this.scene.animationGroups.map((a: any) => a.name));
             return;
         }
 
         // Stop all other animation groups in the scene
-        this.scene.animationGroups.forEach((anim: any) => {
+        this.scene.animationGroups.forEach((anim: BABYLON.AnimationGroup) => {
             if (anim !== animation) {
                 anim.stop();
             }
@@ -162,30 +160,29 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: any) =>
+            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            );
+            ) || null;
         }
 
         // If still not found, try common fallbacks
         if (!targetAnim) {
             if (targetAnimation.toLowerCase().includes('idle')) {
-                targetAnim = this.scene.animationGroups.find((anim: any) =>
+                targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                );
+                ) || null;
             } else if (targetAnimation.toLowerCase().includes('walk')) {
-                targetAnim = this.scene.animationGroups.find((anim: any) =>
+                targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                );
+                ) || null;
             }
         }
 
         if (!currentAnim || !targetAnim) {
-            console.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`);
             return;
         }
 
@@ -210,36 +207,35 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: any) =>
+            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
-            );
+            ) || null;
         }
 
         // If still not found, try common fallbacks
         if (!targetAnim) {
             if (targetAnimation.toLowerCase().includes('idle')) {
-                targetAnim = this.scene.animationGroups.find((anim: any) =>
+                targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
-                );
+                ) || null;
             } else if (targetAnimation.toLowerCase().includes('walk')) {
-                targetAnim = this.scene.animationGroups.find((anim: any) =>
+                targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
-                );
+                ) || null;
             } else if (targetAnimation.toLowerCase().includes('jump')) {
-                targetAnim = this.scene.animationGroups.find((anim: any) =>
+                targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
                     anim.name.toLowerCase().includes('hop')
-                );
+                ) || null;
             }
         }
 
         if (!currentAnim || !targetAnim) {
-            console.warn(`Animation not found: current=${this.currentAnimation}, target=${targetAnimation}`);
             return;
         }
 
@@ -327,7 +323,7 @@ export class AnimationController {
      * Stops all animations
      */
     public stopAllAnimations(): void {
-        this.scene.animationGroups.forEach((anim: any) => {
+        this.scene.animationGroups.forEach((anim: BABYLON.AnimationGroup) => {
             anim.stop();
         });
 

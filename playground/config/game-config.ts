@@ -151,7 +151,7 @@ export const CONFIG: GameConfig = {
 
     // HUD Settings
     HUD: {
-        POSITION: "top" as HUDPosition,
+        POSITION: "top" satisfies HUDPosition,
         FONT_FAMILY: "'Segoe UI', 'Roboto', 'Arial', sans-serif",
         PRIMARY_COLOR: "#ffffff",
         SECONDARY_COLOR: "#cccccc",

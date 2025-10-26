@@ -21,8 +21,8 @@ export interface CharacterConfig {
 }
 
 export interface CameraConfig {
-    readonly START_POSITION: any;
-    readonly OFFSET: any;
+    readonly START_POSITION: BABYLON.Vector3;
+    readonly OFFSET: BABYLON.Vector3;
     readonly DRAG_SENSITIVITY: number;
     readonly ZOOM_MIN: number;
     readonly ZOOM_MAX: number;
@@ -30,8 +30,8 @@ export interface CameraConfig {
 }
 
 export interface PhysicsConfig {
-    readonly GRAVITY: any;
-    readonly CHARACTER_GRAVITY: any;
+    readonly GRAVITY: BABYLON.Vector3;
+    readonly CHARACTER_GRAVITY: BABYLON.Vector3;
 }
 
 export interface AnimationConfig {

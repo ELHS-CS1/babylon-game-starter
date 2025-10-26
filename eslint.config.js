@@ -405,6 +405,114 @@ export default [
     }
   },
   {
+    // Playground files - strict TypeScript rules for Babylon.js Playground v2
+    files: ['playground/**/*.ts'],
+    linterOptions: {
+      noInlineConfig: false,
+      reportUnusedDisableDirectives: true,
+    },
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+        project: ['./playground/tsconfig.json'],
+        projectService: true,
+        extraFileExtensions: ['.ts'],
+      },
+      globals: {
+        // Browser globals for Babylon.js Playground
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        // BABYLON global is available in Playground v2
+        BABYLON: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescript,
+    },
+    rules: {
+      // === STRICT TYPE SAFETY RULES FOR PLAYGROUND ===
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/consistent-type-assertions': ['error', {
+        assertionStyle: 'never' // Disable type assertions completely
+      }],
+      
+      // === PREVENT TYPE CASTING ===
+      '@typescript-eslint/ban-ts-comment': ['error', {
+        'ts-expect-error': 'allow-with-description',
+        'ts-ignore': true,
+        'ts-nocheck': true,
+        'ts-check': false,
+        minimumDescriptionLength: 10
+      }],
+      
+      // === ENFORCE TYPE SAFETY ===
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/strict-boolean-expressions': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+      
+      // === ENFORCE PROPER TYPING ===
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/consistent-type-imports': ['error', { 
+        prefer: 'type-imports',
+        disallowTypeAnnotations: false
+      }],
+      '@typescript-eslint/consistent-type-exports': ['error', { 
+        fixMixedExportsWithInlineTypeSpecifier: false 
+      }],
+      
+      // === PREVENT BAD PATTERNS ===
+      '@typescript-eslint/no-base-to-string': 'error',
+      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-meaningless-void-operator': 'error',
+      '@typescript-eslint/no-mixed-enums': 'error',
+      '@typescript-eslint/no-redundant-type-constituents': 'error',
+      '@typescript-eslint/no-unnecessary-type-arguments': 'error',
+      '@typescript-eslint/no-useless-empty-export': 'error',
+      '@typescript-eslint/prefer-enum-initializers': 'error',
+      '@typescript-eslint/prefer-includes': 'error',
+      '@typescript-eslint/prefer-literal-enum-member': 'error',
+      '@typescript-eslint/prefer-string-starts-ends-with': 'error',
+      '@typescript-eslint/require-array-sort-compare': 'error',
+      '@typescript-eslint/restrict-plus-operands': 'error',
+      '@typescript-eslint/restrict-template-expressions': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/unbound-method': 'error',
+      
+      // === PLAYGROUND-SPECIFIC RULES ===
+      'no-console': 'error', // No console logs in playground
+      'no-restricted-globals': ['error', {
+        name: 'setTimeout',
+        message: 'setTimeout is not allowed in playground. Use Babylon.js observables instead.'
+      }, {
+        name: 'setInterval', 
+        message: 'setInterval is not allowed in playground. Use Babylon.js observables instead.'
+      }]
+    },
+  },
+  {
     // Test files - relaxed rules for testing
     files: ['tests/**/*', '**/*.test.ts', '**/*.spec.ts', 'scripts/**/*'],
     rules: {
