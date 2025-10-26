@@ -34,6 +34,12 @@ export class SceneManager {
         this.setupCharacter();
         this.loadCharacterModel();
         await this.setupEnvironmentItems();
+        
+        // Initialize inventory system
+        if (this.characterController) {
+            // Note: InventoryManager would be initialized here in the full implementation
+            // For playground compatibility, this is a placeholder
+        }
     }
 
     private setupLighting(): void {
@@ -60,6 +66,9 @@ export class SceneManager {
 
         // Connect the character controller to the camera controller
         this.characterController.setCameraController(this.smoothFollowController);
+        
+        // Force activate smooth follow camera
+        this.smoothFollowController.forceActivateSmoothFollow();
     }
 
     private loadCharacterModel(): void {
