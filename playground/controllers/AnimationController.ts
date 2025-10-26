@@ -75,7 +75,7 @@ export class AnimationController {
         }
 
         // If no animation is currently playing, start the target animation
-        if (!this.currentAnimation && targetAnimationName != null) {
+        if (!this.currentAnimation) {
             this.startAnimation(targetAnimationName);
             return;
         }
@@ -112,18 +112,18 @@ export class AnimationController {
 
         // If still not found, try common fallbacks
         if (!animation) {
-            if (animationName && animationName.toLowerCase().includes('idle')) {
+            if (animationName?.toLowerCase().includes('idle')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('idle') ||
                     anim.name.toLowerCase().includes('stand')
                 ) ?? null;
-            } else if (animationName && animationName.toLowerCase().includes('walk')) {
+            } else if (animationName?.toLowerCase().includes('walk')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('walk') ||
                     anim.name.toLowerCase().includes('run') ||
                     anim.name.toLowerCase().includes('move')
                 ) ?? null;
-            } else if (animationName && animationName.toLowerCase().includes('jump')) {
+            } else if (animationName?.toLowerCase().includes('jump')) {
                 animation = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                     anim.name.toLowerCase().includes('jump') ||
                     anim.name.toLowerCase().includes('leap') ||
@@ -161,7 +161,7 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -209,7 +209,7 @@ export class AnimationController {
 
         // If target animation not found, try partial match
         if (!targetAnim) {
-            targetAnim = this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
+            targetAnim ??= this.scene.animationGroups.find((anim: BABYLON.AnimationGroup) =>
                 anim.name.toLowerCase().includes(targetAnimation.toLowerCase()) ||
                 targetAnimation.toLowerCase().includes(anim.name.toLowerCase())
             ) ?? null;
@@ -271,7 +271,7 @@ export class AnimationController {
         const currentWeight = this.easeInOutCubic(blendProgress);
 
         // Update animation weights
-        if (this.previousAnimation && this.currentAnimation) {
+        if (this.previousAnimation != null && this.currentAnimation != null) {
             const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
             const currentAnim = this.scene.getAnimationGroupByName(this.currentAnimation);
 
@@ -295,7 +295,7 @@ export class AnimationController {
         if (!this.currentAnimation) return;
 
         // Stop the previous animation
-        if (this.previousAnimation) {
+        if (this.previousAnimation != null) {
             const previousAnim = this.scene.getAnimationGroupByName(this.previousAnimation);
             if (previousAnim) {
                 previousAnim.stop();

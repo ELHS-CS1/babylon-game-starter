@@ -420,7 +420,7 @@ export class CharacterController {
 
     private updateRotation(): void {
         // If camera is controlling rotation, don't interfere
-        if (this.cameraController && this.cameraController.isRotatingCharacter) {
+        if (this.cameraController?.isRotatingCharacter) {
             // Update target rotation to match current rotation to prevent jerking
             this.targetRotationY = this.displayCapsule.rotation.y;
             return;

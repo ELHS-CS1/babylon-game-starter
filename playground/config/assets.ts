@@ -101,7 +101,7 @@ export const ASSETS = {
             animationBlend: 200,
             jumpDelay: 200
         }
-    ] as readonly Character[],
+    ] satisfies readonly Character[],
     ENVIRONMENTS: [
         {
             name: "Level Test",
@@ -127,7 +127,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/cartoon-river-with-orange-sky.jpg",
                 ROTATION_Y: 0,
                 BLUR: 0.3,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(3, 0.5, -8),
             backgroundMusic: {
@@ -239,7 +239,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(89, 15, -161.5),
             particles: [
@@ -261,7 +261,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(3, 0, 31),
             particles: [
@@ -283,7 +283,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/orange-desert-night.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(0, 5, 0) // Higher spawn point for Firefox Reality
         },
@@ -298,7 +298,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(-15, 15, 0)
         },
@@ -313,7 +313,7 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(0, 15, -20)
         },
@@ -328,9 +328,9 @@ export const ASSETS = {
                 TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/light-blue-sky-over-grassy-plain.png",
                 ROTATION_Y: 0,
                 BLUR: 0.2,
-                TYPE: "SPHERE" as SkyType
+                TYPE: "SPHERE" satisfies SkyType
             },
             spawnPoint: new BABYLON.Vector3(0, 77, -20)
         }
-    ] as readonly Environment[]
+    ] satisfies readonly Environment[]
 } as const;
