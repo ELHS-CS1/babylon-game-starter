@@ -414,4 +414,25 @@ export class InventoryUI {
         this.isPanelOpen = false;
         this.sceneManager = null;
     }
+
+    /**
+     * Global cleanup method to remove all InventoryUI elements from DOM
+     */
+    public static cleanup(): void {
+        // Remove inventory button
+        if (this.inventoryButton) {
+            this.inventoryButton.remove();
+            this.inventoryButton = null;
+        }
+
+        // Remove inventory panel
+        if (this.inventoryPanel) {
+            this.inventoryPanel.remove();
+            this.inventoryPanel = null;
+        }
+
+        // Reset state
+        this.isPanelOpen = false;
+        this.sceneManager = null;
+    }
 }

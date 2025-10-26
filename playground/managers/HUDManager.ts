@@ -22,9 +22,7 @@ export class HUDManager {
      */
     public static initialize(scene: BABYLON.Scene, characterController: CharacterController): void {
         // Clean up any existing HUD before creating a new one
-        if (this.hudContainer) {
-            this.dispose();
-        }
+        this.dispose();
 
         this.scene = scene;
         this.characterController = characterController;
@@ -451,5 +449,36 @@ export class HUDManager {
         this.hudElements.clear();
         this.scene = null;
         this.characterController = null;
+    }
+
+    /**
+     * Global cleanup method to remove all HUD elements from DOM
+     */
+    public static cleanup(): void {
+        // Remove any existing HUD containers
+        const existingHUD = document.getElementById('game-hud');
+        if (existingHUD) {
+            existingHUD.remove();
+        }
+
+        // Clear any existing HUD styles
+        const existingStyles = document.querySelectorAll('style');
+        existingStyles.forEach(style => {
+            if (style.textContent?.includes('hud-element') || style.textContent?.includes('@keyframes pulse')) {
+                style.remove();
+            }
+        });
+
+        // Reset static properties
+        this.hudContainer = null;
+        this.hudElements.clear();
+        this.scene = null;
+        this.characterController = null;
+        this.startTime = 0;
+        this.lastUpdateTime = 0;
+        this.updateInterval = null;
+        this.fpsCounter = 0;
+        this.fpsLastTime = 0;
+        this.currentFPS = 0;
     }
 }

@@ -605,4 +605,25 @@ export class SettingsUI {
             this.sceneManager.resumePhysics();
         }
     }
+
+    /**
+     * Global cleanup method to remove all SettingsUI elements from DOM
+     */
+    public static cleanup(): void {
+        // Remove settings button
+        if (this.settingsButton) {
+            this.settingsButton.remove();
+            this.settingsButton = null;
+        }
+
+        // Remove settings panel
+        if (this.settingsPanel) {
+            this.settingsPanel.remove();
+            this.settingsPanel = null;
+        }
+
+        // Reset state
+        this.isPanelOpen = false;
+        this.sceneManager = null;
+    }
 }
