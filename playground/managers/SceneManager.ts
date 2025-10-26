@@ -206,6 +206,17 @@ export class SceneManager {
             return;
         }
 
+        // Disable character during environment switch
+        if (this.characterController) {
+            this.characterController.pausePhysics();
+            // Also hide the character mesh
+            const playerMesh = this.characterController.getPlayerMesh();
+            if (playerMesh) {
+                playerMesh.isVisible = false;
+                playerMesh.setEnabled(false);
+            }
+        }
+
         // Clear existing environment particles before creating new ones
         EffectsManager.removeEnvironmentParticles();
         // Also clear ambient sounds before switching
@@ -289,8 +300,29 @@ export class SceneManager {
             
             // Set up environment items for the new environment
             await this.setupEnvironmentItems();
+
+            // Re-enable character after environment switch is complete
+            if (this.characterController) {
+                this.characterController.resumePhysics();
+                // Also show the character mesh
+                const playerMesh = this.characterController.getPlayerMesh();
+                if (playerMesh) {
+                    playerMesh.isVisible = true;
+                    playerMesh.setEnabled(true);
+                }
+            }
         } catch (_error) {
             // Ignore environment loading errors for playground compatibility
+            // Re-enable character even if there was an error
+            if (this.characterController) {
+                this.characterController.resumePhysics();
+                // Also show the character mesh
+                const playerMesh = this.characterController.getPlayerMesh();
+                if (playerMesh) {
+                    playerMesh.isVisible = true;
+                    playerMesh.setEnabled(true);
+                }
+            }
         }
     }
 

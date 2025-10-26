@@ -142,11 +142,9 @@ export class CollectiblesManager {
                 // Make the instance basis invisible and disable it in the scene
                 this.instanceBasis.isVisible = false;
                 this.instanceBasis.setEnabled(false);
-            } else {
-                alert('No mesh with geometry found in item model');
             }
         } catch (_error) {
-            alert('Error loading item model');
+            // Ignore item loading errors for playground compatibility
         }
     }
 
