@@ -16,6 +16,11 @@ export class CollectiblesManager {
     private static collectedItems: Set<string> = new Set();
     private static instanceBasis: BABYLON.Mesh | null = null;
     private static itemConfigs: Map<string, ItemConfig> = new Map();
+    
+    // Cached particle systems for efficiency
+    private static cachedParticleSystem: BABYLON.ParticleSystem | null = null;
+    private static particleSystemPool: BABYLON.ParticleSystem[] = [];
+    private static readonly MAX_POOL_SIZE = 5;
 
     /**
      * Initializes the CollectiblesManager with a scene and character controller
@@ -39,6 +44,17 @@ export class CollectiblesManager {
         this.collectibles.clear();
         this.collectibleBodies.clear();
         this.collectedItems.clear();
+
+        // Create collection sound if not already created
+        if (!this.collectionSound && this.scene) {
+            this.collectionSound = new BABYLON.Sound(
+                "collectionSound",
+                "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/sounds/effects/collect.m4a",
+                this.scene,
+                undefined,
+                { volume: 0.7 }
+            );
+        }
 
         // Set up collectibles for this environment
         await this.setupCollectiblesForEnvironment(environment);
@@ -242,11 +258,98 @@ export class CollectiblesManager {
             this.collectionSound.play();
         }
 
+        // Show collection effects
+        this.showCollectionEffects(collectible.position);
+
         // Add to inventory (if inventory system is available)
         // InventoryManager.addItem(itemConfig.name, itemConfig.creditValue);
 
         // Add credits
         this.totalCredits += itemConfig.creditValue;
+    }
+
+    /**
+     * Creates a reusable particle system template for collection effects
+     */
+    private static createParticleSystemTemplate(): BABYLON.ParticleSystem {
+        if (!this.scene) throw new Error("Scene not initialized");
+
+        const particleSystem = new BABYLON.ParticleSystem("CollectionEffect", 50, this.scene);
+        
+        particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", this.scene);
+        particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5);
+        particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5);
+
+        particleSystem.color1 = new BABYLON.Color4(0.5, 0.8, 1, 1); // Baby blue
+        particleSystem.color2 = new BABYLON.Color4(0.2, 0.6, 0.9, 1); // Darker baby blue
+        particleSystem.colorDead = new BABYLON.Color4(0, 0.3, 0.6, 0); // Fade to dark blue
+
+        particleSystem.minSize = 0.1;
+        particleSystem.maxSize = 0.3;
+
+        particleSystem.minLifeTime = 0.3;
+        particleSystem.maxLifeTime = 0.8;
+
+        particleSystem.emitRate = 100;
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+        particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+        particleSystem.direction1 = new BABYLON.Vector3(-2, -2, -2);
+        particleSystem.direction2 = new BABYLON.Vector3(2, 2, 2);
+
+        particleSystem.minEmitPower = 1;
+        particleSystem.maxEmitPower = 3;
+        particleSystem.updateSpeed = 0.016;
+
+        return particleSystem;
+    }
+
+    /**
+     * Gets a particle system from the pool or creates a new one
+     */
+    private static getParticleSystemFromPool(): BABYLON.ParticleSystem | null {
+        if (!this.scene) return null;
+
+        // Try to get from pool first
+        if (this.particleSystemPool.length > 0) {
+            return this.particleSystemPool.pop()!;
+        }
+
+        // Create new one if pool is empty
+        return this.createParticleSystemTemplate();
+    }
+
+    /**
+     * Returns a particle system to the pool for reuse
+     */
+    private static returnParticleSystemToPool(particleSystem: BABYLON.ParticleSystem): void {
+        if (this.particleSystemPool.length < this.MAX_POOL_SIZE) {
+            particleSystem.stop();
+            this.particleSystemPool.push(particleSystem);
+        } else {
+            particleSystem.dispose();
+        }
+    }
+
+    /**
+     * Shows collection particle effects at the specified position (optimized with pooling)
+     */
+    private static showCollectionEffects(position: BABYLON.Vector3): void {
+        if (!this.scene) return;
+
+        // Get particle system from pool
+        const particleSystem = this.getParticleSystemFromPool();
+        if (!particleSystem) return;
+
+        // Set position and start
+        particleSystem.emitter = position;
+        particleSystem.start();
+
+        // Return to pool after effect duration
+        setTimeout(() => {
+            this.returnParticleSystemToPool(particleSystem);
+        }, 1000);
     }
 
     /**
@@ -277,6 +380,23 @@ export class CollectiblesManager {
             this.scene?.onBeforeRenderObservable.remove(this.collectionObserver);
             this.collectionObserver = null;
         }
+
+        // Dispose collection sound
+        if (this.collectionSound) {
+            this.collectionSound.dispose();
+            this.collectionSound = null;
+        }
+
+        // Dispose cached particle system
+        if (this.cachedParticleSystem) {
+            this.cachedParticleSystem.dispose();
+            this.cachedParticleSystem = null;
+        }
+
+        // Dispose particle system pool
+        this.particleSystemPool.forEach(ps => ps.dispose());
+        this.particleSystemPool.length = 0;
+
         this.scene = null;
         this.characterController = null;
     }

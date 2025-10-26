@@ -182,6 +182,33 @@ declare global {
         }
 
         interface IParticleSystem extends ParticleSystem {}
+        
+        class ParticleSystem {
+            constructor(name: string, capacity: number, scene: Scene);
+            updateSpeed: number;
+            particleTexture: Texture | null;
+            emitter: AbstractMesh | Vector3;
+            minEmitBox: Vector3;
+            maxEmitBox: Vector3;
+            color1: Color4;
+            color2: Color4;
+            colorDead: Color4;
+            minSize: number;
+            maxSize: number;
+            minLifeTime: number;
+            maxLifeTime: number;
+            emitRate: number;
+            blendMode: number;
+            gravity: Vector3;
+            direction1: Vector3;
+            direction2: Vector3;
+            minEmitPower: number;
+            maxEmitPower: number;
+            start(): void;
+            stop(): void;
+            dispose(): void;
+            static BLENDMODE_ONEONE: number;
+        }
 
         interface Sound {
             name: string;
