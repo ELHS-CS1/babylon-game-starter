@@ -98,6 +98,9 @@ export class SceneManager {
                     // Set up the character mesh
                     this.characterController?.setPlayerMesh(characterMesh);
                     
+                    // Set character in animation controller
+                    this.characterController?.animationController.setCharacter(character);
+                    
                     // Position character at spawn point
                     const environment = ASSETS.ENVIRONMENTS.find(env => env.name === this.currentEnvironment);
                     const spawnPoint = environment?.spawnPoint ?? new BABYLON.Vector3(0, 1, 0);
