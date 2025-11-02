@@ -327,6 +327,8 @@ declare global {
         freezeWorldMatrix(): void;
         doNotSyncBoundingInfo: boolean;
         dispose(): void;
+        addTags(...tags: string[]): void;
+        hasTags(...tags: string[]): boolean;
     }
 
     class Geometry {

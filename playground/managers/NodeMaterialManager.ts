@@ -14,6 +14,49 @@ export class NodeMaterialManager {
     }
 
     /**
+     * Processes a specific mesh to check for #nmSnippetId pattern and apply node material
+     * @param mesh The mesh to process
+     */
+    public static async processMeshForNodeMaterial(mesh: BABYLON.Mesh): Promise<void> {
+        if (!this.scene) {
+            return;
+        }
+
+        // Check if mesh name contains #nm pattern
+        const nmMatch = mesh.name.match(/#nm([A-Z0-9]+)/);
+        if (!nmMatch) {
+            return; // No node material snippet ID found
+        }
+
+        const snippetId = nmMatch[1];
+        if (!snippetId || snippetId.length === 0) {
+            return; // No valid snippet ID found
+        }
+
+        try {
+            // Check if we already have this node material cached
+            let nodeMaterial = this.activeNodeMaterials.get(snippetId);
+
+            if (!nodeMaterial) {
+                // Parse the node material from the snippet only if not cached
+                nodeMaterial = await BABYLON.NodeMaterial.ParseFromSnippetAsync(snippetId, this.scene);
+
+                if (nodeMaterial) {
+                    // Store the node material for reuse (keyed by snippet ID)
+                    this.activeNodeMaterials.set(snippetId, nodeMaterial);
+                }
+            }
+
+            if (nodeMaterial) {
+                // Apply the node material to the mesh
+                mesh.material = nodeMaterial;
+            }
+        } catch (_error) {
+            // Silently handle errors to match playground manager style
+        }
+    }
+
+    /**
      * Processes meshes from a model import result
      */
     public static async processImportResult(result: { meshes: BABYLON.AbstractMesh[] }): Promise<void> {
@@ -21,13 +64,10 @@ export class NodeMaterialManager {
             return;
         }
 
-        // Process each mesh for node materials
-        for (const mesh of result.meshes) {
-            if (mesh.material) {
-                // Check if the material is a node material
-                if (mesh.material instanceof BABYLON.NodeMaterial) {
-                    // Store the node material
-                    this.activeNodeMaterials.set(mesh.name, mesh.material);
+        if (result.meshes) {
+            for (const mesh of result.meshes) {
+                if (mesh instanceof BABYLON.Mesh) {
+                    await this.processMeshForNodeMaterial(mesh);
                 }
             }
         }
@@ -43,8 +83,8 @@ export class NodeMaterialManager {
 
         // Process all meshes in the scene
         for (const mesh of this.scene.meshes) {
-            if (mesh.material && mesh.material instanceof BABYLON.NodeMaterial) {
-                this.activeNodeMaterials.set(mesh.name, mesh.material);
+            if (mesh instanceof BABYLON.Mesh) {
+                await this.processMeshForNodeMaterial(mesh);
             }
         }
     }
