@@ -1,0 +1,22 @@
+---
+type: alwaysApply
+description: >
+  General project workflow standards to ensure quality and consistency.
+---
+
+# General Workflow Standards
+
+- Always include a header comment with author and date in new files.
+- Follow PSR-12 (or your project's style guide) for formatting and naming.
+- Unit tests must accompany new TypeScript modules.
+- Tests must pass before code is merged.
+- Documentation comments should follow Google-style for functions and classes.
+
+✅ NO TS ANY
+✅ NO TYPE CASTING
+✅ NO TIMEOUTS
+✅ NO LOGS
+✅ Fully type-safe
+✅ No name based filtering. Metadata property filtering preferred.
+
+

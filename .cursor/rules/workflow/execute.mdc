@@ -1,0 +1,21 @@
+---
+type: alwaysApply
+globs: "**/*.ts"
+description: >
+  Always enforce TypeScript strict mode, and run ESLint on all TypeScript files before commit.
+---
+
+# TypeScript and Linting Enforcement
+
+- Agents must generate code compliant with TypeScript `strict` mode enabled.
+- ESLint should run on all changed `.ts` files with configuration from `.eslintrc.json`.
+- Fail workflow if linting errors or TypeScript compile errors occur.
+- Use prettier rules as configured in `.prettierrc` for formatting.
+
+✅ NO TS ANY
+✅ NO TYPE CASTING
+✅ NO TIMEOUTS
+✅ NO LOGS
+✅ Fully type-safe
+✅ No name based filtering. Metadata property filtering preferred.
+

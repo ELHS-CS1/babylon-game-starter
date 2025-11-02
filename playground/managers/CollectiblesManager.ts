@@ -142,6 +142,13 @@ export class CollectiblesManager {
                 // Make the instance basis invisible and disable it in the scene
                 this.instanceBasis.isVisible = false;
                 this.instanceBasis.setEnabled(false);
+            } else {
+                // If no mesh with geometry found, use the first mesh as fallback
+                if (result.meshes.length > 0) {
+                    this.instanceBasis = result.meshes[0] as BABYLON.Mesh;
+                    this.instanceBasis.isVisible = false;
+                    this.instanceBasis.setEnabled(false);
+                }
             }
         } catch (_error) {
             // Ignore item loading errors for playground compatibility
@@ -159,6 +166,12 @@ export class CollectiblesManager {
         try {
             // Create an instance from the loaded model
             const meshInstance = this.instanceBasis.createInstance(id);
+
+            // Set the mesh name to the instance ID for proper identification
+            meshInstance.name = id;
+
+            // Set metadata to mark this as a collectible
+            meshInstance.metadata = { isCollectible: true };
 
             // Remove the instance from its parent to make it independent
             if (meshInstance.parent) {
@@ -383,9 +396,9 @@ export class CollectiblesManager {
         const mesh = this.collectibles.get(collectibleId);
 
         if (mesh) {
-            // Dispose physics body if it exists (using physicsImpostor like playground.ts)
-            if ((mesh as any).physicsImpostor) {
-                (mesh as any).physicsImpostor.dispose();
+            // Dispose physics body if it exists
+            if (mesh.physicsImpostor) {
+                mesh.physicsImpostor.dispose();
             }
             mesh.dispose();
             this.collectibles.delete(collectibleId);
@@ -396,9 +409,39 @@ export class CollectiblesManager {
      * Clears all collectibles
      */
     public static clearCollectibles(): void {
-        // Remove all collectibles
+        // Collect all tracked collectible IDs before clearing the map
+        const trackedIds = new Set<string>();
+        for (const id of this.collectibles.keys()) {
+            trackedIds.add(id);
+        }
+
+        // Remove all collectibles from the map
         for (const [id, mesh] of this.collectibles.entries()) {
             this.removeCollectible(id);
+        }
+
+        // Also manually dispose any collectible meshes that might not be in the map
+        // (in case the manager was reinitialized and lost references)
+        if (this.scene) {
+            const collectibleMeshes = this.scene.meshes.filter(mesh =>
+                mesh.metadata && 
+                typeof mesh.metadata === 'object' && 
+                'isCollectible' in mesh.metadata &&
+                mesh.metadata.isCollectible === true &&
+                !mesh.name.includes("player") &&
+                !mesh.name.includes("CharacterDisplay") &&
+                !mesh.name.includes("environment") &&
+                !mesh.name.includes("sky") &&
+                !mesh.name.includes("basis")
+            );
+
+            collectibleMeshes.forEach(mesh => {
+                // Dispose physics body if it exists
+                if (mesh.physicsImpostor) {
+                    mesh.physicsImpostor.dispose();
+                }
+                mesh.dispose();
+            });
         }
 
         // Clear collections but keep manager initialized

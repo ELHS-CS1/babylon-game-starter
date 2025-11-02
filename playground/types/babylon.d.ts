@@ -308,6 +308,10 @@ declare global {
             static ParseFromSnippetAsync(snippetId: string, scene: Scene, rootUrl?: string): Promise<IParticleSystem>;
         }
 
+    class PhysicsImpostor {
+        dispose(): void;
+    }
+
     class AbstractMesh {
         constructor(name: string, scene: Scene);
         name: string;
@@ -319,6 +323,8 @@ declare global {
         isPickable: boolean;
         material: Material | null;
         animations: Animation[];
+        physicsImpostor: PhysicsImpostor | null;
+        metadata: Record<string, unknown> | null;
         getChildMeshes(): AbstractMesh[];
         setEnabled(enabled: boolean): void;
         setParent(parent: AbstractMesh | null): void;
