@@ -1,0 +1,58 @@
+{
+  "short_name": "Babylon Game",
+  "name": "Babylon Multiplayer Game",
+  "description": "A multiplayer 3D game built with Babylon.js, Vue 3, and DataStar signals",
+  "icons": [
+    {
+      "src": "/icons/sigma-logo-64.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/sigma-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/sigma-logo-192.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1976d2",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Join Game",
+      "short_name": "Join",
+      "url": "/?action=join",
+      "icons": [
+        {
+          "src": "/icons/sigma-logo-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "url": "/?action=settings",
+      "icons": [
+        {
+          "src": "/icons/sigma-logo-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr"
+}

@@ -1,0 +1,325 @@
+// ============================================================================
+// SMOOTH FOLLOW CAMERA CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
+// ============================================================================
+
+import type { Scene, TargetCamera, Mesh, Observer, PointerInfo} from '@babylonjs/core';
+import { Vector3, PointerEventTypes, Scalar, Quaternion } from '@babylonjs/core';
+import CONFIG from '../config/gameConfig';
+
+export class SmoothFollowCameraController {
+  private readonly scene: Scene;
+  private readonly camera: TargetCamera;
+  private readonly target: Mesh;
+  private readonly offset: Vector3;
+  private readonly dragSensitivity: number;
+
+  public isDragging = false;
+  public dragDeltaX = 0;
+  public dragDeltaZ = 0;
+
+  private pointerObserver!: Observer<PointerInfo>;
+  private beforeRenderObserver!: Observer<Scene>;
+  private lastPointerX = 0;
+  private lastPointerY = 0;
+  private isTwoFingerPanning = false;
+  private lastPanPositions: [number, number, number, number] | null = null;
+  private canvas: HTMLCanvasElement | null = null;
+
+  // Character rotation lerp variables
+  public isRotatingCharacter = false;
+  private characterRotationStartY = 0;
+  private characterRotationTargetY = 0;
+  private characterRotationStartTime = 0;
+  private characterRotationDuration = 0.5; // 0.5 seconds
+  private shouldStartRotationOnWalk = false;
+
+  constructor(
+    scene: Scene,
+    camera: TargetCamera,
+    target: Mesh,
+    offset: Vector3 = CONFIG.CAMERA.OFFSET,
+    dragSensitivity: number = CONFIG.CAMERA.DRAG_SENSITIVITY
+  ) {
+    this.scene = scene;
+    this.camera = camera;
+    this.target = target;
+    this.offset = offset.clone();
+    this.dragSensitivity = dragSensitivity;
+
+    this.initializeEventListeners();
+  }
+
+  private initializeEventListeners(): void {
+    this.pointerObserver = this.scene.onPointerObservable.add(this.handlePointer);
+    this.beforeRenderObserver = this.scene.onBeforeRenderObservable.add(this.updateCamera);
+
+    this.canvas = this.scene.getEngine().getRenderingCanvas();
+    if (this.canvas) {
+      this.canvas.addEventListener("touchstart", this.handleTouchStart, { passive: false });
+      this.canvas.addEventListener("touchmove", this.handleTouchMove, { passive: false });
+      this.canvas.addEventListener("touchend", this.handleTouchEnd, { passive: false });
+      this.canvas.addEventListener("wheel", this.handleWheel, { passive: false });
+    }
+  }
+
+  private handlePointer = (pointerInfo: PointerInfo): void => {
+    switch (pointerInfo.type) {
+      case PointerEventTypes.POINTERDOWN:
+        this.isDragging = true;
+        this.lastPointerX = pointerInfo.event.clientX;
+        this.lastPointerY = pointerInfo.event.clientY;
+        this.dragDeltaX = 0;
+        this.dragDeltaZ = 0;
+        break;
+
+      case PointerEventTypes.POINTERUP:
+        this.isDragging = false;
+        this.dragDeltaX = 0;
+        this.dragDeltaZ = 0;
+        // Mark that we should start rotation lerp on first walk activation
+        this.shouldStartRotationOnWalk = true;
+        break;
+
+      case PointerEventTypes.POINTERMOVE:
+        if (this.isDragging) {
+          this.handlePointerMove(pointerInfo);
+        }
+        break;
+    }
+  };
+
+  private handlePointerMove(pointerInfo: PointerInfo): void {
+    const deltaX = pointerInfo.event.movementX || (pointerInfo.event.clientX - this.lastPointerX);
+    const deltaY = pointerInfo.event.movementY || (pointerInfo.event.clientY - this.lastPointerY);
+
+    this.lastPointerX = pointerInfo.event.clientX;
+    this.lastPointerY = pointerInfo.event.clientY;
+
+    this.dragDeltaX = -deltaX * this.dragSensitivity;
+    this.dragDeltaZ = deltaY * this.dragSensitivity;
+
+    this.updateCameraPosition();
+  }
+
+  private updateCameraPosition(): void {
+    const right = this.camera.getDirection(Vector3.Right());
+    this.camera.position.addInPlace(right.scale(this.dragDeltaX));
+
+    const up = this.camera.getDirection(Vector3.Up());
+    this.camera.position.addInPlace(up.scale(this.dragDeltaZ));
+
+    this.camera.setTarget(this.target.position);
+  }
+
+  private handleWheel = (e: WheelEvent): void => {
+    e.preventDefault();
+    this.offset.z += e.deltaX * this.dragSensitivity * 6;
+    this.offset.z = Scalar.Clamp(
+      this.offset.z,
+      CONFIG.CAMERA.ZOOM_MIN,
+      CONFIG.CAMERA.ZOOM_MAX
+    );
+  };
+
+  private handleTouchStart = (e: TouchEvent): void => {
+    if (e.touches.length === 2) {
+      this.isTwoFingerPanning = true;
+      this.lastPanPositions = [
+        e.touches[0]!.clientX, e.touches[0]!.clientY,
+        e.touches[1]!.clientX, e.touches[1]!.clientY
+      ] as [number, number, number, number];
+    }
+  };
+
+  private handleTouchMove = (e: TouchEvent): void => {
+    if (!this.isTwoFingerPanning || e.touches.length !== 2 || !this.lastPanPositions) {
+      return;
+    }
+
+    e.preventDefault();
+    this.handleTwoFingerPan(e);
+  };
+
+  private handleTwoFingerPan(e: TouchEvent): void {
+    const currentPositions = [
+      e.touches[0]!.clientX, e.touches[0]!.clientY,
+      e.touches[1]!.clientX, e.touches[1]!.clientY
+    ] as [number, number, number, number];
+
+    const lastMidX = (this.lastPanPositions![0] + this.lastPanPositions![2]) / 2;
+    const lastMidY = (this.lastPanPositions![1] + this.lastPanPositions![3]) / 2;
+    const currMidX = (currentPositions[0] + currentPositions[2]) / 2;
+    const currMidY = (currentPositions[1] + currentPositions[3]) / 2;
+
+    const deltaX = currMidX - lastMidX;
+    const deltaY = currMidY - lastMidY;
+
+    const right = this.camera.getDirection(Vector3.Right());
+    const forward = this.camera.getDirection(Vector3.Forward());
+
+    this.offset.addInPlace(right.scale(-deltaX * this.dragSensitivity * 4));
+    this.offset.addInPlace(forward.scale(deltaY * this.dragSensitivity * 4));
+
+    this.lastPanPositions = currentPositions;
+  }
+
+  private handleTouchEnd = (e: TouchEvent): void => {
+    if (e.touches.length < 2) {
+      this.isTwoFingerPanning = false;
+      this.lastPanPositions = null;
+    }
+  };
+
+  private updateCamera = (): void => {
+    if (!this.isDragging) {
+      // Only smooth follow if we're not waiting for walk activation
+      if (!this.shouldStartRotationOnWalk) {
+        this.smoothFollowTarget();
+      }
+    } else {
+      this.updateOffsetY();
+    }
+
+    // Update character rotation lerp
+    this.updateCharacterRotationLerp();
+  };
+
+  private smoothFollowTarget(): void {
+    // If character is rotating, pause the smooth follow camera
+    if (this.isRotatingCharacter) {
+      return;
+    }
+
+    const yRot = Quaternion.FromEulerAngles(0, this.target.rotation.y, 0);
+    const rotatedOffset = this.offset.rotateByQuaternionToRef(yRot, Vector3.Zero());
+    const desiredPos = this.target.position.add(rotatedOffset);
+
+    // Calculate dynamic smoothing based on offset.z
+    // Closer camera (smaller offset.z) = more responsive (higher smoothing value)
+    // Farther camera (larger offset.z) = more relaxed (lower smoothing value)
+    const normalizedOffset = (this.offset.z - CONFIG.CAMERA.ZOOM_MIN) / (CONFIG.CAMERA.ZOOM_MAX - CONFIG.CAMERA.ZOOM_MIN);
+    const dynamicSmoothing = Scalar.Lerp(0.05, 0.25, normalizedOffset);
+
+    Vector3.LerpToRef(
+      this.camera.position,
+      desiredPos,
+      dynamicSmoothing,
+      this.camera.position
+    );
+
+    this.camera.lockedTarget = this.target;
+  }
+
+  private updateOffsetY(): void {
+    this.offset.y = this.camera.position.y - this.target.position.y;
+  }
+
+  private startCharacterRotationLerp(): void {
+    // Calculate direction from character to camera
+    const toCamera = this.camera.position.subtract(this.target.position).normalize();
+
+    // Calculate the desired Y rotation (yaw) to face AWAY from the camera
+    const targetYaw = Math.atan2(-toCamera.x, -toCamera.z);
+
+    // Calculate the shortest rotation path
+    const currentYaw = this.target.rotation.y;
+    let rotationDifference = targetYaw - currentYaw;
+
+    // Normalize to shortest path (-π to π)
+    while (rotationDifference > Math.PI) rotationDifference -= 2 * Math.PI;
+    while (rotationDifference < -Math.PI) rotationDifference += 2 * Math.PI;
+
+    // Start the lerp with the shortest path
+    this.isRotatingCharacter = true;
+    this.characterRotationStartY = currentYaw;
+    this.characterRotationTargetY = currentYaw + rotationDifference;
+    this.characterRotationStartTime = Date.now();
+  }
+
+  private updateCharacterRotationLerp(): void {
+    if (!this.isRotatingCharacter) return;
+
+    const currentTime = Date.now();
+    const elapsed = (currentTime - this.characterRotationStartTime) / 1000; // Convert to seconds
+    const progress = Math.min(elapsed / this.characterRotationDuration, 1.0);
+
+    // Use smooth easing function
+    const easedProgress = this.easeInOutCubic(progress);
+
+    // Lerp the rotation
+    const currentRotation = Scalar.Lerp(
+      this.characterRotationStartY,
+      this.characterRotationTargetY,
+      easedProgress
+    );
+
+    this.target.rotation.y = currentRotation;
+
+    // Update quaternion if needed
+    if (this.target.rotationQuaternion) {
+      Quaternion.FromEulerAnglesToRef(
+        this.target.rotation.x,
+        currentRotation,
+        this.target.rotation.z,
+        this.target.rotationQuaternion
+      );
+    }
+
+    // Stop lerping when complete
+    if (progress >= 1.0) {
+      this.isRotatingCharacter = false;
+    }
+  }
+
+  private easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  public checkForWalkActivation(): void {
+    if (this.shouldStartRotationOnWalk) {
+      this.shouldStartRotationOnWalk = false;
+      this.startCharacterRotationLerp();
+    }
+  }
+
+  /**
+   * Force activate smooth following, useful after environment transitions
+   */
+  public forceActivateSmoothFollow(): void {
+    this.shouldStartRotationOnWalk = false;
+    this.isRotatingCharacter = false;
+    this.isDragging = false;
+    this.dragDeltaX = 0;
+    this.dragDeltaZ = 0;
+  }
+
+  /**
+   * Reset camera to default offset from player
+   */
+  public resetCameraToDefaultOffset(): void {
+    // Reset the offset to the default configuration
+    this.offset.copyFrom(CONFIG.CAMERA.OFFSET);
+
+    // Force activate smooth follow to ensure camera moves to new position
+    this.forceActivateSmoothFollow();
+  }
+
+  /**
+   * Force activates smooth follow camera - THE WORD OF GOD!
+   */
+  public forceActivate(): void {
+    this.forceActivateSmoothFollow();
+  }
+
+  public dispose(): void {
+    this.scene.onPointerObservable.remove(this.pointerObserver);
+    // Camera observer removed - using default Babylon.js render loop
+
+    if (this.canvas) {
+      this.canvas.removeEventListener("touchstart", this.handleTouchStart);
+      this.canvas.removeEventListener("touchmove", this.handleTouchMove);
+      this.canvas.removeEventListener("touchend", this.handleTouchEnd);
+      this.canvas.removeEventListener("wheel", this.handleWheel);
+    }
+  }
+}

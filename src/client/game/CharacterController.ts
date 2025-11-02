@@ -1,0 +1,919 @@
+// ============================================================================
+// CHARACTER CONTROLLER - THE WORD OF GOD FROM PLAYGROUND.TS
+// ============================================================================
+
+import { Vector3, MeshBuilder, PhysicsCharacterController, KeyboardEventTypes, Quaternion, CharacterSupportedState, type KeyboardInfo } from '@babylonjs/core';
+import type { IParticleSystem , Scene, Mesh, AbstractMesh, Sound, PhysicsBody } from '@babylonjs/core';
+import CONFIG, { ASSETS, CHARACTER_STATES, INPUT_KEYS, type InputKey } from '../config/gameConfig';
+import type { CharacterState } from '../config/gameConfig';
+import { AnimationController } from './AnimationController';
+import type { Character } from '../config/gameConfig';
+import { logger } from '../utils/logger';
+import { HUDEvents } from '../utils/hudEventSystem';
+import type { SmoothFollowCameraController } from './SmoothFollowCameraController';
+
+// Character surface info interface for physics support
+interface CharacterSurfaceInfo {
+  averageSurfaceNormal?: Vector3;
+  averageSurfaceVelocity?: Vector3;
+  isSupported?: boolean;
+  supportedState?: CharacterSupportedState;
+}
+
+// Camera controller interface for type safety
+interface CameraControllerInterface {
+  resetCameraToDefaultOffset?: () => void;
+  isRotatingCharacter?: boolean;
+  checkForWalkActivation?: () => void;
+}
+
+// Type guard for camera controller
+function isCameraControllerInterface(obj: unknown): obj is CameraControllerInterface {
+  return typeof obj === 'object' && obj !== null;
+}
+
+// Character states are imported from gameConfig - THE WORD OF GOD
+
+// Input keys are now imported from gameConfig
+
+// Type guard to check if a string is a valid InputKey
+function isValidInputKey(key: string): key is InputKey {
+  return Object.values(INPUT_KEYS).flat().includes(key as InputKey);
+}
+
+// Helper function to safely check if a key is in an INPUT_KEYS array
+function isKeyInArray(key: string, keyArray: readonly string[]): boolean {
+  return keyArray.includes(key);
+}
+
+// Character interface is imported from gameConfig - THE WORD OF GOD
+
+// Character state type is imported from gameConfig - THE WORD OF GOD
+
+export class CharacterController {
+  private readonly scene: Scene;
+  private characterController: PhysicsCharacterController;
+  private displayCapsule: Mesh;
+  private playerMesh: AbstractMesh;
+
+  private state: CharacterState = CHARACTER_STATES.IN_AIR;
+  private wantJump = false;
+  private inputDirection = new Vector3(0, 0, 0);
+  private targetRotationY = 0;
+  private keysDown = new Set<InputKey>();
+  private cameraController: SmoothFollowCameraController | null = null;
+  private boostActive = false;
+  private playerParticleSystem: IParticleSystem | null = null;
+  private thrusterSound: Sound | null = null;
+  private thrusterSoundAttempted: boolean = false;
+  public animationController: AnimationController | null = null;
+
+  // Mobile device detection - computed once at initialization
+  private readonly isMobileDevice: boolean;
+  private readonly isIPadWithKeyboard: boolean;
+  private readonly isIPad: boolean;
+  private keyboardEventCount: number = 0;
+  private keyboardDetectionTimeout: number | null = null;
+  private physicsPaused: boolean = false;
+  private currentCharacter: Character | null = null;
+
+  constructor(scene: Scene) {
+    this.scene = scene;
+
+    // Enhanced device detection
+    this.isMobileDevice = this.detectMobileDevice();
+    this.isIPad = this.detectIPad();
+    this.isIPadWithKeyboard = this.detectIPadWithKeyboard();
+
+    // Get default character configuration from ASSETS - THE WORD OF GOD!
+    const defaultCharacter = ASSETS.CHARACTERS[0];
+    const defaultHeight = defaultCharacter.height;
+    const defaultRadius = defaultCharacter.radius;
+
+    // Create character physics controller with default position (will be updated when character is loaded)
+    this.characterController = new PhysicsCharacterController(
+      new Vector3(0, 0, 0), // Default position, will be updated
+      {
+        capsuleHeight: defaultHeight, // Use first character's height as default
+        capsuleRadius: defaultRadius  // Use first character's radius as default
+      },
+      scene
+    );
+
+    // Create display capsule for debug
+    this.displayCapsule = MeshBuilder.CreateCapsule(
+      "CharacterDisplay",
+      {
+        height: defaultHeight, // Use first character's height as default
+        radius: defaultRadius  // Use first character's radius as default
+      },
+      scene
+    );
+        this.displayCapsule.isVisible = CONFIG.DEBUG.CAPSULE_VISIBLE; // Use config setting like playground
+
+    // Initialize player mesh (will be replaced by loaded model)
+    this.playerMesh = this.displayCapsule;
+
+    // Initialize animation controller (will be implemented later)
+    this.animationController = new AnimationController(scene);
+
+    this.initializeEventListeners();
+    
+    // Initialize HUD with default boost status - THE WORD OF THE LORD!
+    HUDEvents.boost('Ready');
+  }
+
+  private initializeEventListeners(): void {
+    this.scene.onKeyboardObservable.add(this.handleKeyboard);
+    this.scene.onBeforeRenderObservable.add(this.updateCharacter);
+    this.scene.onAfterPhysicsObservable.add(this.updatePhysics);
+
+    // Initialize mobile controls if on mobile device
+    if (this.isMobileDevice) {
+      // MobileInputManager.initialize(this.scene.getEngine().getRenderingCanvas()!);
+    }
+  }
+
+  private detectMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0);
+  }
+
+  private detectIPad(): boolean {
+    // More specific iPad detection
+    return /iPad/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 0);
+  }
+
+  private detectIPadWithKeyboard(): boolean {
+    if (!this.isIPad) return false;
+
+    // Check for keyboard presence using various methods
+    const hasKeyboard = this.checkForKeyboardPresence();
+    const hasExternalKeyboard = this.checkForExternalKeyboard();
+
+    return hasKeyboard || hasExternalKeyboard;
+  }
+
+  private checkForKeyboardPresence(): boolean {
+    // Method 1: Check if virtual keyboard is likely present
+    // This is not 100% reliable but gives us a good indication
+    const viewportHeight = window.innerHeight;
+    const screenHeight = window.screen.height;
+    const keyboardLikelyPresent = viewportHeight < screenHeight * 0.8;
+
+    return keyboardLikelyPresent;
+  }
+
+  private checkForExternalKeyboard(): boolean {
+    // Method 2: Check for external keyboard events
+    // We'll track if we receive keyboard events that suggest an external keyboard
+    this.keyboardEventCount = 0;
+    const keyboardThreshold = 3; // Number of events to consider keyboard present
+
+    const checkKeyboardEvents = (event: KeyboardEvent) => {
+      // Only count events that are likely from a physical keyboard
+      // (not virtual keyboard events which often have different characteristics)
+      if (event.key.length === 1 ||
+        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Shift'].includes(event.key)) {
+        this.keyboardEventCount++;
+
+        if (this.keyboardEventCount >= keyboardThreshold) {
+          // Remove the listener once we've confirmed keyboard presence
+          document.removeEventListener('keydown', checkKeyboardEvents);
+          if (this.keyboardDetectionTimeout !== null) {
+            clearTimeout(this.keyboardDetectionTimeout);
+          }
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Add listener for a short period to detect keyboard
+    document.addEventListener('keydown', checkKeyboardEvents);
+
+    // No timeouts allowed - listener stays active
+
+    return false; // Will be updated by the event listener
+  }
+
+  private handleKeyboard = (kbInfo: KeyboardInfo): void => {
+    const key = kbInfo.event.key.toLowerCase();
+    
+    // Debug logging removed to prevent spam
+
+    switch (kbInfo.type) {
+      case KeyboardEventTypes.KEYDOWN:
+        this.keysDown.add(key as InputKey);
+        this.handleKeyDown(key);
+        break;
+
+      case KeyboardEventTypes.KEYUP:
+        this.keysDown.delete(key as InputKey);
+        this.handleKeyUp(key);
+        break;
+    }
+  };
+
+  private handleKeyDown(key: string): void {
+    // Add key to keysDown set if it's a valid input key
+    if (isValidInputKey(key)) {
+      this.keysDown.add(key);
+    }
+    
+    // Movement input
+    if (isKeyInArray(key, INPUT_KEYS.FORWARD)) {
+      this.inputDirection.z = 1;
+
+    } else if (isKeyInArray(key, INPUT_KEYS.BACKWARD)) {
+      this.inputDirection.z = -1;
+
+    } else if (isKeyInArray(key, INPUT_KEYS.STRAFE_LEFT)) {
+      this.inputDirection.x = -1;
+
+    } else if (isKeyInArray(key, INPUT_KEYS.STRAFE_RIGHT)) {
+      this.inputDirection.x = 1;
+
+    } else if (isKeyInArray(key, INPUT_KEYS.JUMP)) {
+      this.wantJump = true;
+    } else if (isKeyInArray(key, INPUT_KEYS.BOOST)) {
+      // Boost should be active while key is held down
+      this.boostActive = true;
+      this.updateParticleSystem();
+      // Emit boost event to update HUD - THE WORD OF THE LORD!
+      HUDEvents.boost('ACTIVE');
+    } else if (isKeyInArray(key, INPUT_KEYS.DEBUG)) {
+      logger.info("Debug key pressed!", 'CharacterController');
+      this.toggleDebugDisplay();
+    } else if (isKeyInArray(key, INPUT_KEYS.HUD_TOGGLE)) {
+      this.toggleHUD();
+    } else if (isKeyInArray(key, INPUT_KEYS.HUD_POSITION)) {
+      this.cycleHUDPosition();
+    } else if (isKeyInArray(key, INPUT_KEYS.RESET_CAMERA)) {
+      this.resetCameraToDefaultOffset();
+    }
+
+    // Only update mobile input for iPads with keyboards, not for regular keyboard input
+    if (this.isIPadWithKeyboard) {
+      this.updateMobileInput();
+    }
+  }
+
+  private handleKeyUp(key: string): void {
+    // Remove key from keysDown set if it's a valid input key
+    if (isValidInputKey(key)) {
+      this.keysDown.delete(key);
+    }
+    
+    // Reset movement input
+    if (isKeyInArray(key, INPUT_KEYS.FORWARD) || isKeyInArray(key, INPUT_KEYS.BACKWARD)) {
+      this.inputDirection.z = 0;
+    }
+    if (isKeyInArray(key, INPUT_KEYS.LEFT) || isKeyInArray(key, INPUT_KEYS.RIGHT)) {
+      this.inputDirection.x = 0;
+    }
+    if (isKeyInArray(key, INPUT_KEYS.STRAFE_LEFT) || isKeyInArray(key, INPUT_KEYS.STRAFE_RIGHT)) {
+      this.inputDirection.x = 0;
+    }
+    if (isKeyInArray(key, INPUT_KEYS.JUMP)) {
+      this.wantJump = false;
+    }
+    if (isKeyInArray(key, INPUT_KEYS.BOOST)) {
+      // Boost should be inactive when key is released
+      this.boostActive = false;
+      this.updateParticleSystem();
+      // Emit boost event to update HUD - THE WORD OF THE LORD!
+      HUDEvents.boost('Inactive');
+    }
+
+    // Only update mobile input for iPads with keyboards, not for regular keyboard input
+    if (this.isIPadWithKeyboard) {
+      this.updateMobileInput();
+    }
+  }
+
+  private updateMobileInput(): void {
+    // Only update mobile input if this is a mobile device
+    if (this.isMobileDevice) {
+      // Get mobile input direction
+      // const mobileDirection = MobileInputManager.getInputDirection();
+
+      // For iPads with keyboards, allow both keyboard and touch input to work together
+      if (this.isIPadWithKeyboard) {
+        // Only allow touch input for rotation (X-axis) when not in air
+        // if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
+        //   const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+        //   this.targetRotationY += mobileDirection.x * rotationSpeed;
+        // }
+
+        // For movement (Z-axis), use keyboard if available, otherwise use touch
+        // const hasKeyboardMovement = this.keysDown.has('w') || this.keysDown.has('s') ||
+        //   this.keysDown.has('arrowup') || this.keysDown.has('arrowdown');
+
+        // if (!hasKeyboardMovement && Math.abs(mobileDirection.z) > 0.1) {
+        //   // Use touch input for forward/backward movement when no keyboard movement
+        //   this.inputDirection.z = mobileDirection.z;
+        // } else if (!hasKeyboardMovement) {
+        //   // Reset Z movement when no input
+        //   this.inputDirection.z = 0;
+        // }
+
+        // For actions (jump/boost), allow both keyboard and touch
+        // const mobileWantJump = MobileInputManager.getWantJump();
+        // const mobileWantBoost = MobileInputManager.getWantBoost();
+
+        // Use keyboard input if available, otherwise use touch input
+        // if (!this.keysDown.has(' ') && mobileWantJump) {
+        //   this.wantJump = true;
+        // } else if (!this.keysDown.has(' ') && !mobileWantJump) {
+        //   this.wantJump = false;
+        // }
+        // if (!this.keysDown.has('shift') && mobileWantBoost) {
+        //   this.boostActive = true;
+        // } else if (!this.keysDown.has('shift') && !mobileWantBoost) {
+        //   this.boostActive = false;
+        // }
+      } else {
+        // Standard mobile behavior - replace keyboard input with touch input
+        // this.inputDirection.copyFrom(mobileDirection);
+
+        // Only update player rotation based on X-axis (left/right) when not in air
+        // if (this.state !== CHARACTER_STATES.IN_AIR && Math.abs(mobileDirection.x) > 0.1) {
+        //   const rotationSpeed = this.currentCharacter?.rotationSpeed || 0.05;
+        //   this.targetRotationY += mobileDirection.x * rotationSpeed;
+        // }
+
+        // Set forward/backward movement based on Y-axis
+        // if (Math.abs(mobileDirection.z) > 0.1) {
+        //   this.inputDirection.z = mobileDirection.z;
+        // } else {
+        //   this.inputDirection.z = 0;
+        // }
+
+        // Clear X movement since we're using it for rotation
+        this.inputDirection.x = 0;
+
+        // Use mobile input for actions
+        // this.wantJump = MobileInputManager.getWantJump();
+        // this.boostActive = MobileInputManager.getWantBoost();
+      }
+
+      // Always update particle system to ensure proper on/off state
+      this.updateParticleSystem();
+    }
+  }
+
+  private toggleDebugDisplay(): void {
+    this.displayCapsule.isVisible = !this.displayCapsule.isVisible;
+  }
+
+  private toggleHUD(): void {
+    // This would need to be connected to HUDManager
+  }
+
+  private cycleHUDPosition(): void {
+    // This would need to be connected to HUDManager
+  }
+
+  private resetCameraToDefaultOffset(): void {
+    if (this.cameraController && isCameraControllerInterface(this.cameraController) && 'resetCameraToDefaultOffset' in this.cameraController) {
+      this.cameraController.resetCameraToDefaultOffset();
+    }
+  }
+
+  private updateParticleSystem(): void {
+        if (this.playerParticleSystem) {
+          if (this.boostActive) {
+            this.playerParticleSystem.start();
+          } else {
+            this.playerParticleSystem.stop();
+          }
+        }
+
+    // Update thruster sound (like playground - simple and direct)
+    if (this.thrusterSound) {
+      // Check if sound is ready to play
+      const isReady = this.thrusterSound.isReady ? this.thrusterSound.isReady() : true;
+      
+      if (this.boostActive) {
+        if (isReady && !this.thrusterSound.isPlaying) {
+          this.thrusterSound.play();
+          this.thrusterSoundAttempted = true;
+        } else if (!isReady && !this.thrusterSound.isPlaying && !this.thrusterSoundAttempted) {
+          // Try to play anyway - sometimes isReady() is unreliable
+          try {
+            this.thrusterSound.play();
+            this.thrusterSoundAttempted = true;
+          } catch (error) {
+            this.thrusterSoundAttempted = true;
+          }
+        }
+      } else {
+        if (this.thrusterSound.isPlaying) {
+          this.thrusterSound.stop();
+        }
+        // Reset the attempt flag when boost is released
+        this.thrusterSoundAttempted = false;
+      }
+    }
+  }
+
+  private updateCharacter = (): void => {
+    // Update mobile input every frame
+    this.updateMobileInput();
+
+    this.updateRotation();
+    this.updatePosition();
+    this.updateAnimations();
+    this.updateParticleSystem();
+    
+    // Animation debugging removed to prevent spam
+  };
+
+  private updateRotation(): void {
+    // If camera is controlling rotation, don't interfere
+    if (this.cameraController && isCameraControllerInterface(this.cameraController) && 'isRotatingCharacter' in this.cameraController) {
+      if (this.cameraController.isRotatingCharacter === true) {
+        // Update target rotation to match current rotation to prevent jerking
+        this.targetRotationY = this.displayCapsule.rotation.y;
+        return;
+      }
+    }
+
+    // Prevent rotation while in air for more realistic physics
+    if (this.state === CHARACTER_STATES.IN_AIR) {
+      return;
+    }
+
+    // Handle rotation based on input using active character's properties
+    const rotationSpeed = this.currentCharacter?.rotationSpeed ?? 0.05;
+    const rotationSmoothing = this.currentCharacter?.rotationSmoothing ?? 0.2;
+
+    if (this.keysDown.has('a' as InputKey) || this.keysDown.has('arrowleft' as InputKey)) {
+      this.targetRotationY -= rotationSpeed;
+    }
+    if (this.keysDown.has('d' as InputKey) || this.keysDown.has('arrowright' as InputKey)) {
+      this.targetRotationY += rotationSpeed;
+    }
+
+    this.displayCapsule.rotation.y += (this.targetRotationY - this.displayCapsule.rotation.y) * rotationSmoothing;
+  }
+
+  private updatePosition(): void {
+    // Update display capsule position
+    this.displayCapsule.position.copyFrom(this.characterController.getPosition());
+
+    // Update player mesh position
+    this.playerMesh.position.copyFrom(this.characterController.getPosition());
+    this.playerMesh.position.y += CONFIG.ANIMATION.PLAYER_Y_OFFSET;
+
+    // Update player mesh rotation
+    if (this.displayCapsule.rotationQuaternion) {
+      this.playerMesh.rotationQuaternion ??= new Quaternion();
+      this.playerMesh.rotationQuaternion.copyFrom(this.displayCapsule.rotationQuaternion);
+    } else {
+      this.playerMesh.rotationQuaternion = null;
+      this.playerMesh.rotation.copyFrom(this.displayCapsule.rotation);
+    }
+  }
+
+  private updateAnimations(): void {
+    const isMoving = this.isAnyMovementKeyPressed();
+
+
+    // Update animation controller with character state
+    if (this.animationController) {
+      this.animationController.updateAnimation(isMoving, this.state);
+      this.animationController.updateBlend();
+    }
+
+    // Check for walk activation to trigger character rotation
+    if (isMoving && this.cameraController && isCameraControllerInterface(this.cameraController) && 'checkForWalkActivation' in this.cameraController) {
+      this.cameraController.checkForWalkActivation();
+    }
+  }
+
+  private isAnyMovementKeyPressed(): boolean {
+    // Check keyboard input
+    const keyboardMoving = INPUT_KEYS.FORWARD.some(key => this.keysDown.has(key)) ||
+      INPUT_KEYS.BACKWARD.some(key => this.keysDown.has(key)) ||
+      INPUT_KEYS.LEFT.some(key => this.keysDown.has(key)) ||
+      INPUT_KEYS.RIGHT.some(key => this.keysDown.has(key)) ||
+      INPUT_KEYS.STRAFE_LEFT.some(key => this.keysDown.has(key)) ||
+      INPUT_KEYS.STRAFE_RIGHT.some(key => this.keysDown.has(key));
+
+    // Safety check: Turn off boost if no boost keys are down
+    const boostKeyDown = INPUT_KEYS.BOOST.some(key => this.keysDown.has(key));
+    if (!boostKeyDown && this.boostActive) {
+      this.boostActive = false;
+      this.updateParticleSystem();
+      HUDEvents.boost('Inactive');
+    }
+
+    // Always return keyboard input for movement detection
+    // Mobile input is handled separately in the mobile input system
+    return keyboardMoving;
+  }
+
+  private updatePhysics = (): void => {
+    if (!this.scene.deltaTime) return;
+
+    const deltaTime = this.scene.deltaTime / 1000.0;
+    if (deltaTime === 0) return;
+
+    // Skip physics updates if paused
+    if (this.physicsPaused) return;
+
+    const down = Vector3.Down();
+    const support = this.characterController.checkSupport(deltaTime, down);
+
+    const characterOrientation = Quaternion.FromEulerAngles(0, this.displayCapsule.rotation.y, 0);
+    const desiredVelocity = this.calculateDesiredVelocity(deltaTime, support, characterOrientation);
+
+    this.characterController.setVelocity(desiredVelocity);
+    this.characterController.integrate(deltaTime, support, CONFIG.PHYSICS.CHARACTER_GRAVITY);
+    
+  };
+
+  private calculateDesiredVelocity(
+    deltaTime: number,
+    supportInfo: CharacterSurfaceInfo,
+    characterOrientation: Quaternion
+  ): Vector3 {
+    const nextState = this.getNextState(supportInfo);
+    if (nextState !== this.state) {
+      this.state = nextState;
+      // Emit HUD event for state change - THE WORD OF THE LORD!
+      HUDEvents.state(this.state);
+    }
+
+    const upWorld = CONFIG.PHYSICS.CHARACTER_GRAVITY.normalizeToNew();
+    upWorld.scaleInPlace(-1.0);
+
+    const forwardLocalSpace = Vector3.Forward();
+    const forwardWorld = forwardLocalSpace.applyRotationQuaternion(characterOrientation);
+    const currentVelocity = this.characterController.getVelocity();
+
+    switch (this.state) {
+      case CHARACTER_STATES.IN_AIR:
+        return this.calculateAirVelocity(deltaTime, forwardWorld, upWorld, currentVelocity, characterOrientation);
+
+      case CHARACTER_STATES.ON_GROUND:
+        return this.calculateGroundVelocity(deltaTime, forwardWorld, upWorld, currentVelocity, supportInfo, characterOrientation);
+
+      case CHARACTER_STATES.START_JUMP:
+        return this.calculateJumpVelocity(currentVelocity, upWorld);
+
+      default:
+        return Vector3.Zero();
+    }
+  }
+
+  private calculateAirVelocity(
+    deltaTime: number,
+    forwardWorld: Vector3,
+    upWorld: Vector3,
+    currentVelocity: Vector3,
+    characterOrientation: Quaternion
+  ): Vector3 {
+    // Get character-specific physics attributes
+    const character = this.currentCharacter;
+    if (!character) {
+      logger.warn("No character set for air physics calculations", { context: 'CharacterController', tag: 'physics' });
+      return currentVelocity;
+    }
+
+    const characterMass = character.mass;
+    let outputVelocity = currentVelocity.clone();
+
+    // If boost is active, allow input-based velocity modification while in air
+    if (this.boostActive) {
+      // Character-specific air speed using active character's properties
+      const baseSpeed = character.speed.inAir * character.speed.boostMultiplier;
+      const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
+      const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
+      outputVelocity = this.characterController.calculateMovement(
+        deltaTime, forwardWorld, upWorld, currentVelocity,
+        Vector3.Zero(), desiredVelocity, upWorld
+      );
+    } else {
+      // Maintain initial jump velocity while in air - no input-based velocity modification
+      // Only apply gravity and minimal air resistance to preserve realistic physics
+    }
+
+    // Character-specific air resistance based on mass
+    // Heavier characters (like Zombie: 1.5) have more air resistance, lighter characters (like Tech Girl: 0.8) are more aerodynamic
+    const baseAirResistance = 0.98;
+    const massAdjustedAirResistance = baseAirResistance - (characterMass - 1.0) * 0.01; // Heavier = more resistance
+    outputVelocity.scaleInPlace(massAdjustedAirResistance);
+
+    // Preserve vertical velocity component from jump
+    outputVelocity.addInPlace(upWorld.scale(-outputVelocity.dot(upWorld)));
+    outputVelocity.addInPlace(upWorld.scale(currentVelocity.dot(upWorld)));
+
+    // Apply gravity
+    outputVelocity.addInPlace(CONFIG.PHYSICS.CHARACTER_GRAVITY.scale(deltaTime));
+
+    return outputVelocity;
+  }
+
+  private calculateGroundVelocity(
+    deltaTime: number,
+    forwardWorld: Vector3,
+    upWorld: Vector3,
+    currentVelocity: Vector3,
+    supportInfo: CharacterSurfaceInfo,
+    characterOrientation: Quaternion
+  ): Vector3 {
+    // Get character-specific physics attributes
+    const character = this.currentCharacter;
+    if (!character) {
+      logger.warn("No character set for physics calculations", { context: 'CharacterController', tag: 'physics' });
+      return currentVelocity;
+    }
+
+    const characterMass = character.mass;
+
+    // Character-specific speed calculations using active character's properties
+    const baseSpeed = this.boostActive ? character.speed.onGround * character.speed.boostMultiplier : character.speed.onGround;
+    const massAdjustedSpeed = baseSpeed / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
+
+    const desiredVelocity = this.inputDirection.scale(massAdjustedSpeed).applyRotationQuaternion(characterOrientation);
+    const outputVelocity = this.characterController.calculateMovement(
+      deltaTime, forwardWorld, supportInfo.averageSurfaceNormal ?? new Vector3(0, 1, 0), currentVelocity,
+      supportInfo.averageSurfaceVelocity ?? new Vector3(0, 0, 0), desiredVelocity, upWorld
+    );
+
+    if (supportInfo.averageSurfaceVelocity) {
+      outputVelocity.subtractInPlace(supportInfo.averageSurfaceVelocity);
+    }
+
+    // Character-specific friction based on mass
+    // Heavier characters have more friction (more stable), lighter characters have less friction (more slippery)
+    const baseFriction = 0.95;
+    const massAdjustedFriction = baseFriction + (characterMass - 1.0) * 0.02; // Heavier = more friction
+    const maxSpeed = massAdjustedSpeed * 2.0;
+
+    // Apply character-specific friction
+    outputVelocity.scaleInPlace(massAdjustedFriction);
+
+    // Clamp velocity to prevent excessive sliding
+    const currentSpeed = outputVelocity.length();
+    if (currentSpeed > maxSpeed) {
+      const normalizedVelocity = outputVelocity.normalize();
+      normalizedVelocity.scaleInPlace(maxSpeed);
+    }
+
+    // Character-specific damping when no input is detected
+    // Heavier characters stop more quickly, lighter characters slide more
+    if (this.inputDirection.length() < 0.1) {
+      const dampingFactor = 0.9 + (characterMass - 1.0) * 0.05; // Heavier = more damping
+      outputVelocity.scaleInPlace(dampingFactor);
+    }
+
+    const inv1k = 1e-3;
+    if (outputVelocity.dot(upWorld) > inv1k && supportInfo.averageSurfaceNormal) {
+      const velLen = outputVelocity.length();
+      outputVelocity.normalizeFromLength(velLen);
+      const horizLen = velLen / supportInfo.averageSurfaceNormal.dot(upWorld);
+      const c = supportInfo.averageSurfaceNormal.cross(outputVelocity);
+      const newOutputVelocity = c.cross(upWorld);
+      newOutputVelocity.scaleInPlace(horizLen);
+      return newOutputVelocity;
+    }
+
+    if (supportInfo.averageSurfaceVelocity) {
+      outputVelocity.addInPlace(supportInfo.averageSurfaceVelocity);
+    }
+    return outputVelocity;
+  }
+
+  private calculateJumpVelocity(currentVelocity: Vector3, upWorld: Vector3): Vector3 {
+    // Get character-specific physics attributes
+    const character = this.currentCharacter;
+    if (!character) {
+      logger.warn("No character set for jump physics calculations", { context: 'CharacterController', tag: 'physics' });
+      return currentVelocity;
+    }
+
+    const characterMass = character.mass;
+
+    // Character-specific jump height using active character's properties
+    const jumpHeight = this.boostActive ? 10.0 : character.jumpHeight; // Use character's jump height
+    const massAdjustedJumpHeight = jumpHeight / Math.sqrt(characterMass); // Additional mass adjustment for realistic physics
+
+    // Calculate jump velocity using physics formula: v = sqrt(2 * g * h)
+    const u = Math.sqrt(2 * CONFIG.PHYSICS.CHARACTER_GRAVITY.length() * massAdjustedJumpHeight);
+    const curRelVel = currentVelocity.dot(upWorld);
+
+    return currentVelocity.add(upWorld.scale(u - curRelVel));
+  }
+
+  private getNextState(supportInfo: CharacterSurfaceInfo): CharacterState {
+    switch (this.state) {
+      case CHARACTER_STATES.IN_AIR:
+        return supportInfo.supportedState === CharacterSupportedState.SUPPORTED
+          ? CHARACTER_STATES.ON_GROUND
+          : CHARACTER_STATES.IN_AIR;
+
+      case CHARACTER_STATES.ON_GROUND:
+        if (supportInfo.supportedState !== CharacterSupportedState.SUPPORTED) {
+          return CHARACTER_STATES.IN_AIR;
+        }
+        return this.wantJump ? CHARACTER_STATES.START_JUMP : CHARACTER_STATES.ON_GROUND;
+
+      case CHARACTER_STATES.START_JUMP:
+        return CHARACTER_STATES.IN_AIR;
+
+      default:
+        return CHARACTER_STATES.IN_AIR;
+    }
+  }
+
+  // Public methods from THE WORD OF GOD
+  public setPlayerMesh(mesh: AbstractMesh): void {
+    this.playerMesh = mesh;
+    // Scaling already applied by SceneManager.loadCharacter() using character.scale
+    // Do not override with hard-coded PLAYER_SCALE to maintain character-specific sizing
+    
+    // Position the character mesh at the same location as the display capsule - THE WORD OF THE LORD!
+    mesh.position = this.displayCapsule.position.clone();
+    mesh.rotation = this.displayCapsule.rotation.clone();
+  }
+
+  public getPlayerMesh(): AbstractMesh {
+    return this.playerMesh;
+  }
+
+  public getPhysicsCharacterController(): PhysicsCharacterController {
+    return this.characterController;
+  }
+
+  public getCurrentCharacter(): Character | null {
+    return this.currentCharacter;
+  }
+
+  public getPosition(): Vector3 {
+    return this.characterController.getPosition();
+  }
+
+  public getState(): string {
+    return this.state;
+  }
+
+  public updateCharacterPhysics(character: Character, spawnPosition: Vector3): void {
+    // Update character position to spawn point
+    this.characterController.setPosition(spawnPosition);
+
+    // Store current character for physics calculations
+    this.currentCharacter = character;
+
+    // Update character-specific physics attributes
+    // Note: PhysicsCharacterController doesn't allow runtime updates of capsule dimensions
+    // The display capsule can be updated for visual feedback
+    this.displayCapsule.scaling.setAll(1); // Reset scaling
+    this.displayCapsule.scaling.y = character.height / 1.8; // Scale height
+    this.displayCapsule.scaling.x = character.radius / 0.6; // Scale radius
+    this.displayCapsule.scaling.z = character.radius / 0.6; // Scale radius
+
+    // Reset physics state for new character
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
+    this.inputDirection.setAll(0);
+    this.wantJump = false;
+    this.boostActive = false;
+    this.state = CHARACTER_STATES.IN_AIR;
+  }
+
+  public getDisplayCapsule(): Mesh {
+    return this.displayCapsule;
+  }
+
+  public setCameraController(cameraController: SmoothFollowCameraController): void {
+    this.cameraController = cameraController;
+  }
+
+  public setPlayerParticleSystem(particleSystem: IParticleSystem | null): void {
+    this.playerParticleSystem = particleSystem;
+    // CRITICAL: Ensure particle system is stopped and invisible on startup
+    if (particleSystem) {
+      particleSystem.stop();
+      // Ensure emitter is properly set to the character mesh
+      if (this.playerMesh && this.playerMesh !== this.displayCapsule) {
+        particleSystem.emitter = this.playerMesh;
+      }
+    }
+  }
+
+  public getPlayerParticleSystem(): IParticleSystem | null {
+    return this.playerParticleSystem;
+  }
+
+  public setThrusterSound(sound: Sound): void {
+    this.thrusterSound = sound;
+    // Start with sound stopped (like playground)
+    sound.stop();
+  }
+
+
+  public isMoving(): boolean {
+    return this.isAnyMovementKeyPressed();
+  }
+
+  public isBoosting(): boolean {
+    return this.boostActive;
+  }
+
+  public isOnGround(): boolean {
+    return this.state === CHARACTER_STATES.ON_GROUND;
+  }
+
+  public getPhysicsBody(): PhysicsBody | null {
+    // PhysicsCharacterController doesn't expose its physics body directly
+    // We'll use the display capsule for collision detection instead
+    return null;
+  }
+
+  public getVelocity(): Vector3 {
+    return this.characterController.getVelocity();
+  }
+
+  public setPosition(position: Vector3): void {
+    this.characterController.setPosition(position);
+    
+    // Update character mesh position to match display capsule - THE WORD OF THE LORD!
+    if (this.playerMesh && this.playerMesh !== this.displayCapsule) {
+      this.playerMesh.position = position.clone();
+    }
+  }
+
+  public setVelocity(velocity: Vector3): void {
+    this.characterController.setVelocity(velocity);
+  }
+
+  public pausePhysics(): void {
+    this.physicsPaused = true;
+    // Set velocity to zero to stop movement
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
+  }
+
+  public resumePhysics(): void {
+    this.physicsPaused = false;
+  }
+
+  public isPhysicsPaused(): boolean {
+    return this.physicsPaused;
+  }
+
+  public resetToStartPosition(): void {
+    // Use environment spawn point instead of character start position
+    const environment = ASSETS.ENVIRONMENTS.find(env => env.name === "Level Test");
+    const spawnPoint = environment?.spawnPoint ?? new Vector3(0, 0, 0);
+    this.characterController.setPosition(spawnPoint);
+    this.characterController.setVelocity(new Vector3(0, 0, 0));
+    this.inputDirection.setAll(0);
+    this.wantJump = false;
+    this.boostActive = false;
+    this.state = CHARACTER_STATES.IN_AIR;
+  }
+
+  public dispose(): void {
+    // Dispose display capsule
+    this.displayCapsule.dispose();
+    
+    // Dispose animation controller
+    if (this.animationController) {
+      this.animationController.dispose();
+    }
+    
+    // Dispose mobile input manager
+    // MobileInputManager.dispose();
+    
+    // Note: PhysicsCharacterController doesn't have a dispose method
+    // It will be automatically cleaned up when the scene is disposed
+    
+    logger.info("CharacterController disposed", { context: 'CharacterController', tag: 'disposal' });
+  }
+
+  public getThrusterSound(): Sound | null {
+    return this.thrusterSound;
+  }
+
+  public getCharacterState(): {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    state: string;
+    boostActive: boolean;
+  } {
+    const position = this.getPosition();
+    const rotation = this.displayCapsule.rotation;
+    
+    return {
+      position: { x: position.x, y: position.y, z: position.z },
+      rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+      state: this.state,
+      boostActive: this.boostActive
+    };
+  }
+}

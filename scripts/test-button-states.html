@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button State Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .button-demo { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .join { background-color: #1976d2; color: white; }
+        .leave { background-color: #d32f2f; color: white; }
+        .status { margin: 10px 0; font-weight: bold; }
+        .connected { color: green; }
+        .disconnected { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Dynamic Game Button Test</h1>
+    
+    <div class="button-demo">
+        <h3>Current State:</h3>
+        <div id="status" class="status disconnected">Disconnected</div>
+        
+        <h3>Dynamic Button:</h3>
+        <button id="gameButton" class="button join" onclick="toggleConnection()">
+            <span id="buttonIcon">🔑</span>
+            <span id="buttonText">Join Game</span>
+        </button>
+        
+        <h3>Test Controls:</h3>
+        <button onclick="simulateConnection()">Simulate Connection</button>
+        <button onclick="simulateDisconnection()">Simulate Disconnection</button>
+    </div>
+
+    <script>
+        let isConnected = false;
+
+        function updateButton() {
+            const button = document.getElementById('gameButton');
+            const icon = document.getElementById('buttonIcon');
+            const text = document.getElementById('buttonText');
+            const status = document.getElementById('status');
+
+            if (isConnected) {
+                button.className = 'button leave';
+                icon.textContent = '🚪';
+                text.textContent = 'Leave Game';
+                status.textContent = 'Connected';
+                status.className = 'status connected';
+            } else {
+                button.className = 'button join';
+                icon.textContent = '🔑';
+                text.textContent = 'Join Game';
+                status.textContent = 'Disconnected';
+                status.className = 'status disconnected';
+            }
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                isConnected = false;
+                console.log('Left game');
+            } else {
+                isConnected = true;
+                console.log('Joined game');
+            }
+            updateButton();
+        }
+
+        function simulateConnection() {
+            isConnected = true;
+            updateButton();
+        }
+
+        function simulateDisconnection() {
+            isConnected = false;
+            updateButton();
+        }
+
+        // Initialize
+        updateButton();
+    </script>
+</body>
+</html>

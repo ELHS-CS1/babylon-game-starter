@@ -215,12 +215,28 @@ interface Environment {
     readonly spawnPoint: BABYLON.Vector3; // Spawn point for this environment
     readonly particles?: readonly EnvironmentParticle[]; // Optional environment particles
     readonly items?: readonly ItemConfig[]; // Optional items configuration for this environment
+    readonly backgroundMusic?: BackgroundMusicConfig; // Optional looping non-positional BGM
+    readonly ambientSounds?: readonly AmbientSoundConfig[]; // Optional positional ambient sounds
 }
 
 interface EnvironmentParticle {
     readonly name: string; // Name of the particle snippet to use
     readonly position: BABYLON.Vector3; // Position where the particle should be created
     readonly updateSpeed?: number; // Optional update speed for the particle system
+}
+
+// Audio Types
+interface BackgroundMusicConfig {
+    readonly url: string;
+    readonly volume: number;
+}
+
+interface AmbientSoundConfig {
+    readonly url: string;
+    readonly volume: number;
+    readonly position: BABYLON.Vector3;
+    readonly rollOff?: number; // Defaults to 2
+    readonly maxDistance?: number; // Defaults to 40
 }
 
 // Asset Types
@@ -374,6 +390,19 @@ const ASSETS = {
                 TYPE: "SPHERE" as SkyType
             },
             spawnPoint: new BABYLON.Vector3(3, 0.5, -8),
+            backgroundMusic: {
+                url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/bgm/CosmicWhispers.mp3",
+                volume: 0.03
+            },
+            ambientSounds: [
+                {
+                    url: "https://raw.githubusercontent.com/EricEisaman/assets/main/audio/ambience/space-ambience.mp3",
+                    volume: 0.2,
+                    position: new BABYLON.Vector3(-2, 1, -6),
+                    rollOff: 2,
+                    maxDistance: 40
+                }
+            ],
             particles: [
                 {
                     name: "Magic Sparkles",
@@ -456,6 +485,50 @@ const ASSETS = {
                             mass: 0.5
                         }
                     ]
+                }
+            ]
+        },
+        {
+            name: "Flat City",
+            model: "https://raw.githubusercontent.com/EricEisaman/assets/main/environment/city-flat.glb",
+            lightmap: "",
+            scale: 1.0,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(89, 15, -161.5),
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(83, 11.4, -156.5), // Fire on top of building 
+                    updateSpeed: 0.007
+                }
+            ]
+        },
+               {
+            name: "Dystopia",
+            model: "https://raw.githubusercontent.com/EricEisaman/assets/main/environment/dystopia.glb",
+            lightmap: "",
+            scale: 2,
+            lightmappedMeshes: [],
+            physicsObjects: [],
+            sky: {
+                TEXTURE_URL: "https://raw.githubusercontent.com/EricEisaman/game-dev-1a/main/assets/images/skies/happy_fluffy_sky.png",
+                ROTATION_Y: 0,
+                BLUR: 0.2,
+                TYPE: "SPHERE" as SkyType
+            },
+            spawnPoint: new BABYLON.Vector3(3, 0, 31),
+            particles: [
+                {
+                    name: "Magic Sparkles",
+                    position: new BABYLON.Vector3(83, 11.4, -156.5), // Fire on top of building 
+                    updateSpeed: 0.007
                 }
             ]
         },
@@ -2007,6 +2080,8 @@ class EffectsManager {
     private static itemParticleSystems: Map<string, BABYLON.IParticleSystem> = new Map();
     private static activeSounds: Map<string, BABYLON.Sound> = new Map();
     private static scene: BABYLON.Scene | null = null;
+    private static backgroundMusic: BABYLON.Sound | null = null;
+    private static ambientSounds: BABYLON.Sound[] = [];
 
     /**
      * Initializes the EffectsManager with a scene
@@ -2014,6 +2089,103 @@ class EffectsManager {
      */
     public static initialize(scene: BABYLON.Scene): void {
         this.scene = scene;
+    }
+
+    // Fades a sound's volume from -> to over ms; resolves when complete
+    private static async fade(sound: BABYLON.Sound, from: number, to: number, ms: number): Promise<void> {
+        if (!this.scene || ms <= 0) {
+            sound.setVolume(to);
+            return Promise.resolve();
+        }
+        const startTime = Date.now();
+        sound.setVolume(from);
+        return new Promise<void>((resolve) => {
+            const obs = this.scene!.onBeforeRenderObservable.add(() => {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(1, elapsed / ms);
+                const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                const current = from + (to - from) * eased;
+                sound.setVolume(current);
+                if (t >= 1) {
+                    this.scene!.onBeforeRenderObservable.remove(obs);
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public static async crossfadeBackgroundMusic(url: string, volume: number, fadeMs: number = 1000): Promise<void> {
+        if (!this.scene) {
+            console.warn("EffectsManager not initialized. Call initialize() first.");
+            return;
+        }
+        // Fade out and dispose existing
+        if (this.backgroundMusic) {
+            try {
+                await this.fade(this.backgroundMusic, this.backgroundMusic.getVolume(), 0, fadeMs);
+            } catch { /* no-op */ }
+            this.backgroundMusic.stop();
+            this.backgroundMusic.dispose();
+            this.backgroundMusic = null;
+        }
+        // Create new non-positional looping sound
+        const bgm = new BABYLON.Sound("environment_bgm", url, this.scene, null, {
+            loop: true,
+            autoplay: true,
+            spatialSound: false,
+            volume: 0
+        });
+        this.backgroundMusic = bgm;
+        await this.fade(bgm, 0, volume, fadeMs);
+    }
+
+    public static async stopAndDisposeBackgroundMusic(fadeMs: number = 1000): Promise<void> {
+        if (!this.backgroundMusic) return;
+        try {
+            await this.fade(this.backgroundMusic, this.backgroundMusic.getVolume(), 0, fadeMs);
+        } catch { /* no-op */ }
+        this.backgroundMusic.stop();
+        this.backgroundMusic.dispose();
+        this.backgroundMusic = null;
+    }
+
+    public static async setupAmbientSounds(configs: readonly AmbientSoundConfig[]): Promise<void> {
+        if (!this.scene) {
+            console.warn("EffectsManager not initialized. Call initialize() first.");
+            return;
+        }
+        // Ensure previous are cleared first
+        this.removeAmbientSounds();
+        for (const cfg of configs) {
+            try {
+                const s = new BABYLON.Sound("ambient", cfg.url, this.scene, null, {
+                    loop: true,
+                    autoplay: true,
+                    spatialSound: true,
+                    volume: cfg.volume
+                });
+                s.setPosition(cfg.position);
+                // Defaults: rollOff=2, maxDistance=40
+                if (typeof (s as any).rolloffFactor === 'number') {
+                    (s as any).rolloffFactor = (cfg.rollOff ?? 2);
+                }
+                if (typeof (s as any).maxDistance === 'number' || (s as any).maxDistance === undefined) {
+                    (s as any).maxDistance = (cfg.maxDistance ?? 40);
+                }
+                this.ambientSounds.push(s);
+            } catch (e) {
+                console.warn("Failed to create ambient sound:", e);
+            }
+        }
+    }
+
+    public static removeAmbientSounds(): void {
+        if (this.ambientSounds.length === 0) return;
+        for (const s of this.ambientSounds) {
+            try { s.stop(); } catch { /* no-op */ }
+            try { s.dispose(); } catch { /* no-op */ }
+        }
+        this.ambientSounds = [];
     }
 
     /**
@@ -2362,6 +2534,14 @@ class EffectsManager {
             sound.dispose();
         });
         this.activeSounds.clear();
+
+        // Also stop/dispose BGM and ambient managed separately
+        if (this.backgroundMusic) {
+            try { this.backgroundMusic.stop(); } catch { /* no-op */ }
+            try { this.backgroundMusic.dispose(); } catch { /* no-op */ }
+            this.backgroundMusic = null;
+        }
+        this.removeAmbientSounds();
 
     }
 }
@@ -3309,48 +3489,12 @@ class CollectiblesManager {
 
                 }
 
-            } else {
-                console.warn("No meshes with geometry found in item model, creating fallback");
-                this.createFallbackInstanceBasis();
             }
         } catch (error) {
             console.error("Failed to load item model:", error);
-
-            this.createFallbackInstanceBasis();
         }
     }
 
-    /**
-     * Creates a fallback instance basis using a simple box
-     */
-    private static createFallbackInstanceBasis(): void {
-        if (!this.scene) return;
-
-        // Create a fallback item using a simple box - CAST TO MESH!
-        this.instanceBasis = BABYLON.MeshBuilder.CreateBox("fallback_item_basis", { size: 2 }, this.scene) as BABYLON.Mesh; // Larger size
-
-        // Create a bright baby blue material to make it very visible
-        const material = new BABYLON.StandardMaterial("fallback_item_basis_material", this.scene);
-        material.diffuseColor = new BABYLON.Color3(0.5, 0.8, 1); // Baby blue
-        material.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.3); // Subtle blue glow
-        material.specularColor = new BABYLON.Color3(1, 1, 1); // Shiny
-        this.instanceBasis.material = material;
-
-        // Instance basis should not be scaled - scaling will be applied to individual instances
-
-        // Make the instance basis invisible and disable it in the scene
-        this.instanceBasis.isVisible = false;
-        this.instanceBasis.setEnabled(false);
-
-        // Create reusable physics shape for fallback items
-        this.physicsShape = new BABYLON.PhysicsShapeBox(
-            BABYLON.Vector3.Zero(), // Center - use static zero
-            BABYLON.Quaternion.Identity(), // Rotation - use static identity
-            BABYLON.Vector3.One(), // Size - use static one
-            this.scene
-        );
-
-    }
 
     /**
      * Creates a collectible instance from the instance basis
@@ -5106,6 +5250,8 @@ class SceneManager {
 
         // Clear existing environment particles before creating new ones
         this.clearParticles();
+        // Also clear ambient sounds before switching
+        EffectsManager.removeAmbientSounds();
 
         try {
             const result = await BABYLON.ImportMeshAsync(environment.model, this.scene);
@@ -5125,6 +5271,17 @@ class SceneManager {
                         rootMesh.scaling.z = environment.scale;
                     }
                 }
+            }
+
+            // Handle background music crossfade
+            try {
+                if (environment.backgroundMusic) {
+                    await EffectsManager.crossfadeBackgroundMusic(environment.backgroundMusic.url, environment.backgroundMusic.volume, 1000);
+                } else {
+                    await EffectsManager.stopAndDisposeBackgroundMusic(1000);
+                }
+            } catch (error) {
+                console.warn("Failed to set environment background music:", error);
             }
 
             // Set up environment-specific sky if configured
@@ -5156,6 +5313,15 @@ class SceneManager {
 
             // Process any existing meshes for node materials
             await NodeMaterialManager.processMeshesForNodeMaterials();
+
+            // Ambient sounds setup (positional, looped)
+            if (environment.ambientSounds && environment.ambientSounds.length > 0) {
+                try {
+                    await EffectsManager.setupAmbientSounds(environment.ambientSounds);
+                } catch (error) {
+                    console.warn("Failed to setup ambient sounds:", error);
+                }
+            }
 
             // Environment items will be set up after character is fully loaded
             // This ensures CollectiblesManager is properly initialized
@@ -5519,6 +5685,8 @@ class SceneManager {
                 mesh.dispose();
             });
         }
+        // Remove ambient sounds tied to environment contents
+        EffectsManager.removeAmbientSounds();
     }
 
     /**
@@ -5645,6 +5813,9 @@ class SceneManager {
         if (this.characterController) {
             this.characterController.dispose();
         }
+        // Ensure all environment-related audio is stopped
+        EffectsManager.removeAmbientSounds();
+        EffectsManager.stopAndDisposeBackgroundMusic(0).catch(() => {});
     }
 }
 
@@ -6765,3 +6936,5 @@ class NodeMaterialManager {
         this.scene = null;
     }
 }
+
+export default Playground

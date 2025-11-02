@@ -1,0 +1,92 @@
+{
+  "compilerOptions": {
+    // === CORE SETTINGS ===
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    
+    // === MAXIMUM STRICT TYPE CHECKING - ALL AVAILABLE STRICT OPTIONS ===
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    // === ADDITIONAL MAXIMUM STRICTNESS ===
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noStrictGenericChecks": false,
+    "suppressExcessPropertyErrors": false,
+    "suppressImplicitAnyIndexErrors": false,
+    
+    // === PROJECT REFERENCES ===
+    "sourceMap": true,
+    
+    // === LEGACY COMPATIBILITY ===
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": false,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    
+    // === VUETIFY STRICT MODE ===
+    "alwaysStrict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    // === PATH MAPPING ===
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/client/*"],
+      "@server/*": ["src/server/*"],
+      "@game/*": ["src/client/game/*"],
+      "@components/*": ["src/client/components/*"],
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@assets/*": ["assets/*"]
+    }
+  },
+  "include": [
+    "tests/**/*",
+    "scripts/**/*",
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "src/**/*.test.ts",
+    "*.ts",
+    "*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "**/*.js",
+    "**/*.mjs",
+    "src/**/dist/**/*"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}
