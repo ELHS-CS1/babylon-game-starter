@@ -18,5 +18,6 @@ description: >
 ✅ NO LOGS
 ✅ Fully type-safe
 ✅ No name based filtering. Metadata property filtering preferred.
+✅ Always consider whether an update to any README.md or other markdown file is warranted.
 
 
